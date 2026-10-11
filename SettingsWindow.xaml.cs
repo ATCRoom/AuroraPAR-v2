@@ -37,6 +37,8 @@ namespace AuroraPAR
                 Rect area = SystemParameters.WorkArea;
                 if (Top + ActualHeight > area.Bottom) Top = area.Bottom - ActualHeight;
                 if (Top < area.Top) Top = area.Top;
+                if (Left + ActualWidth > area.Right) Left = area.Right - ActualWidth;
+                if (Left < area.Left) Left = area.Left;
             };
             this.settings = settings;
             this.applyToScreen = applyToScreen;
@@ -619,9 +621,10 @@ namespace AuroraPAR
         {
             int row = builderGrid.RowDefinitions.Count;
             builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            TextBlock text = new() { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 8, 2) };
+            TextBlock text = new() { Text = label, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 8, 2) };
             ComboBox shapeBox = new()
             {
+                Width = 170,
                 ItemsSource = shapes.Select(shape => new SymbolChoice(shape)).ToList(),
                 ItemTemplate = SymbolTemplate,
                 Margin = new Thickness(0, 2, 6, 2)
