@@ -328,9 +328,10 @@
                         <TextBlock Text="Range" VerticalAlignment="Center"/>
                         <ComboBox Name="RangeControlComboBox" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0"
-                                    ToolTip="Console keys: text of the key back to the preferred range (middle key), at most 5 characters. FIAR keys: always PREF.">
-                            <TextBlock Text="middle key:" VerticalAlignment="Center"/>
+                                    ToolTip="Text of the key / button back to the preferred range (Modern button, Analog middle key), at most 5 characters; or the preferred range itself (e.g. 15NM). FIAR keys: always PREF.">
+                            <TextBlock Text="PREF button:" VerticalAlignment="Center"/>
                             <TextBox Name="RangeKeyTextBox" Width="52" Height="22" Margin="6,0,0,0" MaxLength="5" CharacterCasing="Upper" VerticalContentAlignment="Center"/>
+                            <CheckBox Name="RangeMilesCheck" Content="show the range (NM)" Margin="10,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Grid.Row="1" Text="Antenna tilt" VerticalAlignment="Center"/>
                         <ComboBox Name="TiltControlComboBox" Grid.Row="1" Grid.Column="1" Width="190" Margin="0,3,0,3"/>

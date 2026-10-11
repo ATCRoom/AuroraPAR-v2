@@ -285,6 +285,14 @@ namespace AuroraPAR
         public AnalogRangeControl RangeControl { get; set; } = AnalogRangeControl.Knob;
         /// <summary>Text of the key back to the preferred range (<see cref="AnalogRangeControl.StepKeys"/>), at most 5 characters.</summary>
         public string RangeDefaultKey { get; set; } = "DEF";
+        /// <summary>The key/button back to the preferred range shows that range (e.g. 15NM) instead of <see cref="RangeDefaultKey"/>.</summary>
+        public bool RangeDefaultMiles { get; set; }
+
+        /// <summary>Text of the key/button back to the preferred range: the range in NM or the text chosen.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string PreferredRangeText => RangeDefaultMiles
+            ? PreferredRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "NM"
+            : RangeDefaultKey;
         public AnalogTiltControl TiltControl { get; set; } = AnalogTiltControl.Knobs;
         public AnalogControl DhControl { get; set; } = AnalogControl.Knob;
         public AnalogControl BrightnessControl { get; set; } = AnalogControl.Knob;

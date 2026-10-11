@@ -182,3 +182,4 @@ Move the project from the personal account (`altanico`) to a **GitHub organizati
 - GitHub Actions: update the actions (Node 20 is deprecated) — **do it during the move to the new AuroraPAR GitHub** (see above).
 - Delete the `phase1` test branch on GitHub.
 - Before the pull request to bornac1: check upstream changes, prepare the README.
+- Default.json da aggiungere al pacchetto Profiles dopo il test dell'utente (18:00 11 Oct)

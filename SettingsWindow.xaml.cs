@@ -65,6 +65,8 @@ namespace AuroraPAR
             ExportButton.Click += (s, e) => ExportProfile();
             ModernRadio.Checked += (s, e) => SetProfileValue(p => p.DisplayMode == DisplayMode.Modern, p => p.DisplayMode = DisplayMode.Modern);
             AnalogRadio.Checked += (s, e) => SetProfileValue(p => p.DisplayMode == DisplayMode.Analog, p => p.DisplayMode = DisplayMode.Analog);
+            RangeMilesCheck.Checked += (s, e) => SetProfileValue(p => p.RangeDefaultMiles, p => p.RangeDefaultMiles = true);
+            RangeMilesCheck.Unchecked += (s, e) => SetProfileValue(p => !p.RangeDefaultMiles, p => p.RangeDefaultMiles = false);
             LockModeCheck.Checked += (s, e) => SetProfileValue(p => p.LockDisplayMode, p => p.LockDisplayMode = true);
             LockModeCheck.Unchecked += (s, e) => SetProfileValue(p => !p.LockDisplayMode, p => p.LockDisplayMode = false);
             DhSideComboBox.ItemsSource = new[] { "left", "right", "both", "none" };
@@ -302,7 +304,8 @@ namespace AuroraPAR
                 DhDropLengthComboBox.SelectedIndex = Array.FindIndex(DhDropLengths, l => Math.Abs(l - Active.DhDropLength) < 0.5);
                 RangeControlComboBox.SelectedIndex = (int)Active.RangeControl;
                 if (!RangeKeyTextBox.IsKeyboardFocused) RangeKeyTextBox.Text = Active.RangeDefaultKey;
-                RangeKeyTextBox.IsEnabled = Active.RangeControl is AnalogRangeControl.StepKeys or AnalogRangeControl.PanelKeys;
+                RangeMilesCheck.IsChecked = Active.RangeDefaultMiles;
+                RangeKeyTextBox.IsEnabled = !Active.RangeDefaultMiles;
                 TiltControlComboBox.SelectedIndex = (int)Active.TiltControl;
                 DhControlComboBox.SelectedIndex = (int)Active.DhControl;
                 BrightnessControlComboBox.SelectedIndex = (int)Active.BrightnessControl;
@@ -488,7 +491,7 @@ namespace AuroraPAR
             {
                 if (refreshing || RangeControlComboBox.SelectedIndex < 0) return;
                 AnalogRangeControl value = (AnalogRangeControl)RangeControlComboBox.SelectedIndex;
-                RangeKeyTextBox.IsEnabled = value is AnalogRangeControl.StepKeys or AnalogRangeControl.PanelKeys;
+                RangeKeyTextBox.IsEnabled = !Active.RangeDefaultMiles;
                 SetProfileValue(p => p.RangeControl == value, p => p.RangeControl = value);
             };
             TiltControlComboBox.SelectionChanged += (s, e) =>

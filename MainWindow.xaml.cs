@@ -220,6 +220,7 @@ namespace AuroraPAR
             TiltRightButton.Click += (s, e) => TiltAntenna(0, AzimuthSign);
             TiltNeutralButton.Click += (s, e) => NeutralAntenna();
             LabelsButton.Click += (s, e) => ToggleLabels();
+            PrefButton.Click += (s, e) => SetRangeIndex(Ranges.IndexOfClosest(settings.Active.PreferredRange));
             LinButton.Click += (s, e) => SetDistanceScale(log: false);
             LogButton.Click += (s, e) => SetDistanceScale(log: true);
             ModeButton.Click += (s, e) => ToggleDisplayMode();
@@ -441,7 +442,7 @@ namespace AuroraPAR
         {
             Profile profile = settings.Active;
             string ranges = string.Join(",", Ranges.Values);
-            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.RangeDefaultKey}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.BrightnessControl}|{profile.RainClutter}";
+            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.BrightnessControl}|{profile.RainClutter}";
             if (layout == analogControlsLayout) return;
             analogControlsLayout = layout;
             KnobPanel.Children.Clear();
@@ -464,7 +465,7 @@ namespace AuroraPAR
                     [
                         ("<", "Range down (smaller) (key Page down).", () => SetRangeIndex(DistanceComboBox.SelectedIndex - 1), null),
                         // FIAR style: always PREF (the preferred range is set in Settings).
-                        (FiarKeys ? "PREF" : profile.RangeDefaultKey, "Back to the preferred range (Settings → Range and scale) (key End).",
+                        (FiarKeys ? "PREF" : profile.PreferredRangeText, "Back to the preferred range (Settings → Range and scale) (key End).",
                             () => SetRangeIndex(Ranges.IndexOfClosest(settings.Active.PreferredRange)),
                             () => DistanceComboBox.SelectedIndex == Ranges.IndexOfClosest(settings.Active.PreferredRange)),
                         (">", "Range up (larger) (key Page up).", () => SetRangeIndex(DistanceComboBox.SelectedIndex + 1), null)
@@ -777,6 +778,7 @@ namespace AuroraPAR
         private void UpdateAnalogKeys()
         {
             // Latching keys (one key per range): the selected one stays pressed in; spring-loaded keys only light up.
+            PrefButton.Tag = DistanceComboBox.SelectedIndex == Ranges.IndexOfClosest(settings.Active.PreferredRange) ? "Lit" : "Unlit";
             foreach ((Button key, Func<bool>? lit, bool latching) in analogKeys)
             {
                 key.Tag = lit?.Invoke() == true ? (latching ? "Selected" : "Lit") : "Unlit";
@@ -1282,6 +1284,7 @@ namespace AuroraPAR
             aptEntry.Icao = runway.ICAO;
             DistanceComboBox.Visibility = modern;
             ScalePanel.Visibility = modern;
+            PrefButton.Visibility = modern;
             TiltPanel.Visibility = modern;
             BrightnessPanel.Visibility = modern;
             DhDownButton.Visibility = modern;
@@ -2133,6 +2136,7 @@ namespace AuroraPAR
             viewOptions.Reminders = r => settings.RemindersFor(runways.Where(x => x.RunwayKey == r.RunwayKey).Select(x => x.ToString()).Append(r.ToString()));
             viewOptions.RangeTextBelowHorizon = profile.RangeTextBelowHorizon;
             viewOptions.DistanceKnee = profile.CompressedScale ? profile.CompressionKnee : 0;
+            PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
             LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";
             phosphorGlow.Color = viewOptions.Theme.Glow;
