@@ -176,7 +176,7 @@ namespace AuroraPAR
                 else if (e.Key == Key.Escape)
                 {
                     ShowAirportInUse();
-                    Keyboard.ClearFocus();
+                    FocusHelper.ReleaseKeyboard(this);
                     e.Handled = true;
                 }
             };
@@ -242,7 +242,7 @@ namespace AuroraPAR
                 {
                     if (d == focused) return;
                 }
-                Keyboard.ClearFocus();
+                FocusHelper.ReleaseKeyboard(this);
             };
             StartJoystick();
             DhUpButton.Click += (s, e) => SetDecisionHeight(runway.MDH + DecisionHeightStep);
@@ -258,13 +258,13 @@ namespace AuroraPAR
                 if (e.Key == Key.Enter)
                 {
                     ApplyGlidePathText();
-                    Keyboard.ClearFocus();
+                    FocusHelper.ReleaseKeyboard(this);
                     e.Handled = true;
                 }
                 else if (e.Key == Key.Escape)
                 {
                     UpdateGlidePathSelector();
-                    Keyboard.ClearFocus();
+                    FocusHelper.ReleaseKeyboard(this);
                     e.Handled = true;
                 }
             };

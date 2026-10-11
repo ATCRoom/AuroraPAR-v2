@@ -547,7 +547,7 @@ namespace AuroraPAR
             editing = false;
             blink.Stop();
             typed = "";
-            Keyboard.ClearFocus();
+            FocusHelper.ReleaseKeyboard(this);
             if (Submit?.Invoke(code) == true)
             {
                 Refresh();
@@ -608,12 +608,12 @@ namespace AuroraPAR
                     break;
                 case Key.Enter:
                     e.Handled = true;
-                    if (typed.Length > 0) Commit(); else { Cancel(); Keyboard.ClearFocus(); }
+                    if (typed.Length > 0) Commit(); else { Cancel(); FocusHelper.ReleaseKeyboard(this); }
                     break;
                 case Key.Escape:
                     e.Handled = true;
                     Cancel();
-                    Keyboard.ClearFocus();
+                    FocusHelper.ReleaseKeyboard(this);
                     break;
                 case Key.V when Keyboard.Modifiers == ModifierKeys.Control:
                     e.Handled = true;
