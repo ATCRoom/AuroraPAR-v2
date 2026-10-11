@@ -220,6 +220,8 @@ namespace AuroraPAR
             TiltRightButton.Click += (s, e) => TiltAntenna(0, AzimuthSign);
             TiltNeutralButton.Click += (s, e) => NeutralAntenna();
             LabelsButton.Click += (s, e) => ToggleLabels();
+            LinButton.Click += (s, e) => SetDistanceScale(log: false);
+            LogButton.Click += (s, e) => SetDistanceScale(log: true);
             ModeButton.Click += (s, e) => ToggleDisplayMode();
             CoordinationButton.Click += (s, e) => OpenCoordination();
             TestButton.Click += (s, e) => OpenTestTraffic();
@@ -450,7 +452,7 @@ namespace AuroraPAR
                 case AnalogRangeControl.RangeKeys:
                     AddKeyGroup("RANGE NM", Ranges.Values.Select((value, i) => (
                         value.ToString(invariant), $"Range {value.ToString(invariant)} NM",
-                        (Action)(() => SetRangeIndex(i)), (Func<bool>?)(() => DistanceComboBox.SelectedIndex == i))).ToArray(), latching: true);
+                        (Action)(() => SetRangeIndex(i)), (Func<bool>?)(() => DistanceComboBox.SelectedIndex == i))).ToArray(), latching: true, scaleKeys: true);
                     break;
                 case AnalogRangeControl.PanelKeys:
                     AddRangePanel(profile);
@@ -459,14 +461,35 @@ namespace AuroraPAR
                     AddKeyGroup("RANGE NM",
                     [
                         ("<", "Range down (smaller) (key Page down).", () => SetRangeIndex(DistanceComboBox.SelectedIndex - 1), null),
-                        (profile.RangeDefaultKey, "Back to the preferred range (Settings → Display) (key End).",
+                        // FIAR style: always PREF (the preferred range is set in Settings).
+                        (FiarKeys ? "PREF" : profile.RangeDefaultKey, "Back to the preferred range (Settings → Display) (key End).",
                             () => SetRangeIndex(Ranges.IndexOfClosest(settings.Active.PreferredRange)),
                             () => DistanceComboBox.SelectedIndex == Ranges.IndexOfClosest(settings.Active.PreferredRange)),
                         (">", "Range up (larger) (key Page up).", () => SetRangeIndex(DistanceComboBox.SelectedIndex + 1), null)
-                    ]);
+                    ], scaleKeys: true);
                     break;
                 default:
-                    KnobPanel.Children.Add(rangeKnob);
+                    if (FiarKeys)
+                    {
+                        // FIAR: the knob and the LIN | LOG key in one gold frame.
+                        StackPanel knobAndScale = new();
+                        knobAndScale.Children.Add(rangeKnob);
+                        knobAndScale.Children.Add(SplitScaleKey());
+                        KnobPanel.Children.Add(new Border
+                        {
+                            BorderBrush = PanelFrameBrush,
+                            BorderThickness = new Thickness(1.5),
+                            CornerRadius = new CornerRadius(2),
+                            Padding = new Thickness(1, 2, 1, 2),
+                            Margin = new Thickness(0, 4, 0, 6),
+                            Child = knobAndScale
+                        });
+                    }
+                    else
+                    {
+                        KnobPanel.Children.Add(rangeKnob);
+                        AddKeyGroup("SCALE", [], scaleKeys: true);
+                    }
                     break;
             }
             switch (profile.TiltControl)
@@ -537,7 +560,9 @@ namespace AuroraPAR
         /// <summary>A group of small keys, three per row, on a recessed plate with its engraved name.</summary>
         /// <param name="repeat">Keys that repeat while held (tilt, DH, BRT; not the range, which steps only on a deliberate
         /// press); the middle keys (0, RWY, 100: those with a lamp) never repeat.</param>
-        private void AddKeyGroup(string title, (string Text, string Tip, Action Action, Func<bool>? Lit)[] keys, bool latching = false, bool repeat = false)
+        /// <param name="scaleKeys">Also the LIN / LOG keys of the distance scale, at the bottom of the group (FIAR: one
+        /// double key).</param>
+        private void AddKeyGroup(string title, (string Text, string Tip, Action Action, Func<bool>? Lit)[] keys, bool latching = false, bool repeat = false, bool scaleKeys = false)
         {
             StackPanel group = new() { Margin = new Thickness(0, 4, 0, 6) };
             bool fiar = FiarKeys;
@@ -555,6 +580,14 @@ namespace AuroraPAR
                 grid.Children.Add(key);
                 analogKeys.Add((key, lit, latching));
             }
+            FrameworkElement content = grid;
+            if (scaleKeys)
+            {
+                StackPanel stack = new();
+                if (keys.Length > 0) stack.Children.Add(grid);
+                stack.Children.Add(fiar ? SplitScaleKey() : ConsoleScaleKeys());
+                content = stack;
+            }
             group.Children.Add(fiar
                 // FIAR: keys in a thin gold frame, as on the panels of that console.
                 ? new Border
@@ -563,7 +596,7 @@ namespace AuroraPAR
                     BorderThickness = new Thickness(1.5),
                     CornerRadius = new CornerRadius(2),
                     Padding = new Thickness(1, 3, 1, 1),
-                    Child = grid
+                    Child = content
                 }
                 : new Border
                 {
@@ -572,10 +605,61 @@ namespace AuroraPAR
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(5),
                     Padding = new Thickness(0, 2, 0, 0),
-                    Child = grid
+                    Child = content
                 });
             KnobPanel.Children.Add(group);
         }
+
+        /// <summary>Console keys LIN and LOG of the distance scale (the one in use lit), two in a row.</summary>
+        private System.Windows.Controls.Primitives.UniformGrid ConsoleScaleKeys()
+        {
+            System.Windows.Controls.Primitives.UniformGrid row = new() { Columns = 2, HorizontalAlignment = HorizontalAlignment.Center };
+            foreach ((string text, bool log) in new[] { ("LIN", false), ("LOG", true) })
+            {
+                Button key = new() { Content = text, ToolTip = ScaleKeyTip(log) };
+                StyleAsKey(key, text, 40, SmallKeyHeight);
+                key.Margin = new Thickness(1, 0, 1, 2);
+                key.Click += (s, e) => SetDistanceScale(log);
+                row.Children.Add(key);
+                analogKeys.Add((key, () => settings.Active.CompressedScale == log, true));
+            }
+            return row;
+        }
+
+        /// <summary>FIAR: the double key LIN | LOG of the distance scale (letters top to bottom, the half in use lit).</summary>
+        private StackPanel SplitScaleKey()
+        {
+            StackPanel pair = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 2) };
+            foreach ((string letters, bool log) in new[] { ("L\nI\nN", false), ("L\nO\nG", true) })
+            {
+                Button half = new()
+                {
+                    Content = new TextBlock
+                    {
+                        Text = letters,
+                        TextAlignment = TextAlignment.Center,
+                        FontSize = 12,
+                        LineHeight = 13,
+                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                    ToolTip = ScaleKeyTip(log),
+                    Style = (Style)FindResource("PanelKey"),
+                    Width = 24,
+                    Height = 58,
+                    Margin = new Thickness(0)
+                };
+                half.Click += (s, e) => SetDistanceScale(log);
+                pair.Children.Add(half);
+                analogKeys.Add((half, () => settings.Active.CompressedScale == log, true));
+            }
+            return pair;
+        }
+
+        private static string ScaleKeyTip(bool log) => log
+            ? "Log distance scale: the last miles larger, the far ones closer (how much: Settings → Units) (key C)."
+            : "Linear distance scale (key C).";
 
         /// <summary>Range keys of the FIAR panel style.</summary>
         private const double PanelKeyWidth = 36;
@@ -632,6 +716,9 @@ namespace AuroraPAR
                 grid.Children.Add(key);
                 analogKeys.Add((key, () => DistanceComboBox.SelectedIndex == index, true));
             }
+            // One gold frame: range keys, PREF and the LIN | LOG key.
+            StackPanel framed = new();
+            framed.Children.Add(grid);
             group.Children.Add(new Border
             {
                 BorderBrush = PanelFrameBrush,
@@ -640,11 +727,12 @@ namespace AuroraPAR
                 Padding = new Thickness(2, 3, 2, 3),
                 Margin = new Thickness(0, 2, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Child = grid
+                Child = framed
             });
             Button back = new()
             {
-                Content = new TextBlock { Text = profile.RangeDefaultKey, FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                // Always PREF (the preferred range is set in Settings).
+                Content = new TextBlock { Text = "PREF", FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                 ToolTip = "Back to the preferred range (Settings → Display) (key End).",
                 Style = (Style)FindResource("PanelKey"),
                 Width = 64,
@@ -653,8 +741,9 @@ namespace AuroraPAR
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             back.Click += (s, e) => SetRangeIndex(Ranges.IndexOfClosest(settings.Active.PreferredRange));
-            group.Children.Add(back);
+            framed.Children.Add(back);
             analogKeys.Add((back, null, false));
+            framed.Children.Add(SplitScaleKey());
             KnobPanel.Children.Add(group);
         }
 
@@ -1117,15 +1206,19 @@ namespace AuroraPAR
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        /// <summary>Key C: linear or compressed distance scale (saved in the profile).</summary>
-        private void ToggleDistanceScale()
+        /// <summary>Key C: linear or log (compressed) distance scale (saved in the profile).</summary>
+        private void ToggleDistanceScale() => SetDistanceScale(!settings.Active.CompressedScale);
+
+        /// <summary>LIN / LOG keys and key C: linear or log (compressed) distance scale, saved in the profile.</summary>
+        private void SetDistanceScale(bool log)
         {
             Profile profile = settings.Active;
-            profile.CompressedScale = !profile.CompressedScale;
+            if (profile.CompressedScale == log) return;
+            profile.CompressedScale = log;
             SettingsStore.Save(settings);
             ApplyProfile();
-            ShowBanner(profile.CompressedScale
-                ? $"COMPRESSED SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM)"
+            ShowBanner(log
+                ? $"LOG SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM)"
                 : "LINEAR SCALE");
         }
 
@@ -1186,6 +1279,7 @@ namespace AuroraPAR
             ApplyKeyPanels(analog);
             aptEntry.Icao = runway.ICAO;
             DistanceComboBox.Visibility = modern;
+            ScalePanel.Visibility = modern;
             TiltPanel.Visibility = modern;
             BrightnessPanel.Visibility = modern;
             DhDownButton.Visibility = modern;
@@ -2037,6 +2131,8 @@ namespace AuroraPAR
             viewOptions.Reminders = r => settings.RemindersFor(runways.Where(x => x.RunwayKey == r.RunwayKey).Select(x => x.ToString()).Append(r.ToString()));
             viewOptions.RangeTextBelowHorizon = profile.RangeTextBelowHorizon;
             viewOptions.DistanceKnee = profile.CompressedScale ? profile.CompressionKnee : 0;
+            LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
+            LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";
             phosphorGlow.Color = viewOptions.Theme.Glow;
             // The old scopes had no altitude scale.
             viewOptions.ShowAltitudeScale = profile.ShowAltitudeScale && !analog;

@@ -272,6 +272,12 @@
                 <!-- Internal list of the runways (selection), never shown: the keys and the ICAO box replace it. -->
                 <ComboBox Name="RunwayComboBox" Height="30" Visibility="Collapsed"/>
                 <ComboBox Name="DistanceComboBox" Height="30"/>
+                <!-- Distance scale: linear or log (compressed), key C. -->
+                <UniformGrid Name="ScalePanel" Columns="2" Height="24" Margin="0,4,0,0"
+                             ToolTip="Distance scale: linear, or log (the last miles larger, the far ones closer; how much: Settings → Units → Log distance scale). Key C.">
+                    <Button Name="LinButton" Content="LIN" Style="{StaticResource ModernKey}" Margin="0,0,1,0"/>
+                    <Button Name="LogButton" Content="LOG" Style="{StaticResource ModernKey}" Margin="1,0,0,0"/>
+                </UniformGrid>
                 <!-- Glide path keys of the published approaches (none with one). Modern: moved into GlidePathPanel, above the free angle box. -->
                 <StackPanel Name="GlideButtonPanel" Visibility="Collapsed" Margin="0,0,0,8">
                     <TextBlock Name="GlideKeysLabel" Text="GP DEG" Style="{StaticResource EngravedLabel}"/>

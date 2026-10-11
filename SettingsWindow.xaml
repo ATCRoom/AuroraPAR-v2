@@ -201,9 +201,9 @@
                     <CheckBox Name="AltitudeLinesCheck" Content="Show horizontal lines every 1000 (altitude grid)" Margin="0,4,0,0"
                               ToolTip="Lines across the vertical view every 1000 ft (or m, as the scale). Colour and style: Altitude lines in the display colours."/>
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
-                                ToolTip="Compressed: the last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. The glide path and the approach limits stay straight; heights and lateral offsets shrink with the distance, so the altitude lines bend down. Within the knee the scale is almost linear. Key C switches linear / compressed.">
-                        <TextBlock Text="Distance scale:" VerticalAlignment="Center"/>
-                        <ComboBox Name="DistanceScaleComboBox" Width="210" Margin="8,0,0,0"/>
+                                ToolTip="How much the log distance scale compresses: the last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the knee the scale is almost linear; a smaller knee compresses more. The glide path and the approach limits stay straight; heights and lateral offsets shrink with the distance, so the altitude lines bend down. LIN / LOG: keys next to the range, or key C.">
+                        <TextBlock Text="Log distance scale:" VerticalAlignment="Center"/>
+                        <ComboBox Name="DistanceScaleComboBox" Width="150" Margin="8,0,0,0"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
                                 ToolTip="Used for the magnetic final course (CRS) of the runways without their own variation in runways.par. East positive: 3E, 2.5W or -2.">

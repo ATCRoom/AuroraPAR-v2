@@ -229,7 +229,7 @@ A label with no fields shows only the track symbol.
 | A | Modern / Analog display |
 | P / Shift+P | Next / previous profile (its name is shown for 2 s; runway and traffic stay, the antenna goes back to neutral) |
 | T | Test traffic window (virtual aircraft, see below) |
-| C | Linear / compressed distance scale (saved in the profile, see 10.5) |
+| C | Linear / log distance scale (LIN / LOG keys; saved in the profile, see 10.5) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
 Keys are ignored while you are typing in a text box (e.g. the DH box).
@@ -330,7 +330,7 @@ The knobs always follow the real state, also when it is changed with the keyboar
 
 **Knobs or keys** (*Settings → Analog console controls*, per profile). Each group can be a knob or a row of console keys (lit key = the state in use):
 
-- **Range:** knob, **one key per range** (the ranges ticked in *Display → Ranges offered*; the one in use is lit), **`<` `DEF` `>`**: smaller / back to the preferred range (*Display*) / larger, or **Range panel (FIAR keys)**: large square backlit keys in two columns in a gold frame, as on the range panel of the FIAR PAR console (number over NM; all dimly lit, the range in use bright white; a small dot on the preferred range), with the key back to the preferred range under them. The text of the key back to the preferred range is free (at most 5 characters, default DEF).
+- **Range:** knob, **one key per range** (the ranges ticked in *Display → Ranges offered*; the one in use is lit), **`<` `DEF` `>`**: smaller / back to the preferred range (*Display*) / larger, or **Range panel (FIAR keys)**: large square backlit keys in two columns in a gold frame, as on the range panel of the FIAR PAR console (number over NM; all dimly lit, the range in use bright white; a small dot on the preferred range), with the key **PREF** back to the preferred range under them and, under it in the same frame, the double key **LIN | LOG** of the distance scale. With the console keys the text of the key back to the preferred range is free (at most 5 characters, default DEF); with the FIAR keys it is always PREF. Every range control has the **LIN / LOG** keys of the distance scale (console keys: in the RANGE group, or a SCALE group under the knob; FIAR keys: the double key in the same gold frame).
 - **Antenna tilt:** two knobs (EL, AZ), keys **UP 0 DN** and **L 0 R** (0 = neutral of that axis, lit when neutral), or a **small 4-way joystick** as on some old American PAR consoles: push it (drag, or click on a direction) up/down for the elevation, left/right for the azimuth; one step, repeated while held; released it springs back; a click on the centre = neutral.
 - **DH:** knob or keys **− RWY +** (10 ft steps; RWY = the runway value, lit when in use).
 - Tilt, DH and BRT keys **repeat while held** (0, RWY, 100 do not); the range keys step only once per press.
@@ -454,9 +454,9 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Altitude scale | shown or not (Modern mode) |
 | Altitude grid | horizontal lines every 1000 (ft or m, as the scale) in the vertical view, inside the scan limits; off by default; colour and style: *Altitude lines* in the display colours |
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
-| Distance scale | linear (default) or **compressed** with a knee of 1–10 NM; key **C** switches (see below) |
+| Log distance scale | how much the log scale compresses: knee 1–10 NM (default 3). LIN / LOG is switched on the main window (see below) or with key **C** |
 
-**Compressed distance scale (experimental).** The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). Heights (elevation view) and lateral offsets (azimuth view) shrink with the distance by the same amount, so every line starting at the touchdown point stays **straight**: the glide path (whatever its angle), the approach limits and the centreline look as with the linear scale, and an aircraft on the glide path stays on its line; only the distances along them change. As a consequence:
+**Log (compressed) distance scale.** Switched with **LIN | LOG** under the range list (modern display), on the analog console with the range controls (console keys: **LIN / LOG** in the RANGE group, or a SCALE group under the range knob; FIAR keys: the double key **LIN | LOG** in the gold frame of the range, under **PREF**), or with key **C**; saved in the profile. The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). Heights (elevation view) and lateral offsets (azimuth view) shrink with the distance by the same amount, so every line starting at the touchdown point stays **straight**: the glide path (whatever its angle), the approach limits and the centreline look as with the linear scale, and an aircraft on the glide path stays on its line; only the distances along them change. As a consequence:
 
 - range marks, reminders and the DH lines move to their compressed distance;
 - the lines from the antenna (scan limits, antenna beam, scan effect) bend slightly near the runway (the antenna is not at the touchdown point);
@@ -618,6 +618,6 @@ All profiles and options are in one file:
 | DH | − / + · type in the box · DH knob (double click on the centre = runway value) |
 | Glide path | GP box: published angles, or type an angle + Enter (unpublished, orange) · GP DEG keys (analog) |
 | Labels | L = all · drag = move · double click = back · right click = hide |
-| Display | A = Modern / Analog (unless locked in the profile) · P / Shift+P = next / previous profile · T = test traffic · C = linear / compressed distance scale |
+| Display | A = Modern / Analog (unless locked in the profile) · P / Shift+P = next / previous profile · T = test traffic · C = linear / log distance scale (LIN / LOG keys) |
 | Distances | Always from the **touchdown point** |
 | Colours | Green inside the approach limits, red outside |
