@@ -195,7 +195,26 @@ namespace AuroraPAR
             List<DistanceReminder> reminders = VisibleReminders();
             // The horizon line is the base: distance text above it and reminder markers below, or the opposite.
             bool textBelow = Options.RangeTextBelowHorizon;
-            foreach ((double distance, StyleElement element, bool text) in Options.RangeMarks.Marks(range))
+            List<(double Distance, StyleElement Element, bool Text)> marks = [.. Options.RangeMarks.Marks(range)];
+            // Compressed scale: the far marks are so close that their texts would touch: from the far end towards the
+            // runway, a text that would touch the one kept is left out (the line stays).
+            HashSet<double> shownTexts = [];
+            List<(double Left, double Right)> kept = [];
+            foreach ((double distance, StyleElement element, bool text) in Enumerable.Reverse(marks))
+            {
+                if (!text) continue;
+                if (!Compressed) { shownTexts.Add(distance); continue; }
+                TextBlock rangeMeasure = new() { Text = Options.RangeMarks.Label(distance, range), FontSize = Options.RangeMarks.TextSize };
+                rangeMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                double textLeft = ToScreenX(XAt(length - Runway.TouchdownNM + distance)) - 10;
+                double textRight = textLeft + rangeMeasure.DesiredSize.Width;
+                if (!kept.Any(k => textRight + 4 > k.Left && textLeft - 4 < k.Right))
+                {
+                    shownTexts.Add(distance);
+                    kept.Add((textLeft, textRight));
+                }
+            }
+            foreach ((double distance, StyleElement element, bool text) in marks)
             {
                 double markNM = length - Runway.TouchdownNM + distance;
                 double top = ScanY(markNM, upper);
@@ -218,7 +237,7 @@ namespace AuroraPAR
                         AddLine(XAt(markNM), beamBottom, XAt(markNM), beamTop, element, extraWidth: InBeamExtraWidth);
                     }
                 }
-                if (text)
+                if (text && shownTexts.Contains(distance))
                 {
                     AddText(Options.RangeMarks.Label(distance, range), XAt(markNM), textBelow ? H + 2 + tickDown : H - 1 - tickUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
                 }
@@ -380,7 +399,7 @@ namespace AuroraPAR
         /// <summary>True (and the box is kept) when the box does not overlap any of the earlier ones.</summary>
         private static bool TryPlace(List<Rect> placed, Rect box)
         {
-            Rect padded = new(box.X - 3, box.Y - 2, box.Width + 6, box.Height + 4);
+            Rect padded = new(box.X - 1, box.Y - 1, box.Width + 2, box.Height + 2);
             if (placed.Any(r => r.IntersectsWith(padded))) return false;
             placed.Add(box);
             return true;
