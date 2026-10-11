@@ -205,6 +205,11 @@
                         <TextBlock Text="Distance scale:" VerticalAlignment="Center"/>
                         <ComboBox Name="DistanceScaleComboBox" Width="210" Margin="8,0,0,0"/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                                ToolTip="Compressed scale only: heights linear (curved glide path), or compressed too, wider at the bottom and closer at the top. Balanced: a 3° glide path is straight. Shift+C switches.">
+                        <TextBlock Text="Heights (compressed scale):" VerticalAlignment="Center"/>
+                        <ComboBox Name="HeightScaleComboBox" Width="150" Margin="8,0,0,0"/>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
                                 ToolTip="Used for the magnetic final course (CRS) of the runways without their own variation in runways.par. East positive: 3E, 2.5W or -2.">
                         <TextBlock Text="Default magnetic variation:" VerticalAlignment="Center"/>

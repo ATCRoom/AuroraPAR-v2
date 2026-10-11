@@ -101,6 +101,13 @@ namespace AuroraPAR
                     p.CompressionKnee = knee;
                 });
             };
+            HeightScaleComboBox.ItemsSource = Profile.HeightCompressions.Select(MainWindow.HeightCompressionName).ToList();
+            HeightScaleComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || HeightScaleComboBox.SelectedIndex < 0) return;
+                double value = Profile.HeightCompressions[HeightScaleComboBox.SelectedIndex];
+                SetProfileValue(p => p.HeightCompression == value, p => p.HeightCompression = value);
+            };
             DhDropSideComboBox.ItemsSource = new[] { "down", "up", "both", "none" };
             DhDropSideComboBox.SelectionChanged += (s, e) =>
             {
@@ -227,6 +234,7 @@ namespace AuroraPAR
                 DhSideComboBox.SelectedIndex = (int)Active.DhLineSide;
                 DhLengthComboBox.SelectedIndex = Array.FindIndex(DhLengths, l => Math.Abs(l - Active.DhLineLength) < 0.01);
                 DistanceScaleComboBox.SelectedIndex = SelectedScaleIndex();
+                HeightScaleComboBox.SelectedIndex = Array.IndexOf(Profile.HeightCompressions, Active.HeightCompression);
                 DhAzimuthLengthComboBox.SelectedIndex = Array.FindIndex(DhAzimuthLengths, l => Math.Abs(l - Active.DhAzimuthLength) < 0.5);
                 DhDropSideComboBox.SelectedIndex = (int)Active.DhDropSide;
                 DhDropLengthComboBox.SelectedIndex = Array.FindIndex(DhDropLengths, l => Math.Abs(l - Active.DhDropLength) < 0.5);

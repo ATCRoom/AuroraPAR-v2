@@ -1117,6 +1117,27 @@ namespace AuroraPAR
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        /// <summary>Shift+C: next height compression of the compressed scale (saved in the profile).</summary>
+        private void CycleHeightCompression()
+        {
+            Profile profile = settings.Active;
+            double[] values = Profile.HeightCompressions;
+            profile.HeightCompression = values[(Array.IndexOf(values, profile.HeightCompression) + 1) % values.Length];
+            SettingsStore.Save(settings);
+            ApplyProfile();
+            ShowBanner($"HEIGHTS: {HeightCompressionName(profile.HeightCompression).ToUpperInvariant()}" + (profile.CompressedScale ? "" : " (SCALE LINEAR: PRESS C)"));
+        }
+
+        internal static string HeightCompressionName(double factor) => factor switch
+        {
+            0 => "linear",
+            3 => "light",
+            2 => "medium",
+            1 => "balanced",
+            0.5 => "strong",
+            _ => "very strong"
+        };
+
         /// <summary>Key C: linear or compressed distance scale (saved in the profile).</summary>
         private void ToggleDistanceScale()
         {
@@ -1125,7 +1146,7 @@ namespace AuroraPAR
             SettingsStore.Save(settings);
             ApplyProfile();
             ShowBanner(profile.CompressedScale
-                ? $"COMPRESSED SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM)"
+                ? $"COMPRESSED SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM, HEIGHTS {HeightCompressionName(profile.HeightCompression).ToUpperInvariant()})"
                 : "LINEAR SCALE");
         }
 
@@ -1936,6 +1957,7 @@ namespace AuroraPAR
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
                 case Key.T: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
+                case Key.C when modifiers == ModifierKeys.Shift: CycleHeightCompression(); break;
                 default: return;
             }
             e.Handled = true;
@@ -2037,6 +2059,7 @@ namespace AuroraPAR
             viewOptions.Reminders = r => settings.RemindersFor(runways.Where(x => x.RunwayKey == r.RunwayKey).Select(x => x.ToString()).Append(r.ToString()));
             viewOptions.RangeTextBelowHorizon = profile.RangeTextBelowHorizon;
             viewOptions.DistanceKnee = profile.CompressedScale ? profile.CompressionKnee : 0;
+            viewOptions.HeightCompression = profile.HeightCompression;
             phosphorGlow.Color = viewOptions.Theme.Glow;
             // The old scopes had no altitude scale.
             viewOptions.ShowAltitudeScale = profile.ShowAltitudeScale && !analog;

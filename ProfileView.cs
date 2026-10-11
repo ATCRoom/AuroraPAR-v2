@@ -45,14 +45,31 @@ namespace AuroraPAR
             return XAt(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM);
         }
 
-        // Compressed scale, version D: heights linear, so the altitude lines stay horizontal and the scale on the
-        // side is right everywhere; the glide path and its limits are curves.
+        // Compressed scale, version E: heights linear or compressed on their own (factor chosen), so the altitude
+        // lines stay horizontal and the scale on the side is right everywhere; the glide path and its limits are
+        // curves (straight at 3° with the balanced factor).
 
-        /// <summary>Height on the scale (ft): version D keeps the heights linear.</summary>
-        private static double V(double heightFt) => heightFt;
+        /// <summary>
+        /// Knee of the height compression (ft): the height of a 3° glide path at the distance knee (there a 3° glide
+        /// path is straight) × the factor chosen; 0 = heights linear.
+        /// </summary>
+        private double HeightKneeFt => Compressed && Options.HeightCompression > 0
+            ? Options.DistanceKnee * Math.Tan(3 * Math.PI / 180) * Runway.FeetPerNM * Options.HeightCompression
+            : 0;
+
+        /// <summary>Height on the scale (ft): Kh·asinh(h/Kh), or the height itself (linear).</summary>
+        private double V(double heightFt)
+        {
+            double knee = HeightKneeFt;
+            return knee > 0 ? knee * Math.Asinh(heightFt / knee) : heightFt;
+        }
 
         /// <summary>Inverse of <see cref="V"/>.</summary>
-        private static double VInverse(double compressedFt) => compressedFt;
+        private double VInverse(double compressedFt)
+        {
+            double knee = HeightKneeFt;
+            return knee > 0 ? knee * Math.Sinh(compressedFt / knee) : compressedFt;
+        }
 
         /// <summary>
         /// Logical y of a height in ft above the threshold elevation.
@@ -125,7 +142,7 @@ namespace AuroraPAR
             double end = Runway.TouchdownNM + Runway.Distance;
             if (Compressed)
             {
-                // A curve: distances compressed, heights linear.
+                // A curve in general (distances and heights compressed on their own).
                 AddCurve(t => { double d = threshold * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element, dashed: true);
                 AddCurve(t => { double d = threshold + (end - threshold) * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element);
                 return;

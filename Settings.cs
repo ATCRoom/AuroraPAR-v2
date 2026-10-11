@@ -320,6 +320,13 @@ namespace AuroraPAR
         public double CompressionKnee { get; set; } = DefaultCompressionKnee;
         public const double DefaultCompressionKnee = 3;
         /// <summary>
+        /// Compressed scale: compression of the heights in the elevation view, as a factor of the "balanced" knee
+        /// (the height of a 3° glide path at the distance knee, where a 3° glide path is straight); 0 = heights
+        /// linear (curved glide path). Larger = lighter, smaller = stronger.
+        /// </summary>
+        public double HeightCompression { get; set; } = 1;
+        public static readonly double[] HeightCompressions = [0, 3, 2, 1, 0.5, 0.33];
+        /// <summary>
         /// Compressed scale, version C (power law): exponent used for a knee setting (the smaller, the stronger):
         /// 1 NM → 0.5, 3 NM → 0.66, 10 NM → 0.86.
         /// </summary>
@@ -436,6 +443,7 @@ namespace AuroraPAR
             Style.Normalize();
             if (!ColorText.TryParse(AnalogColor, out _)) AnalogColor = "#A8FF60";
             EchoGrowth = double.IsFinite(EchoGrowth) ? Math.Clamp(EchoGrowth, 1, MaxEchoGrowth) : 1;
+            if (!HeightCompressions.Contains(HeightCompression)) HeightCompression = 1;
             CompressionKnee = double.IsFinite(CompressionKnee) && CompressionKnee > 0 ? Math.Clamp(CompressionKnee, MinCompressionKnee, MaxCompressionKnee) : DefaultCompressionKnee;
             BrightnessModern = Math.Clamp(BrightnessModern, MinBrightness, MaxBrightness);
             BrightnessAnalog = Math.Clamp(BrightnessAnalog, MinBrightness, MaxBrightness);

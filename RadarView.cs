@@ -71,6 +71,8 @@ namespace AuroraPAR
         /// 0 = linear scale.
         /// </summary>
         public double DistanceKnee { get; set; }
+        /// <summary>Compressed scale: height compression factor (see Profile.HeightCompression; 0 = heights linear).</summary>
+        public double HeightCompression { get; set; }
     }
 
     /// <summary>
