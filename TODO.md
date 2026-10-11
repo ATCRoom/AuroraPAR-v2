@@ -2,8 +2,6 @@
 
 ## Next update
 
-- **(Built 9 Oct, to be tested) Analog echo grows with distance** (option, Display style → Analog scope → *Echo length at the far end*, 1× to 4×, default 1× = off): the echo is the Track size at the touchdown and grows with the distance up to that factor at the end of the range; afterglow copies the same. Check: 1×, 2×, 4× at the 5, 10 and 20 NM ranges; modern display unchanged; switching A (modern / analog) with the option on.
-- **(Built 9 Oct, to be tested) Keyboard keys for the analog controls**: Page up / Page down = range larger / smaller, End = preferred range; Shift+↑ / ↓ = DH ± step, Shift+Home = runway DH; Ctrl+↑ / ↓ = brightness, Ctrl+Home = 100%. Only with the AuroraPAR window in front and not typing in a text box; fixed assignments (a customisation window only if asked). Tooltips of the analog keys name the key; manual (section 6 and 15). Check: each key in modern and analog, with the mouse wheel on the display and the DH box focused.
 
 - **(Built 9 Oct) Coordination panel as the real one**: default colours blue, white, yellow, red, green (reset stays black on the same row: phone layout); **sound at every press** (call, acknowledge, cancel, reset) — option *Sound*: every press on both panels (default) / only the presses of the other side; no sound for the state found on joining. Also on the phone page (setting + link parameter s=).
 
@@ -182,4 +180,3 @@ Move the project from the personal account (`altanico`) to a **GitHub organizati
 - GitHub Actions: update the actions (Node 20 is deprecated) — **do it during the move to the new AuroraPAR GitHub** (see above).
 - Delete the `phase1` test branch on GitHub.
 - Before the pull request to bornac1: check upstream changes, prepare the README.
-- Default.json da aggiungere al pacchetto Profiles dopo il test dell'utente (18:00 11 Oct)

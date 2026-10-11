@@ -265,7 +265,7 @@ The tilt moves the **beam** inside the scan limits; the glide path, centreline a
 
 The DH of each runway comes from `runways.par`. During the session it can be changed **on the fly** with **−** / **+** (10 ft steps) or by typing a value in the box. It is not saved: it goes back to the file value when the runway is selected again.
 
-The DH selector (box with **−** / **+** in the modern display, knob or keys in the analog one) is an advanced function and is **hidden by default**: tick *Settings → Approach and DH → DH selector* to show it (per profile; existing profiles start with it hidden). Hidden, the runway value is used, and **Shift+↑ / ↓ / Home** still change it.
+The DH selector (box with **−** / **+** in the modern display, knob or keys in the analog one) is an advanced function and is **hidden by default**: tick *Settings → Approach and DH → DH selector* (visible with *Show advanced*) to show it (per profile; existing profiles start with it hidden). Hidden, the runway value is used, and **Shift+↑ / ↓ / Home** still change it.
 
 The name shown (DA/DH, OCA/OCH, MDA/MDH) is chosen in *Settings → Units and references*.
 
@@ -424,7 +424,7 @@ The window has the **profile** bar at the top (everything below belongs to that 
 
 A profile holds all the display options, so that different controllers or different radar types can have their own set-up.
 
-**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns). At the first start (no settings file yet) they become your profiles, PAR2080 active. If you already have settings, add them with **Import...** from that folder.
+**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
 
 - Select the active profile from the list; **Rename**, **Duplicate**, **Delete**.
 - **Export...** saves the profile as a `.json` file to share with other controllers; **Import...** loads one.

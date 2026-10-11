@@ -174,12 +174,12 @@
                         <RadioButton Name="OcaOchRadio" GroupName="Minima" Content="OCA / OCH" Margin="0,0,16,0" VerticalAlignment="Center"/>
                         <RadioButton Name="MdaMdhRadio" GroupName="Minima" Content="MDA / MDH" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <StackPanel Style="{StaticResource Line}">
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced">
                         <TextBlock Text="DH selector" Style="{StaticResource Label}"/>
                         <CheckBox Name="ShowDhCheck" Content="Show (field, knob or keys)" VerticalAlignment="Center"
                                   ToolTip="Decision height selector on the right panel, in both displays. Off by default: the DH of the runway is used."/>
                     </StackPanel>
-                    <TextBlock Text="Off: the DH of the runway is used; Shift+arrows change it anyway." Style="{StaticResource Note}" Margin="200,4,0,0"/>
+                    <TextBlock Text="Off: the DH of the runway is used; Shift+arrows change it anyway." Style="{StaticResource Note}" Margin="200,4,0,0" Tag="Advanced"/>
                     <TextBlock Text="DH LINES" Style="{StaticResource SubHeader}"/>
                     <StackPanel Style="{StaticResource Line}"
                                 ToolTip="Decision height lines of the elevation view, drawn from the point where the glide path reaches the DH. Colour, line style and width: Colours and lines.">
