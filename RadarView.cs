@@ -66,6 +66,11 @@ namespace AuroraPAR
         public Func<Runway, IEnumerable<DistanceReminder>> Reminders { get; set; } = _ => [];
         /// <summary>Distance text below the horizon line and reminder markers above it (otherwise the opposite).</summary>
         public bool RangeTextBelowHorizon { get; set; }
+        /// <summary>
+        /// Compressed distance scale: knee in NM from the touchdown (see <see cref="RadarView.CompressNM"/>);
+        /// 0 = linear scale.
+        /// </summary>
+        public double DistanceKnee { get; set; }
     }
 
     /// <summary>
@@ -117,7 +122,7 @@ namespace AuroraPAR
         /// <summary>Clock of the history dots.</summary>
         private static readonly System.Diagnostics.Stopwatch HistoryClock = System.Diagnostics.Stopwatch.StartNew();
         /// <summary>Lines of the antenna scan effect (beam and glow), created when first needed.</summary>
-        private readonly List<Line> sweepLines = [];
+        private readonly List<Polyline> sweepLines = [];
         private readonly ClutterLayer clutter = new();
         private bool clutterAdded;
         /// <summary>Afterglow of the echo: seconds between two copies, and strength of each copy (newest first).</summary>
@@ -364,7 +369,7 @@ namespace AuroraPAR
         {
             if (!enabled || !staticValid || Canvas.ActualWidth <= 0 || Canvas.ActualHeight <= 0 || Options.Theme.IsHidden(StyleElement.ScanEffect))
             {
-                foreach (Line line in sweepLines) line.Visibility = Visibility.Collapsed;
+                foreach (Polyline line in sweepLines) line.Visibility = Visibility.Collapsed;
                 foreach (Track track in tracks.Values) track.Symbol.Opacity = 1;
                 clutter.Hide();
                 return;
@@ -373,18 +378,21 @@ namespace AuroraPAR
             ScanEffect.Compute(t, speed, IsElevation, beams);
             while (sweepLines.Count < beams.Length)
             {
-                Line line = new() { IsHitTestVisible = false };
+                Polyline line = new() { IsHitTestVisible = false, StrokeLineJoin = PenLineJoin.Round };
                 Panel.SetZIndex(line, SweepZIndex);
                 Canvas.Children.Add(line);
                 sweepLines.Add(line);
             }
             Point origin = SweepOrigin();
+            // With the compressed scale the beam is drawn along its (slightly curved) image, see Unwarp.
+            Point linearOrigin = Unwarp(origin);
+            int segments = Compressed ? SweepSegments : 1;
             // Width of the beam line as set in Display style; the trail lines (fading) one pixel wider.
             double width = Options.Theme.Width(StyleElement.ScanEffect);
             DoubleCollection? dash = Theme.DashArray(Options.Theme.Dash(StyleElement.ScanEffect));
             for (int i = 0; i < beams.Length; i++)
             {
-                Line line = sweepLines[i];
+                Polyline line = sweepLines[i];
                 line.StrokeThickness = i == 0 ? width : width + 1;
                 line.StrokeDashArray = dash;
                 if (beams[i].Position is not double position)
@@ -393,10 +401,18 @@ namespace AuroraPAR
                     continue;
                 }
                 Point end = SweepEnd(position);
-                line.X1 = ToScreenX(origin.X);
-                line.Y1 = ToScreenY(origin.Y);
-                line.X2 = ToScreenX(end.X);
-                line.Y2 = ToScreenY(end.Y);
+                PointCollection points = new(segments + 1) { new Point(ToScreenX(origin.X), ToScreenY(origin.Y)) };
+                if (segments > 1)
+                {
+                    Vector along = Unwarp(end) - linearOrigin;
+                    for (int k = 1; k < segments; k++)
+                    {
+                        Point p = Warp(linearOrigin + along * ((double)k / segments));
+                        points.Add(new Point(ToScreenX(p.X), ToScreenY(p.Y)));
+                    }
+                }
+                points.Add(new Point(ToScreenX(end.X), ToScreenY(end.Y)));
+                line.Points = points;
                 line.Stroke = Options.Theme.Sweep;
                 line.Opacity = beams[i].Opacity;
                 line.Visibility = Visibility.Visible;
@@ -404,6 +420,9 @@ namespace AuroraPAR
             UpdateEchoBrightness(t, speed);
             UpdateClutter(t, speed);
         }
+
+        /// <summary>Segments of the sweep line with the compressed scale.</summary>
+        private const int SweepSegments = 24;
 
         /// <summary>Logical pixels per NM across the approach (azimuth view; 0 in the profile).</summary>
         protected virtual double LateralPixelsPerNM => 0;
@@ -425,9 +444,11 @@ namespace AuroraPAR
                 Canvas.Children.Add(clutter.Element);
                 clutterAdded = true;
             }
-            Point origin = SweepOrigin();
-            Point low = SweepEnd(0);
-            Point high = SweepEnd(1);
+            // Beam geometry in linear-scale coordinates (the same with the linear scale, see Unwarp): there the
+            // lines from the antenna are straight, as the clutter layer expects.
+            Point origin = Unwarp(SweepOrigin());
+            Point low = Unwarp(SweepEnd(0));
+            Point high = Unwarp(SweepEnd(1));
             Color colour = Options.Theme.Brush(StyleElement.TrackInside) is SolidColorBrush brush ? brush.Color : Colors.LimeGreen;
             clutter.Update(new ClutterLayer.Frame
             {
@@ -450,8 +471,20 @@ namespace AuroraPAR
                 Filter = Options.ClutterFilter,
                 DriftX = -Options.ClutterWindAlongKt / 3600 * xscale,
                 DriftY = -Options.ClutterWindRightKt / 3600 * LateralPixelsPerNM,
-                Colour = colour
+                Colour = colour,
+                AxisY = AxisY,
+                Unwarp = Compressed ? ClutterColumn : null
             });
+        }
+
+        /// <summary>
+        /// Compressed scale, for the clutter layer: linear-scale x of a logical x, and the factor that brings a
+        /// logical distance from the axis back to the linear scale (see <see cref="Unwarp"/>).
+        /// </summary>
+        private (double X, double Factor) ClutterColumn(double logicalX)
+        {
+            double fromEnd = FromRunwayEndOfScale(logicalX / xscale);
+            return (fromEnd * xscale, 1 / ShrinkAt(fromEnd));
         }
 
         /// <summary>
@@ -465,12 +498,15 @@ namespace AuroraPAR
                 foreach (Track track in tracks.Values) track.Symbol.Opacity = 1;
                 return;
             }
-            Point origin = SweepOrigin();
-            Point low = SweepEnd(0);
-            Point high = SweepEnd(1);
+            // In linear-scale coordinates (unchanged with the linear scale, see Unwarp), where the lines from the
+            // antenna are straight.
+            Point origin = Unwarp(SweepOrigin());
+            Point low = Unwarp(SweepEnd(0));
+            Point high = Unwarp(SweepEnd(1));
             // Position across the scan (0..1) of a point, from its direction seen from the antenna.
-            double PositionOf(Point logical)
+            double PositionOf(Point point)
             {
+                Point logical = Unwarp(point);
                 double dx = logical.X - origin.X;
                 if (dx > 1 && Math.Abs(high.Y - low.Y) > 1)
                 {
@@ -1076,8 +1112,11 @@ namespace AuroraPAR
         /// </summary>
         protected double XShift;
 
-        /// <summary>Distance of the antenna from the edge of the view (room for the altitude scale when shown).</summary>
-        protected double LeftMargin => Options.ShowAltitudeScale ? 70 : 24;
+        /// <summary>
+        /// Distance of the antenna from the edge of the view (room for the altitude scale when shown; the compressed
+        /// scale has no scale on the side, its values are on the altitude lines).
+        /// </summary>
+        protected double LeftMargin => Options.ShowAltitudeScale && !Compressed ? 70 : 24;
 
         /// <summary>
         /// Horizontal scale and shift: the antenna at <see cref="LeftMargin"/>, the end of the range 50 px from the
@@ -1086,9 +1125,131 @@ namespace AuroraPAR
         protected void CalculateHorizontalScale()
         {
             double antenna = Radar.AntennaFromRunwayEnd(Runway);
-            double span = Math.Max(0.1, Runway.Distance + Runway.LengthNM - antenna);
+            double span = Compressed
+                ? Math.Max(0.1, ScaleNM(Runway.Distance + Runway.LengthNM) - ScaleNM(antenna))
+                : Math.Max(0.1, Runway.Distance + Runway.LengthNM - antenna);
             xscale = Math.Max(1e-6, Canvas.ActualWidth - 50 - LeftMargin) / span;
-            XShift = LeftMargin - antenna * xscale;
+            XShift = LeftMargin - ScaleNM(antenna) * xscale;
+        }
+
+        // Compressed distance scale (ViewOptions.DistanceKnee > 0).
+        //
+        // A distance d from the touchdown point (NM, negative on the runway behind it) is drawn at
+        // u(d) = K·asinh(d / K): almost linear within the knee K, then logarithmic, so the last miles get more room
+        // and the far ones less. A height or lateral offset v at that distance is drawn as v·u(d)/d (the "shrink"
+        // factor, 1 at the touchdown): so a point at a given angle from the touchdown stays on the same straight
+        // line whatever its distance. The glide path (any angle), the approach limits and the centreline are then
+        // straight, as with the linear scale; only the distances along them are redistributed. Lines from the
+        // antenna (scan limits, beam, sweep), behind the touchdown, become slightly curved and are drawn as
+        // polylines. With the linear scale every function below returns its input unchanged (u(d) = d, shrink 1),
+        // so the picture is exactly the same as without this option.
+
+        /// <summary>True when the compressed distance scale is on.</summary>
+        protected bool Compressed => Options.DistanceKnee > 0;
+
+        /// <summary>Distance of the touchdown point from the far end of the runway, NM.</summary>
+        private double TouchdownFromRunwayEnd => Runway.LengthNM - Runway.TouchdownNM;
+
+        /// <summary>Compressed distance u(d) of a distance d from the touchdown (NM); d itself with the linear scale.</summary>
+        protected double CompressNM(double fromTouchdownNM)
+        {
+            double knee = Options.DistanceKnee;
+            return knee > 0 ? knee * Math.Asinh(fromTouchdownNM / knee) : fromTouchdownNM;
+        }
+
+        /// <summary>Inverse of <see cref="CompressNM"/>.</summary>
+        protected double ExpandNM(double compressed)
+        {
+            double knee = Options.DistanceKnee;
+            return knee > 0 ? knee * Math.Sinh(compressed / knee) : compressed;
+        }
+
+        /// <summary>
+        /// Scale distance of a point at the given distance from the far end of the runway (NM): its logical x is
+        /// this × xscale. The far end of the runway stays at 0; with the linear scale it is the distance itself.
+        /// </summary>
+        protected double ScaleNM(double fromRunwayEndNM)
+        {
+            if (!Compressed) return fromRunwayEndNM;
+            double touchdown = TouchdownFromRunwayEnd;
+            return CompressNM(fromRunwayEndNM - touchdown) - CompressNM(-touchdown);
+        }
+
+        /// <summary>Inverse of <see cref="ScaleNM"/>: distance from the far end of the runway (NM) of a scale distance.</summary>
+        protected double FromRunwayEndOfScale(double scaleNM)
+        {
+            if (!Compressed) return scaleNM;
+            double touchdown = TouchdownFromRunwayEnd;
+            return touchdown + ExpandNM(scaleNM + CompressNM(-touchdown));
+        }
+
+        /// <summary>Logical x of a point at the given distance from the far end of the runway (NM).</summary>
+        protected double XAt(double fromRunwayEndNM) => ScaleNM(fromRunwayEndNM) * xscale;
+
+        /// <summary>
+        /// Factor applied to heights and lateral offsets at the given distance from the far end of the runway:
+        /// u(d)/d (1 at the touchdown and with the linear scale).
+        /// </summary>
+        protected double ShrinkAt(double fromRunwayEndNM)
+        {
+            if (!Compressed) return 1;
+            double d = fromRunwayEndNM - TouchdownFromRunwayEnd;
+            // asinh(x)/x → 1 - x²/6 near 0: the series avoids 0/0.
+            double x = d / Options.DistanceKnee;
+            return Math.Abs(x) < 1e-4 ? 1 - x * x / 6 : CompressNM(d) / d;
+        }
+
+        /// <summary>
+        /// Logical y of the axis of the view (horizon of the profile, centreline of the azimuth view): the point
+        /// from which heights or lateral offsets are measured, and towards which they shrink with the compressed scale.
+        /// </summary>
+        protected abstract double AxisY { get; }
+
+        /// <summary>
+        /// With the compressed scale: the point in the coordinates the same picture would have with the linear scale
+        /// (same xscale and yscale), where the lines from the antenna are straight again. Unchanged with the linear scale.
+        /// </summary>
+        protected Point Unwarp(Point logical)
+        {
+            if (!Compressed) return logical;
+            double fromEnd = FromRunwayEndOfScale(logical.X / xscale);
+            return new Point(fromEnd * xscale, AxisY + (logical.Y - AxisY) / ShrinkAt(fromEnd));
+        }
+
+        /// <summary>Inverse of <see cref="Unwarp"/>.</summary>
+        protected Point Warp(Point linear)
+        {
+            if (!Compressed) return linear;
+            double fromEnd = linear.X / xscale;
+            return new Point(XAt(fromEnd), AxisY + (linear.Y - AxisY) * ShrinkAt(fromEnd));
+        }
+
+        /// <summary>Points of a line drawn with the compressed scale: segments enough to look smooth.</summary>
+        private const int CurveSegments = 48;
+
+        /// <summary>
+        /// Adds a static curve (logical coordinates of the parameter 0..1) with the style of an element, as one
+        /// polyline so a dash pattern runs along it.
+        /// </summary>
+        protected void AddCurve(Func<double, Point> at, StyleElement element, bool dashed = false)
+        {
+            if (Options.Theme.IsHidden(element)) return;
+            PointCollection points = new(CurveSegments + 1);
+            for (int i = 0; i <= CurveSegments; i++)
+            {
+                Point p = at((double)i / CurveSegments);
+                points.Add(new Point(ToScreenX(p.X), ToScreenY(p.Y)));
+            }
+            Polyline line = new()
+            {
+                Points = points,
+                Stroke = Options.Theme.Brush(element),
+                StrokeThickness = Options.Theme.Width(element),
+                StrokeDashArray = Theme.DashArray(dashed ? LineDash.Dashed : Options.Theme.Dash(element)),
+                StrokeLineJoin = PenLineJoin.Round,
+                IsHitTestVisible = false
+            };
+            AddStatic(line);
         }
 
         protected double ToScreenX(double x)

@@ -84,6 +84,23 @@ namespace AuroraPAR
                 double value = DhAzimuthLengths[DhAzimuthLengthComboBox.SelectedIndex];
                 SetProfileValue(p => p.DhAzimuthLength == value, p => p.DhAzimuthLength = value);
             };
+            DistanceScaleComboBox.ItemsSource = new[] { "linear" }.Concat(CompressionKnees.Select(k => $"compressed, knee {FormatNumber(k)} NM")).ToList();
+            DistanceScaleComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || DistanceScaleComboBox.SelectedIndex < 0) return;
+                int index = DistanceScaleComboBox.SelectedIndex;
+                if (index == 0)
+                {
+                    SetProfileValue(p => !p.CompressedScale, p => p.CompressedScale = false);
+                    return;
+                }
+                double knee = CompressionKnees[index - 1];
+                SetProfileValue(p => p.CompressedScale && p.CompressionKnee == knee, p =>
+                {
+                    p.CompressedScale = true;
+                    p.CompressionKnee = knee;
+                });
+            };
             DhDropSideComboBox.ItemsSource = new[] { "down", "up", "both", "none" };
             DhDropSideComboBox.SelectionChanged += (s, e) =>
             {
@@ -209,6 +226,7 @@ namespace AuroraPAR
                 RainClutterCheck.IsChecked = Active.RainClutter;
                 DhSideComboBox.SelectedIndex = (int)Active.DhLineSide;
                 DhLengthComboBox.SelectedIndex = Array.FindIndex(DhLengths, l => Math.Abs(l - Active.DhLineLength) < 0.01);
+                DistanceScaleComboBox.SelectedIndex = SelectedScaleIndex();
                 DhAzimuthLengthComboBox.SelectedIndex = Array.FindIndex(DhAzimuthLengths, l => Math.Abs(l - Active.DhAzimuthLength) < 0.5);
                 DhDropSideComboBox.SelectedIndex = (int)Active.DhDropSide;
                 DhDropLengthComboBox.SelectedIndex = Array.FindIndex(DhDropLengths, l => Math.Abs(l - Active.DhDropLength) < 0.5);
@@ -500,6 +518,20 @@ namespace AuroraPAR
         /// One row per symbol (track, threshold, touchdown point, antenna): shape and size.
         /// </summary>
         private static readonly double[] DhLengths = [0.25, 0.5, 1, 1.5, 2, 3, 4, 5];
+        /// <summary>Knees of the compressed distance scale offered (NM): the smaller, the stronger the compression.</summary>
+        private static readonly double[] CompressionKnees = [1, 2, 3, 4, 6, 10];
+
+        /// <summary>Item of the distance scale list: linear, or the compressed scale with the closest knee.</summary>
+        private int SelectedScaleIndex()
+        {
+            if (!Active.CompressedScale) return 0;
+            int closest = 0;
+            for (int i = 1; i < CompressionKnees.Length; i++)
+            {
+                if (Math.Abs(CompressionKnees[i] - Active.CompressionKnee) < Math.Abs(CompressionKnees[closest] - Active.CompressionKnee)) closest = i;
+            }
+            return closest + 1;
+        }
         private static readonly double[] DhAzimuthLengths = [0, 50, 100, 200, 300, 500, 1000];
         private static readonly double[] DhDropLengths = [0, 50, 100, 200, 300, 500, 1000];
 

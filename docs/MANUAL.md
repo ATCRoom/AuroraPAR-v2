@@ -229,6 +229,7 @@ A label with no fields shows only the track symbol.
 | A | Modern / Analog display |
 | P / Shift+P | Next / previous profile (its name is shown for 2 s; runway and traffic stay, the antenna goes back to neutral) |
 | T | Test traffic window (virtual aircraft, see below) |
+| C | Linear / compressed distance scale (saved in the profile, see 10.5) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
 Keys are ignored while you are typing in a text box (e.g. the DH box).
@@ -453,6 +454,14 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Altitude scale | shown or not (Modern mode) |
 | Altitude grid | horizontal lines every 1000 (ft or m, as the scale) in the vertical view, inside the scan limits; off by default; colour and style: *Altitude lines* in the display colours |
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
+| Distance scale | linear (default) or **compressed** with a knee of 1–10 NM; key **C** switches (see below) |
+
+**Compressed distance scale (experimental).** The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). Heights (elevation view) and lateral offsets (azimuth view) shrink with the distance by the same amount, so every line starting at the touchdown point stays **straight**: the glide path (whatever its angle), the approach limits and the centreline look as with the linear scale, and an aircraft on the glide path stays on its line; only the distances along them change. As a consequence:
+
+- range marks, reminders and the DH lines move to their compressed distance;
+- the lines from the antenna (scan limits, antenna beam, scan effect) bend slightly near the runway (the antenna is not at the touchdown point);
+- a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit;
+- deviations from the glide path and the centreline are shown as with the linear scale near the runway, smaller far away (as all the distances there).
 
 ---
 
@@ -609,6 +618,6 @@ All profiles and options are in one file:
 | DH | − / + · type in the box · DH knob (double click on the centre = runway value) |
 | Glide path | GP box: published angles, or type an angle + Enter (unpublished, orange) · GP DEG keys (analog) |
 | Labels | L = all · drag = move · double click = back · right click = hide |
-| Display | A = Modern / Analog (unless locked in the profile) · P / Shift+P = next / previous profile · T = test traffic |
+| Display | A = Modern / Analog (unless locked in the profile) · P / Shift+P = next / previous profile · T = test traffic · C = linear / compressed distance scale |
 | Distances | Always from the **touchdown point** |
 | Colours | Green inside the approach limits, red outside |

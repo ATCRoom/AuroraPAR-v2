@@ -113,6 +113,8 @@ namespace AuroraPAR
         private const double TrailSeconds = 0.7;
         private const int TrailMax = 5;
         private Wedge[] wedges = new Wedge[TrailMax + 1];
+        /// <summary>Compressed scale: linear-scale x and factor of each column of the bitmap (see Frame.Unwarp).</summary>
+        private double[] columnX = [], columnFactor = [];
 
         public Image Element => image;
 
@@ -127,6 +129,13 @@ namespace AuroraPAR
             public double DriftX, DriftY;
             public ScanEffectSpeed Speed;
             public Color Colour;
+            /// <summary>
+            /// Compressed distance scale: for a logical x, the linear-scale x and the factor that brings a logical
+            /// distance from <see cref="AxisY"/> back to the linear scale; null with the linear scale. The beam
+            /// geometry above (origin, end, limits) is given in linear-scale coordinates.
+            /// </summary>
+            public Func<double, (double X, double Factor)>? Unwarp;
+            public double AxisY;
         }
 
         public void Hide() => image.Visibility = Visibility.Collapsed;
@@ -187,6 +196,19 @@ namespace AuroraPAR
             double gainFilter = 1 - 0.85 * f.Filter;
             double span = f.EndX - f.OriginX;
             double slope = (f.EndX - f.OriginX);
+            if (f.Unwarp != null)
+            {
+                if (columnX.Length != w)
+                {
+                    columnX = new double[w];
+                    columnFactor = new double[w];
+                }
+                for (int bx = 0; bx < w; bx++)
+                {
+                    double sx = (bx + 0.5) * Pixel;
+                    (columnX[bx], columnFactor[bx]) = f.Unwarp((f.RunwayOnRight ? f.Width - sx : sx) - f.XShift);
+                }
+            }
             Array.Clear(pixels);
             for (int by = 0; by < h; by++)
             {
@@ -197,12 +219,20 @@ namespace AuroraPAR
                 {
                     double sx = (bx + 0.5) * Pixel;
                     double lx = (f.RunwayOnRight ? f.Width - sx : sx) - f.XShift;
-                    double dx = lx - f.OriginX;
+                    // Direction from the antenna in linear-scale coordinates (the same as the logical ones with
+                    // the linear scale); the noise below stays in logical coordinates (same look on the screen).
+                    double linearX = lx, linearY = ly;
+                    if (f.Unwarp != null)
+                    {
+                        linearX = columnX[bx];
+                        linearY = f.AxisY + (ly - f.AxisY) * columnFactor[bx];
+                    }
+                    double dx = linearX - f.OriginX;
                     if (dx <= 1) continue;
                     double mask = 0, p = 0;
                     for (int g = 0; g < count; g++)
                     {
-                        double y = f.OriginY + (ly - f.OriginY) * slope / dx;
+                        double y = f.OriginY + (linearY - f.OriginY) * slope / dx;
                         double pg = (y - wedges[g].LowY) / (wedges[g].HighY - wedges[g].LowY);
                         double m = Math.Clamp((Math.Min(pg, 1 - pg) + EdgeFade) / (2 * EdgeFade), 0, 1) * wedges[g].Weight;
                         if (m > mask) { mask = m; p = pg; }

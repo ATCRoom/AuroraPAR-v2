@@ -311,6 +311,17 @@ namespace AuroraPAR
         /// <summary>Horizontal lines every 1000 (in the unit of the scale) in the vertical view: off by default.</summary>
         public bool ShowAltitudeLines { get; set; }
         /// <summary>
+        /// Compressed distance scale: the last miles before the runway get more room, the far ones less, so the
+        /// traffic stays in view without changing the range. Every line starting at the touchdown point (glide path,
+        /// approach limits, centreline) stays straight; heights and lateral offsets shrink with the distance.
+        /// </summary>
+        public bool CompressedScale { get; set; }
+        /// <summary>Compressed scale: distance from the touchdown (NM) within which the scale stays almost linear.</summary>
+        public double CompressionKnee { get; set; } = DefaultCompressionKnee;
+        public const double DefaultCompressionKnee = 3;
+        public const double MinCompressionKnee = 0.5;
+        public const double MaxCompressionKnee = 20;
+        /// <summary>
         /// Unit of heights: altitude scale and labels (altitude, deviations in ft or m, vertical speed in ft/min or m/s).
         /// </summary>
         public LengthUnit AltitudeScaleUnit { get; set; } = LengthUnit.Feet;
@@ -420,6 +431,7 @@ namespace AuroraPAR
             Style.Normalize();
             if (!ColorText.TryParse(AnalogColor, out _)) AnalogColor = "#A8FF60";
             EchoGrowth = double.IsFinite(EchoGrowth) ? Math.Clamp(EchoGrowth, 1, MaxEchoGrowth) : 1;
+            CompressionKnee = double.IsFinite(CompressionKnee) && CompressionKnee > 0 ? Math.Clamp(CompressionKnee, MinCompressionKnee, MaxCompressionKnee) : DefaultCompressionKnee;
             BrightnessModern = Math.Clamp(BrightnessModern, MinBrightness, MaxBrightness);
             BrightnessAnalog = Math.Clamp(BrightnessAnalog, MinBrightness, MaxBrightness);
             Reminders ??= [];

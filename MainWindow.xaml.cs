@@ -1117,6 +1117,18 @@ namespace AuroraPAR
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        /// <summary>Key C: linear or compressed distance scale (saved in the profile).</summary>
+        private void ToggleDistanceScale()
+        {
+            Profile profile = settings.Active;
+            profile.CompressedScale = !profile.CompressedScale;
+            SettingsStore.Save(settings);
+            ApplyProfile();
+            ShowBanner(profile.CompressedScale
+                ? $"COMPRESSED SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM)"
+                : "LINEAR SCALE");
+        }
+
         private void ToggleDisplayMode()
         {
             Profile profile = settings.Active;
@@ -1923,6 +1935,7 @@ namespace AuroraPAR
                 case Key.A: ToggleDisplayMode(); break;
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
                 case Key.T: OpenTestTraffic(); break;
+                case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 default: return;
             }
             e.Handled = true;
@@ -2023,6 +2036,7 @@ namespace AuroraPAR
             // Reminders of all the lines (approaches) of the runway.
             viewOptions.Reminders = r => settings.RemindersFor(runways.Where(x => x.RunwayKey == r.RunwayKey).Select(x => x.ToString()).Append(r.ToString()));
             viewOptions.RangeTextBelowHorizon = profile.RangeTextBelowHorizon;
+            viewOptions.DistanceKnee = profile.CompressedScale ? profile.CompressionKnee : 0;
             phosphorGlow.Color = viewOptions.Theme.Glow;
             // The old scopes had no altitude scale.
             viewOptions.ShowAltitudeScale = profile.ShowAltitudeScale && !analog;
@@ -2057,7 +2071,7 @@ namespace AuroraPAR
             horizontalView.SetRunwayOnRight(right);
             // Information area in the top corner on the runway side, away from the far end of the scan limits.
             // Leave room for the altitude scale, drawn on the same side.
-            double margin = viewOptions.ShowAltitudeScale ? 75 : 4;
+            double margin = viewOptions.ShowAltitudeScale && viewOptions.DistanceKnee <= 0 ? 75 : 4;
             ApplyDisplayMode(analog);
             if (right)
             {

@@ -27,7 +27,9 @@ namespace AuroraPAR
             CalculateHorizontalScale();
             // Fixed vertical scale, depending only on the range: the default upper scan limit (8°) reaches the top at
             // the end of the range. Other scan limits or a tilt move the lines (beyond the view if needed), as on a real PAR.
-            double top = Radar.ScanHeight(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanUp);
+            // With the compressed scale heights shrink with the distance (see RadarView.ShrinkAt): the same rule there.
+            double end = Runway.Distance + Runway.LengthNM;
+            double top = Radar.ScanHeight(end - AntennaNM, Radar.ReferenceScanUp) * ShrinkAt(end);
             // Room below the horizon for the distance text or the reminder markers (the larger of the two).
             double markers = VisibleReminders().Where(r => r.HasMarker).Select(r => r.Size + 8).DefaultIfEmpty(0).Max();
             // Ticks below the horizon line push the distance text (when it is below) further down.
@@ -41,11 +43,11 @@ namespace AuroraPAR
         /// </summary>
         private double X(double distanceFromTouchdownNM)
         {
-            return (Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM) * xscale;
+            return XAt(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM);
         }
 
         /// <summary>
-        /// Logical y of a height in ft above the threshold elevation.
+        /// Logical y of a height in ft above the threshold elevation, with the linear scale (or at the touchdown).
         /// </summary>
         private double Y(double heightFt)
         {
@@ -53,11 +55,45 @@ namespace AuroraPAR
         }
 
         /// <summary>
+        /// Logical y of a height in ft above the threshold elevation at the given distance from the touchdown
+        /// (heights shrink with the distance with the compressed scale; the same as <see cref="Y"/> otherwise).
+        /// </summary>
+        private double Y(double distanceFromTouchdownNM, double heightFt)
+        {
+            return YEnd(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM, heightFt);
+        }
+
+        /// <summary>Logical y of a height in ft at the given distance (NM) from the far end of the runway.</summary>
+        private double YEnd(double fromRunwayEndNM, double heightFt)
+        {
+            return H - heightFt * ShrinkAt(fromRunwayEndNM) * yscale;
+        }
+
+        /// <summary>
         /// Logical y of an elevation scan limit (angle from the antenna) at the given distance (NM) from the far end of the runway.
         /// </summary>
         private double ScanY(double fromRunwayEndNM, double angle)
         {
-            return Y(Radar.ScanHeight(Math.Max(0, fromRunwayEndNM - AntennaNM), angle));
+            return YEnd(fromRunwayEndNM, Radar.ScanHeight(Math.Max(0, fromRunwayEndNM - AntennaNM), angle));
+        }
+
+        /// <summary>
+        /// Line from the antenna along an elevation angle to the given distance from the far end of the runway:
+        /// straight with the linear scale, slightly curved with the compressed one.
+        /// </summary>
+        private void AddScanLine(double angle, double toFromRunwayEndNM, StyleElement element)
+        {
+            if (!Compressed)
+            {
+                AddLine(AntennaNM * xscale, H, toFromRunwayEndNM * xscale, ScanY(toFromRunwayEndNM, angle), element);
+                return;
+            }
+            double from = AntennaNM;
+            AddCurve(t =>
+            {
+                double r = from + (toFromRunwayEndNM - from) * t;
+                return new Point(XAt(r), ScanY(r, angle));
+            }, element);
         }
 
         /// <summary>
@@ -68,8 +104,9 @@ namespace AuroraPAR
         {
             double threshold = Runway.TouchdownNM;
             double end = Runway.TouchdownNM + Runway.Distance;
-            AddLine(X(0), Y(0), X(threshold), Y(Runway.GlidePathHeight(threshold, angleOffset)), element, dashed: true);
-            AddLine(X(threshold), Y(Runway.GlidePathHeight(threshold, angleOffset)), X(end), Y(Runway.GlidePathHeight(end, angleOffset)), element);
+            // Straight with both scales (a line from the touchdown point, see RadarView.ShrinkAt).
+            AddLine(X(0), Y(0), X(threshold), Y(threshold, Runway.GlidePathHeight(threshold, angleOffset)), element, dashed: true);
+            AddLine(X(threshold), Y(threshold, Runway.GlidePathHeight(threshold, angleOffset)), X(end), Y(end, Runway.GlidePathHeight(end, angleOffset)), element);
         }
 
         protected override void DrawStatic()
@@ -82,35 +119,35 @@ namespace AuroraPAR
             double lower = Radar.ScanDown;
             double beamUpper = Radar.ElevationUpper;
             double beamLower = Radar.ElevationLower;
-            if (Options.ShowAltitudeLines) DrawAltitudeLines(end, upper, lower);
+            if (Options.ShowAltitudeLines || (Compressed && Options.ShowAltitudeScale)) DrawAltitudeLines(end, upper, lower);
             // Ground beyond the threshold.
-            AddLine(length * xscale, H, end * xscale, H, StyleElement.Ground);
+            AddLine(XAt(length), H, XAt(end), H, StyleElement.Ground);
             // Runway.
-            AddLine(0, H, length * xscale, H, StyleElement.Runway);
+            AddLine(0, H, XAt(length), H, StyleElement.Runway);
             // Threshold: a line up to the scan limit, or a symbol on the runway.
             if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
             {
-                AddLine(length * xscale, H, length * xscale, Math.Min(H, ScanY(length, upper)), StyleElement.Runway);
+                AddLine(XAt(length), H, XAt(length), Math.Min(H, ScanY(length, upper)), StyleElement.Runway);
             }
             else
             {
-                if (!Options.Theme.IsHidden(StyleElement.Runway)) AddSymbol(Options.ThresholdSymbol, length * xscale, H - Options.ThresholdSymbol.Size / 2, Brush(StyleElement.Runway));
+                if (!Options.Theme.IsHidden(StyleElement.Runway)) AddSymbol(Options.ThresholdSymbol, XAt(length), H - Options.ThresholdSymbol.Size / 2, Brush(StyleElement.Runway));
             }
             // Scan limits and beam edges, from the antenna (the lower ones only when above the ground).
-            AddLine(AntennaNM * xscale, H, end * xscale, ScanY(end, upper), StyleElement.ScanLimits);
+            AddScanLine(upper, end, StyleElement.ScanLimits);
             if (lower > 0)
             {
-                AddLine(AntennaNM * xscale, H, end * xscale, ScanY(end, lower), StyleElement.ScanLimits);
+                AddScanLine(lower, end, StyleElement.ScanLimits);
             }
             if (Options.ShowBeamEdges && Radar.BeamEnabled)
             {
-                AddLine(AntennaNM * xscale, H, end * xscale, ScanY(end, beamUpper), StyleElement.AntennaBeam);
+                AddScanLine(beamUpper, end, StyleElement.AntennaBeam);
                 if (beamLower > 0)
                 {
-                    AddLine(AntennaNM * xscale, H, end * xscale, ScanY(end, beamLower), StyleElement.AntennaBeam);
+                    AddScanLine(beamLower, end, StyleElement.AntennaBeam);
                 }
             }
-            AddSymbol(Options.AntennaSymbol, AntennaNM * xscale, H - Options.AntennaSymbol.Size / 2, Brush(StyleElement.Antenna));
+            AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), H - Options.AntennaSymbol.Size / 2, Brush(StyleElement.Antenna));
             // Glide path and its approach limits, all starting at the touchdown point.
             AddGlidePathLine(0, StyleElement.GlidePath);
             AddGlidePathLine(-Radar.ApproachBelow, StyleElement.ApproachLimits);
@@ -127,13 +164,18 @@ namespace AuroraPAR
                 bool towardsRunway = Options.DhLineSide is DhHorizontalSide.Left or DhHorizontalSide.Right && !towardsApproach;
                 double from = towardsApproach ? intercept : Math.Max(0, intercept - Options.DhLineLength);
                 double to = towardsRunway ? intercept : Math.Min(displayEnd, intercept + Options.DhLineLength);
-                if (Options.DhLineSide != DhHorizontalSide.None) AddLine(X(from), Y(Runway.MDH), X(to), Y(Runway.MDH), StyleElement.DecisionHeight);
+                if (Options.DhLineSide != DhHorizontalSide.None)
+                {
+                    // Constant height: straight with the linear scale, a slight curve with the compressed one.
+                    if (Compressed) AddCurve(t => { double d = from + (to - from) * t; return new Point(X(d), Y(d, Runway.MDH)); }, StyleElement.DecisionHeight);
+                    else AddLine(X(from), Y(Runway.MDH), X(to), Y(Runway.MDH), StyleElement.DecisionHeight);
+                }
                 // Vertical line: down, up or both; by default as long as the DH (down to the ground).
                 double drop = Options.DhDropLength > 0 ? Options.DhDropLength : Runway.MDH;
                 double down = Options.DhDropSide is DhVerticalSide.Down or DhVerticalSide.Both ? Math.Min(drop, Runway.MDH) : 0;
                 double up = Options.DhDropSide is DhVerticalSide.Up or DhVerticalSide.Both ? drop : 0;
-                if (Options.DhDropSide != DhVerticalSide.None) AddLine(X(intercept), Y(Runway.MDH - down), X(intercept), Y(Runway.MDH + up), StyleElement.DecisionHeightDrop);
-                AddSymbol(Options.DhSymbol, X(intercept), Y(Runway.MDH), Brush(StyleElement.DecisionHeightMark));
+                if (Options.DhDropSide != DhVerticalSide.None) AddLine(X(intercept), Y(intercept, Runway.MDH - down), X(intercept), Y(intercept, Runway.MDH + up), StyleElement.DecisionHeightDrop);
+                AddSymbol(Options.DhSymbol, X(intercept), Y(intercept, Runway.MDH), Brush(StyleElement.DecisionHeightMark));
             }
             // Touchdown point: origin of the range marks and of the glide path.
             if (Options.TouchdownSymbol.Shape == SymbolShape.Line)
@@ -158,22 +200,22 @@ namespace AuroraPAR
                 double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
                 if (tickUp + tickDown > 0 && !HasReminderLine(reminders, distance))
                 {
-                    AddLine(markNM * xscale, H + tickDown, markNM * xscale, H - tickUp, element);
+                    AddLine(XAt(markNM), H + tickDown, XAt(markNM), H - tickUp, element);
                 }
                 if (Options.RangeMarks.DrawLines && top < bottom && !HasReminderLine(reminders, distance))
                 {
-                    AddLine(markNM * xscale, bottom, markNM * xscale, top, element);
+                    AddLine(XAt(markNM), bottom, XAt(markNM), top, element);
                     // Thicker where the antenna beam looks.
                     double beamTop = ScanY(markNM, beamUpper);
                     double beamBottom = beamLower > 0 ? ScanY(markNM, beamLower) : H;
                     if (Radar.BeamEnabled && beamTop < beamBottom)
                     {
-                        AddLine(markNM * xscale, beamBottom, markNM * xscale, beamTop, element, extraWidth: InBeamExtraWidth);
+                        AddLine(XAt(markNM), beamBottom, XAt(markNM), beamTop, element, extraWidth: InBeamExtraWidth);
                     }
                 }
                 if (text)
                 {
-                    AddText(Options.RangeMarks.Label(distance, range), markNM * xscale, textBelow ? H + 2 + tickDown : H - 1 - tickUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
+                    AddText(Options.RangeMarks.Label(distance, range), XAt(markNM), textBelow ? H + 2 + tickDown : H - 1 - tickUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
                 }
             }
             // Distance reminders: line between the scan limits and/or marker on the other side of the horizon from the text.
@@ -184,17 +226,19 @@ namespace AuroraPAR
                 double bottom = lower > 0 ? ScanY(markNM, lower) : H;
                 if (reminder.HasLine && top < bottom)
                 {
-                    AddReminderLine(reminder, markNM * xscale, bottom, markNM * xscale, top);
+                    AddReminderLine(reminder, XAt(markNM), bottom, XAt(markNM), top);
                 }
                 if (reminder.HasMarker)
                 {
                     double y = textBelow
                         ? H - 3 - reminder.Size / 2
                         : H + 3 + reminder.Size / 2;
-                    AddReminderMarker(reminder, markNM * xscale, y);
+                    AddReminderMarker(reminder, XAt(markNM), y);
                 }
             }
-            if (Options.ShowAltitudeScale)
+            // With the compressed scale heights depend on the distance: no scale on the side, the values are written
+            // on the altitude lines instead (see DrawAltitudeLines).
+            if (Options.ShowAltitudeScale && !Compressed)
             {
                 DrawAltitudeScale();
             }
@@ -206,6 +250,11 @@ namespace AuroraPAR
         /// </summary>
         private void DrawAltitudeLines(double end, double upper, double lower)
         {
+            if (Compressed)
+            {
+                DrawCompressedAltitudeLines(end, upper, lower);
+                return;
+            }
             const double FeetPerMetre = 1 / 0.3048;
             double unitToFeet = Options.ScaleInMetres ? FeetPerMetre : 1;
             double baseValue = Options.Qfe ? 0 : Runway.Elevation / unitToFeet;
@@ -224,6 +273,56 @@ namespace AuroraPAR
                 if (lower > 0) toX = Math.Min(toX, (AntennaNM + heightNM / Math.Tan(lower * Math.PI / 180)) * xscale);
                 if (fromX < toX) AddLine(fromX, y, toX, y, StyleElement.AltitudeLines);
             }
+        }
+
+        /// <summary>
+        /// Compressed scale: heights shrink with the distance, so a constant altitude is a curve going down towards
+        /// the far end. The lines every 1000 (option) are drawn as such curves, and the altitude scale (option) is
+        /// written as values where they start, on the upper scan limit (a scale on the side would be right only at
+        /// the touchdown).
+        /// </summary>
+        private void DrawCompressedAltitudeLines(double end, double upper, double lower)
+        {
+            const double FeetPerMetre = 1 / 0.3048;
+            double unitToFeet = Options.ScaleInMetres ? FeetPerMetre : 1;
+            string unit = Options.ScaleInMetres ? "m" : "ft";
+            double baseValue = Options.Qfe ? 0 : Runway.Elevation / unitToFeet;
+            // Highest value seen in the view: at the far end, where heights shrink the most.
+            double topValue = baseValue + H / (yscale * ShrinkAt(end)) / unitToFeet;
+            double tanUpper = Math.Tan(upper * Math.PI / 180);
+            if (tanUpper <= 0) return;
+            double tanLower = Math.Tan(lower * Math.PI / 180);
+            // The lines every 1000; the values at the step of the altitude scale (about six in the view).
+            double[] steps = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
+            double textStep = steps.FirstOrDefault(s => s >= (topValue - baseValue) / 6, steps[^1]);
+            bool lines = Options.ShowAltitudeLines;
+            bool texts = Options.ShowAltitudeScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale);
+            double step = lines && texts ? Math.Min(1000, textStep) : lines ? 1000 : textStep;
+            for (double value = (Math.Floor(baseValue / step) + 1) * step; value <= topValue; value += step)
+            {
+                double heightFt = (value - baseValue) * unitToFeet;
+                if (heightFt <= 0) continue;
+                double heightNM = heightFt / Runway.FeetPerNM;
+                double from = AntennaNM + heightNM / tanUpper;
+                double to = end;
+                if (lower > 0) to = Math.Min(to, AntennaNM + heightNM / tanLower);
+                if (from >= to) continue;
+                if (lines && IsMultiple(value, 1000))
+                {
+                    AddCurve(t => { double r = from + (to - from) * t; return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.AltitudeLines);
+                }
+                if (texts && IsMultiple(value, textStep))
+                {
+                    double y = YEnd(from, heightFt);
+                    if (y > 10) AddText($"{value:0} {unit}", XAt(from), y, 4, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                }
+            }
+        }
+
+        private static bool IsMultiple(double value, double step)
+        {
+            double ratio = value / step;
+            return Math.Abs(ratio - Math.Round(ratio)) < 1e-6;
         }
 
         /// <summary>
@@ -259,7 +358,8 @@ namespace AuroraPAR
 
         protected override Point WorldToLogical(double along, double value)
         {
-            return new Point((along + Runway.LengthNM) * xscale, Y(value));
+            double fromEnd = along + Runway.LengthNM;
+            return new Point(XAt(fromEnd), YEnd(fromEnd, value));
         }
 
         protected override bool IsWithinLimits(Aircraft aircraft)
@@ -273,13 +373,15 @@ namespace AuroraPAR
 
         protected override double HorizonY => H;
 
-        protected override Point SweepOrigin() => new(AntennaNM * xscale, H);
+        protected override double AxisY => H;
+
+        protected override Point SweepOrigin() => new(XAt(AntennaNM), H);
 
         protected override Point SweepEnd(double position)
         {
             double end = Runway.LengthNM + Runway.Distance;
             double angle = Radar.ElevationLower + position * (Radar.ElevationUpper - Radar.ElevationLower);
-            return new Point(end * xscale, ScanY(end, angle));
+            return new Point(XAt(end), ScanY(end, angle));
         }
     }
 }
