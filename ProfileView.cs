@@ -299,10 +299,11 @@ namespace AuroraPAR
             double tanLower = Math.Tan(lower * Math.PI / 180);
             // The lines every 1000; the values at the step of the altitude scale (about six in the view).
             double[] steps = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
-            // Values at least ~28 px apart where the heights are the most shrunk (the far end): every altitude of the
-            // view gets its value, whatever the range.
-            double pixelsPerFoot = ShrinkAt(end) * yscale;
-            double textStep = steps.FirstOrDefault(s => s * unitToFeet * pixelsPerFoot >= 28, steps[^1]);
+            // Round values: about 60 px apart near the touchdown, thinned where the heights are the most shrunk.
+            double pixelsPerFoot = yscale;
+            double textStep = steps.FirstOrDefault(s => s * unitToFeet * pixelsPerFoot >= 60, steps[^1]);
+            // Values are written from the lowest up; one that would overlap an earlier one is left out.
+            List<Rect> placed = [];
             bool lines = Options.ShowAltitudeLines;
             bool texts = Options.ShowAltitudeScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale);
             double step = lines && texts ? Math.Min(1000, textStep) : lines ? 1000 : textStep;
@@ -317,7 +318,7 @@ namespace AuroraPAR
                 if (from >= to)
                 {
                     // Above the scan limit at the end of the range: no line, but the value is written at the far edge.
-                    if (texts && IsMultiple(value, textStep)) DrawEdgeAltitude(value, unit, heightFt, end);
+                    if (texts && IsMultiple(value, textStep)) DrawEdgeAltitude(value, unit, heightFt, end, placed);
                     continue;
                 }
                 if (lines && IsMultiple(value, 1000))
@@ -344,13 +345,15 @@ namespace AuroraPAR
                             // Inside the view (low values near the antenna, at the edge on the runway side).
                             double left = ToScreenX(XAt(at)) + dx;
                             dx += Math.Clamp(left, 2, Math.Max(2, Canvas.ActualWidth - width - 2)) - left;
-                            if (y - 2 - measure.DesiredSize.Height > 0) AddText(text, XAt(at), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                            Rect box = new(ToScreenX(XAt(at)) + dx, y - 2 - measure.DesiredSize.Height, width, measure.DesiredSize.Height);
+                            if (box.Top > 0 && TryPlace(placed, box)) AddText(text, XAt(at), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
                         }
                         else
                         {
                             // The line comes into the view from the top: under it, towards the far end.
                             double dx = RunwayOnRight ? -4 - width : 4;
-                            AddText(text, XAt(at), y + 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: false);
+                            Rect box = new(ToScreenX(XAt(at)) + dx, y + 2, width, measure.DesiredSize.Height);
+                            if (TryPlace(placed, box)) AddText(text, XAt(at), y + 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: false);
                         }
                     }
                 }
@@ -358,7 +361,7 @@ namespace AuroraPAR
         }
 
         /// <summary>Value of an altitude (compressed scale) written inside the far edge of the view, at the height of that altitude.</summary>
-        private void DrawEdgeAltitude(double value, string unit, double heightFt, double end)
+        private void DrawEdgeAltitude(double value, string unit, double heightFt, double end, List<Rect> placed)
         {
             double y = YEnd(end, heightFt);
             if (y <= 14) return;
@@ -370,7 +373,17 @@ namespace AuroraPAR
             double dx = RunwayOnRight ? 4 : -4 - width;
             double left = ToScreenX(XAt(end)) + dx;
             dx += Math.Clamp(left, 2, Math.Max(2, Canvas.ActualWidth - width - 2)) - left;
-            if (y - 2 - measure.DesiredSize.Height > 0) AddText(text, XAt(end), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+            Rect box = new(ToScreenX(XAt(end)) + dx, y - 2 - measure.DesiredSize.Height, width, measure.DesiredSize.Height);
+            if (box.Top > 0 && TryPlace(placed, box)) AddText(text, XAt(end), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+        }
+
+        /// <summary>True (and the box is kept) when the box does not overlap any of the earlier ones.</summary>
+        private static bool TryPlace(List<Rect> placed, Rect box)
+        {
+            Rect padded = new(box.X - 3, box.Y - 2, box.Width + 6, box.Height + 4);
+            if (placed.Any(r => r.IntersectsWith(padded))) return false;
+            placed.Add(box);
+            return true;
         }
 
         private static bool IsMultiple(double value, double step)
