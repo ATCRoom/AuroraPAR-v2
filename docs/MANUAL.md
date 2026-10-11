@@ -4,9 +4,9 @@ AuroraPAR is a **Precision Approach Radar (PAR)** display for the IVAO **Aurora*
 
 *The pictures are illustrations of the program, not screenshots.*
 
-This manual describes AuroraPAR v2, an unofficial evolution of [AuroraPAR](https://github.com/bornac1/AuroraPAR) by bornac1.
+This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bornac1/AuroraPAR) by bornac1, a third-party add-on for IVAO's Aurora ATC software. All credit for the original program goes to bornac1.
 
-> **Unofficial add-on.** AuroraPAR is a free program made by IVAO members for their own use. It is **not made, endorsed or supported by IVAO** and is not affiliated with it. For simulation only: never use it for real-world navigation or air traffic control.
+> **Third-party add-on.** AuroraPAR is a free program made by IVAO members for their own use. It is **not made, endorsed or supported by IVAO**. For simulation only: never use it for real-world navigation or air traffic control.
 
 ---
 

@@ -84,7 +84,7 @@ jobs:
           $zips | ForEach-Object { '{0}  {1}' -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_ } | Set-Content SHA256SUMS.txt
           $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')
           $short = '${{ github.sha }}'.Substring(0, 7)
-          $notes = "Test build of $date UTC (commit $short). Unofficial add-on for IVAO Aurora, not affiliated with IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
+          $notes = "Test build of $date UTC (commit $short). Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
           gh release delete test-build --yes --cleanup-tag 2>$null
           $global:LASTEXITCODE = 0
           gh release create test-build $zips SHA256SUMS.txt --prerelease --target '${{ github.sha }}' --title "Test build ($date UTC)" --notes $notes

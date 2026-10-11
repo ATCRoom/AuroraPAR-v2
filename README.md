@@ -1,10 +1,10 @@
 # AuroraPAR v2
 
-Unofficial version of [AuroraPAR](https://github.com/bornac1/AuroraPAR) by bornac1 — a Precision Approach Radar (PAR) display for the IVAO Aurora ATC client.
+AuroraPAR v2 is a fork of [AuroraPAR](https://github.com/bornac1/AuroraPAR) by bornac1: a Precision Approach Radar (PAR) display, a third-party add-on for IVAO's Aurora ATC software.
 
-This is a test version with bug fixes. It is not an official release of the original project. All credit for the original program goes to bornac1; it is distributed under the same MIT license (see `LICENSE`).
+This is a test version, developed separately from the original project. All credit for the original program goes to bornac1; it is distributed under the same MIT license (see `LICENSE`).
 
-> **Unofficial add-on — not affiliated with IVAO.** AuroraPAR is made by IVAO members for their own use; it is not made, endorsed or supported by IVAO. For simulation only: never use it for real-world navigation or air traffic control.
+> **A third-party add-on for IVAO's Aurora software, made by IVAO members for their own use. It is not made, endorsed or supported by IVAO. For simulation only: never use it for real-world navigation or air traffic control.**
 
 📖 **[User manual](docs/MANUAL.md)** — how to use every feature.
 
