@@ -6,6 +6,8 @@ This is a test version, developed separately from the original project. All cred
 
 > **A third-party add-on for IVAO's Aurora software, made by IVAO members for their own use. It is not made, endorsed or supported by IVAO. For simulation only: never use it for real-world navigation or air traffic control.**
 
+![AuroraPAR v2: modern display with elevation and azimuth views](docs/images/main-window-log.png)
+
 📖 **[User manual](docs/MANUAL.md)** — how to use every feature.
 
 ## What it does

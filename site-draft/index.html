@@ -70,6 +70,7 @@ section h2{font-size:clamp(32px,5vw,50px);text-transform:uppercase;margin-top:12
 footer{border-top:1px solid var(--line);padding-block:34px 56px;color:var(--muted);font:400 13px/1.7 var(--mono)}
 footer p{margin:0 0 8px;max-width:60em}
 @media (min-width:900px){.hero{grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center}}
+.shots{display:grid;gap:22px;margin-top:26px}.shots figure{margin:0}.shots img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px}.shots figcaption{margin-top:8px;font-size:14px;opacity:.8}@media (min-width:900px){.shots{grid-template-columns:1fr 1fr}.shots .wide{grid-column:1/-1}}
 </style>
 
 <div class="wrap">
@@ -77,6 +78,7 @@ footer p{margin:0 0 8px;max-width:60em}
   <a class="brand" href="#top">Aurora<b>PAR</b> v2</a>
   <nav aria-label="Main">
     <a href="#features">Features</a>
+    <a href="#screens">Screenshots</a>
     <a href="#start">Get started</a>
     <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Manual</a>
   </nav>
@@ -181,6 +183,16 @@ footer p{margin:0 0 8px;max-width:60em}
       <h3>Runways without the pain</h3>
       <p>CRSCalculator works out heading, length and magnetic variation from two thresholds and checks your whole runways file. Full manual included.</p>
     </article>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="eyebrow">Screenshots</div>
+  <h2>See it at work</h2>
+  <div class="shots">
+    <figure class="wide"><img src="images/par2090-modern.png" alt="Modern display: elevation and azimuth views of LIRF 16L with two aircraft on the glide path" loading="lazy"><figcaption>Modern display: elevation above, azimuth below, with the two aircraft on the glide path.</figcaption></figure>
+    <figure><img src="images/modern-log.png" alt="Log distance scale: the last miles larger, altitudes written along the upper scan limit" loading="lazy"><figcaption>Log distance scale: the last miles larger, so the traffic stays in view without changing the range.</figcaption></figure>
+    <figure><img src="images/analog-fiar.png" alt="Analog console with the FIAR range panel" loading="lazy"><figcaption>Analog console with FIAR keys: readouts, range panel, tilt and brightness.</figcaption></figure>
   </div>
 </section>
 

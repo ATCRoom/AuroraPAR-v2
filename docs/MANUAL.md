@@ -60,6 +60,10 @@ The QNH is taken from the METAR of the airport in Aurora and refreshed every min
 
 ## 3. The main window
 
+![The main window, Modern display, Default profile](images/main-window-modern.png)
+
+The numbered diagram below explains the parts:
+
 ![Main window](images/main-window.svg)
 
 | | |
@@ -166,6 +170,8 @@ Each aircraft inside the antenna beam is shown with a **track symbol** (default:
 
 **Test traffic** (key **T**, or *Settings → Test traffic...*). Virtual aircraft to test the radar without waiting for real traffic, also without Aurora. While test aircraft are flying, **TEST TRAFFIC** is shown at the top of the views; closing the window removes them, nothing is saved. The window has:
 
+![Test traffic window](images/test-traffic.png)
+
 - **New aircraft**: distance from touchdown, speed, SSR code and the initial offsets (m right + / left −, ft above + / below − the glide path), then **Add**. It appears as TEST1, TEST2... on the final course, descending at the glide path rate, and flies towards touchdown (it disappears when it lands, or when it goes far away).
   **Start**: *On final* (as above) or an **intercept start** (30°, 45°, 90°, from the left or from the right): the aircraft is aimed at the point of the centreline at the **Distance**, with that intercept angle, starting about 3 NM from the centreline and **level, below the glide path** (the height offset, default −300 ft, is measured at that point; the lateral offset is not used). It is for practising the turn onto the final and the moment of the descent: when it reaches the glide path (the aircraft information shows *GP in … NM (about … s)*) give **Normal** and it starts to descend after the pilot reaction.
 - **Wind** (rough model: the same at all heights): direction it blows from in degrees true (as in the METAR; the magnetic value is shown beside it), speed, and **gusts** (the wind grows at random up to this much more; 0 = none). **From METAR** copies the wind of the METAR of the airport in use received from Aurora. The aircraft fly their **heading** through the air: with a **crosswind** they drift off the centreline unless the heading is corrected into the wind; with a **headwind** the ground speed is lower and so is the rate of descent needed on the glide path (BEST VS follows the ground speed).
@@ -185,6 +191,9 @@ Each aircraft inside the antenna beam is shown with a **track symbol** (default:
 > Aurora interpolates the horizontal position between real network updates but the altitude changes only when a real update arrives (every few seconds). In the elevation view this can make the tail look like steps. A dot interval of about 3 s makes it less visible.
 
 ### 5.2 Labels
+
+![Label editor: two layouts with frame lines](images/labels-editor.png)
+
 
 Each track has a **label** in each view. Its content is configurable (*Settings → Edit labels...*): rows and columns, and in each cell one of:
 
@@ -278,6 +287,8 @@ Some runways have approaches with different glide path angles. In `runways.par` 
 
 ## 9. Analog mode
 
+![Analog console: LIRF, 16L, tilt on knobs](images/analog-knob.png)
+
 ![Analog console](images/analog-console.svg)
 
 
@@ -331,7 +342,11 @@ The knobs always follow the real state, also when it is changed with the keyboar
 
 **Knobs or keys** (*Settings → Analog console controls*, per profile). Each group can be a knob or a row of console keys (lit key = the state in use):
 
-- **Range:** knob, **one key per range** (the ranges ticked in *Range and scale → Ranges offered*; the one in use is lit), **`<` `DEF` `>`**: smaller / back to the preferred range (*Range and scale*) / larger, or **Range panel (FIAR keys)**: large square backlit keys in two columns in a gold frame, as on the range panel of the FIAR PAR console (number over NM; all dimly lit, the range in use bright white; a small dot on the preferred range), with the key **PREF** back to the preferred range under them and, under it in the same frame, the double key **LIN | LOG** of the distance scale. With the console keys the text of the key back to the preferred range is free (at most 5 characters, default DEF), or the preferred range itself (e.g. `15NM`: *PREF button → show the range*); with the FIAR keys it is always PREF. Every range control has the **LIN / LOG** keys of the distance scale (console keys: in the RANGE group, or a SCALE group under the knob; FIAR keys: the double key in the same gold frame).
+![Console with FIAR keys, 10 NM (left) and 20 NM = preferred range, PREF lit (right)](images/analog-fiar-10.png)
+
+![Console with FIAR keys at 20 NM, the preferred range: PREF lit](images/analog-fiar-20.png)
+
+- **Range:** knob, **one key per range** (the ranges ticked in *Range and scale → Ranges offered*; the one in use is lit), **`<` `DEF` `>`**: smaller / back to the preferred range (*Range and scale*) / larger, or **Range panel (FIAR keys)**: large square backlit keys in two columns in a gold frame, as on the range panel of the FIAR PAR console (number over NM; all dimly lit, the range in use bright white; a small dot on the preferred range), with the key **PREF** back to the preferred range under them and, under it in the same frame, the double key **LIN | LOG** of the distance scale. With the console keys the text of the key back to the preferred range is free (at most 5 characters, default DEF), or the preferred range itself (e.g. `15NM`: *Settings → Range and scale → PREF button → show the range*); with the FIAR keys it is always PREF. Every range control has the **LIN / LOG** keys of the distance scale (console keys: in the RANGE group, or a SCALE group under the knob; FIAR keys: the double key in the same gold frame).
 - **Antenna tilt:** two knobs (EL, AZ), keys **UP 0 DN** and **L 0 R** (0 = neutral of that axis, lit when neutral), or a **small 4-way joystick** as on some old American PAR consoles: push it (drag, or click on a direction) up/down for the elevation, left/right for the azimuth; one step, repeated while held; released it springs back; a click on the centre = neutral.
 - **DH:** knob or keys **− RWY +** (10 ft steps; RWY = the runway value, lit when in use).
 - Tilt, DH and BRT keys **repeat while held** (0, RWY, 100 do not); the range keys step only once per press.
@@ -351,6 +366,9 @@ The airport is the same as in the modern display (ICAO box and runway keys there
 ---
 
 ## 9b. Coordination panel
+
+![Coordination panel](images/coordination.png)
+
 
 The **Coordination** button opens a small panel for **voiceless coordination** between the radar (PAR / approach) and the tower, as on the light panels of real PAR rooms.
 
@@ -417,6 +435,9 @@ A profile holds all the display options, so that different controllers or differ
 
 ### 10.2 Display and Range and scale
 
+![Settings: Range and scale](images/settings-range.png)
+
+
 | Option | Description |
 |---|---|
 | Display mode | Modern or Analog. |
@@ -459,6 +480,8 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
 | Log distance scale (*Range and scale*) | how much the log scale compresses: knee 1–10 NM (default 3). LIN / LOG is switched on the main window (see below) or with key **C** |
 
+![Log distance scale: the last miles larger, altitudes written along the upper scan limit](images/main-window-log.png)
+
 **Log (compressed) distance scale.** Switched with **LIN | LOG** under the range list (modern display), on the analog console with the range controls (console keys: **LIN / LOG** in the RANGE group, or a SCALE group under the range knob; FIAR keys: the double key **LIN | LOG** in the gold frame of the range, under **PREF**), or with key **C**; saved in the profile. The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). Heights (elevation view) and lateral offsets (azimuth view) shrink with the distance by the same amount, so every line starting at the touchdown point stays **straight**: the glide path (whatever its angle), the approach limits and the centreline look as with the linear scale, and an aircraft on the glide path stays on its line; only the distances along them change. As a consequence:
 
 - range marks, reminders and the DH lines move to their compressed distance;
@@ -486,6 +509,11 @@ Defaults: every 5 NM at 40 and 30 NM; every 2 NM at 20 NM; every NM at 15 and 10
 **Distance text**: *Decimal* (`1.25NM`, `2.5NM`) or *Fractions* (`1 1/4NM`, `2 1/2NM`, `3/4NM`), and its **text size** (10–18 px, default 12). The **NM** box next to each range writes the unit (`1.25NM`) or only the number (`1.25`, `1 1/4`); for older scopes with no text, choose *none* in the range. At the top, **Distance text on all ranges** + **Apply to all** sets every range at once: *Full* or *Number only* (unit on/off; a range with no text gets the default marks again) or *None*. Single ranges can be changed afterwards. **Default** restores the table above; the text format and size stay as chosen.
 
 ### 11.2 Colours and lines
+
+![Settings: Colours and lines (top part)](images/settings-colours-1.png)
+
+![Settings: Colours and lines (bottom part, with the analog scope)](images/settings-colours-2.png)
+
 
 For every element of the **Modern** display:
 
