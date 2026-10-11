@@ -29,6 +29,9 @@
 
 Last updates, newest first. When an item works in the test, delete it.
 
+- **(Done, to be tested) Label frame** (Settings → Edit labels..., per label): **sides** Top / Right / Bottom / Left (any combination, none by default), style *Display style → Label frame* (colour default #C87832, width, line); **row outside the frame** (none / first row above / last row below) with its own colour *Label text (field outside the frame)* (default yellow). Preview in the editor. Check: only left side, full frame, outside first / last row, dashed frame, dragging the label, hide (Show) the frame, both views, runway on the right.
+- **(Done, to be tested) Range marks as ticks** (Display style → Range marks → *Range marks:* Lines / Ticks / Both, tick length 4–30 px, side Both / Above / Below): ticks on the horizon line (elevation) and centreline (azimuth) at the mark distances, longer where the distance is written; text moved out of the ticks. Check: all ranges, text above / below the horizon, reminders, analog, Default button keeps the choice.
+
 - **(Done, to be tested) Label leader line with its own style** (Display style → Colours & lines → *Label leader line*: colour, line, width, show / hide per mode). Default pale yellow `#F0E39E`, measured on a photo of a real scope (before: the colour of the track). Older profiles get the new default. Check: drag a label (modern), change colour / width / dash, hide it.
 
 - **(Done, to be tested) Keyboard keys after typing in a field:** a click outside the text field with the cursor (APT, DH, GP...) now gives the keyboard back to the window, so P, A, T, L and the arrows work again (before, the click on a part of the window that takes no focus left the cursor in the field and the keys were ignored). Check: type in APT then click on the views / panel and press P; same after the DH and GP boxes; Esc and Enter as before.

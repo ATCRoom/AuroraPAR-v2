@@ -126,7 +126,7 @@ namespace AuroraPAR
             // Frame: sides, and the row kept outside it.
             StackPanel frameRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
             frameRow.Children.Add(new TextBlock { Text = "Frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), ToolTip = "Sides of the frame drawn around the label (none by default). Colour, width and line: Display style → Label frame." });
-            foreach ((string name, Func<bool> get, Action<bool> setSide) in new (string, Func<bool>, Action<bool>)[]
+            foreach ((string name, Func<bool> getSide, Action<bool> setSide) in new (string, Func<bool>, Action<bool>)[]
             {
                 ("Top", () => layout.FrameTop, v => layout.FrameTop = v),
                 ("Right", () => layout.FrameRight, v => layout.FrameRight = v),
@@ -134,7 +134,7 @@ namespace AuroraPAR
                 ("Left", () => layout.FrameLeft, v => layout.FrameLeft = v)
             })
             {
-                CheckBox side = new() { Content = name, IsChecked = get(), Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
+                CheckBox side = new() { Content = name, IsChecked = getSide(), Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
                 side.Checked += (s, e) => { setSide(true); Changed(); };
                 side.Unchecked += (s, e) => { setSide(false); Changed(); };
                 frameRow.Children.Add(side);
