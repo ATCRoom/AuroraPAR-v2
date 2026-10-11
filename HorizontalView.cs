@@ -26,9 +26,8 @@ namespace AuroraPAR
             CalculateHorizontalScale();
             // Fixed lateral scale, depending only on the range: the default scan limits (±10°) fill the view at the end
             // of the range. Other scan limits or a tilt move the lines (beyond the view if needed), as on a real PAR.
-            // With the compressed scale lateral offsets shrink with the distance (see RadarView.ShrinkAt): the same rule there.
-            double end = Runway.Distance + Runway.LengthNM;
-            double half = Radar.ScanOffset(end - AntennaNM, Radar.ReferenceScanHalfWidth) * ShrinkAt(end);
+            // With the compressed scale the lateral offsets are compressed too (see W): the same rule there.
+            double half = W(LateralReferenceNM);
             yscale = (Canvas.ActualHeight - 50) / (2 * half);
         }
 
@@ -37,8 +36,37 @@ namespace AuroraPAR
         /// </summary>
         private double LateralY(double fromRunwayEndNM, double offsetNM)
         {
-            return CenterY - offsetNM * ShrinkAt(fromRunwayEndNM) * yscale;
+            return CenterY - W(offsetNM) * yscale;
         }
+
+        // Version C: lateral offsets get the power law of the distances with the same exponent (reference: the
+        // reference scan half width at the end of the range, which fills the view).
+
+        private double LateralReferenceNM => Radar.ScanOffset(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanHalfWidth);
+
+        private double W(double offsetNM) => PowerLaw(offsetNM, LateralReferenceNM);
+
+        private double WInverse(double compressed) => PowerLawInverse(compressed, LateralReferenceNM);
+
+        protected override Point Unwarp(Point logical)
+        {
+            if (!Compressed) return logical;
+            double fromEnd = FromRunwayEndOfScale(logical.X / xscale);
+            return new Point(fromEnd * xscale, CenterY - WInverse((CenterY - logical.Y) / yscale) * yscale);
+        }
+
+        protected override Point Warp(Point linear)
+        {
+            if (!Compressed) return linear;
+            return new Point(XAt(linear.X / xscale), CenterY - W((CenterY - linear.Y) / yscale) * yscale);
+        }
+
+        protected override (double X, double Factor) ClutterColumn(double logicalX)
+        {
+            return (FromRunwayEndOfScale(logicalX / xscale) * xscale, 1);
+        }
+
+        protected override Func<double, double>? ClutterRow => y => CenterY - WInverse((CenterY - y) / yscale) * yscale;
 
         /// <summary>
         /// Logical y of an azimuth scan limit (signed angle from the antenna) at the given distance (NM) from the far end of the runway.
@@ -82,7 +110,7 @@ namespace AuroraPAR
             AddLine(0, cy, XAt(length), cy, StyleElement.Runway);
             if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
             {
-                double halfWidth = Runway.WidthNM * ShrinkAt(length) * yscale;
+                double halfWidth = W(Runway.WidthNM) * yscale;
                 AddLine(XAt(length), cy - halfWidth, XAt(length), cy + halfWidth, StyleElement.Runway);
             }
             else
@@ -130,7 +158,7 @@ namespace AuroraPAR
                 // Both sides of the centreline: up to the scan limits, or a length in metres (never beyond the limits).
                 double yLeft = ScanY(interceptNM, left), yRight = ScanY(interceptNM, right);
                 double low = Math.Min(yLeft, yRight), high = Math.Max(yLeft, yRight);
-                double reach = Options.DhAzimuthLength > 0 ? Options.DhAzimuthLength / 1852 * ShrinkAt(interceptNM) * yscale : double.MaxValue;
+                double reach = Options.DhAzimuthLength > 0 ? W(Options.DhAzimuthLength / 1852) * yscale : double.MaxValue;
                 AddLine(XAt(interceptNM), Math.Max(low, cy - reach), XAt(interceptNM), Math.Min(high, cy + reach), StyleElement.DecisionHeightAzimuth);
                 AddSymbol(Options.DhAzimuthSymbol, XAt(interceptNM), cy, Brush(StyleElement.DecisionHeightMark));
             }

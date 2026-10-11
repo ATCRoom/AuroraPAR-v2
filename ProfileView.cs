@@ -45,27 +45,20 @@ namespace AuroraPAR
             return XAt(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM);
         }
 
-        // Compressed scale, version B: the heights have their own compression, the same law as the distances
-        // (V(h) = Kh·asinh(h/Kh)), with the knee Kh = the height of a 3° glide path at the distance knee: so the
-        // altitude lines stay horizontal and the scale on the side is right everywhere, compressed at the top and
-        // wider at the bottom. A 3° glide path is straight; other angles (and the approach limits) bend a little.
+        // Compressed scale: the heights have their own compression (see V), so the altitude lines stay horizontal
+        // and the scale on the side is right everywhere, compressed at the top and wider at the bottom.
 
-        /// <summary>Knee of the height compression, ft: a 3° glide path at the distance knee.</summary>
-        private double HeightKneeFt => Options.DistanceKnee * Math.Tan(3 * Math.PI / 180) * Runway.FeetPerNM;
+        // Version C: the heights get the power law of the distances, with the same exponent (reference: the
+        // height of the reference upper scan limit at the end of the range, which stays at the top).
+
+        /// <summary>Reference height of the power law, ft.</summary>
+        private double HeightReferenceFt => Radar.ScanHeight(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanUp);
 
         /// <summary>Compressed height (ft) of a height above the threshold; the height itself with the linear scale.</summary>
-        private double V(double heightFt)
-        {
-            double knee = HeightKneeFt;
-            return Compressed ? knee * Math.Asinh(heightFt / knee) : heightFt;
-        }
+        private double V(double heightFt) => PowerLaw(heightFt, HeightReferenceFt);
 
         /// <summary>Inverse of <see cref="V"/>.</summary>
-        private double VInverse(double compressedFt)
-        {
-            double knee = HeightKneeFt;
-            return Compressed ? knee * Math.Sinh(compressedFt / knee) : compressedFt;
-        }
+        private double VInverse(double compressedFt) => PowerLawInverse(compressedFt, HeightReferenceFt);
 
         /// <summary>
         /// Logical y of a height in ft above the threshold elevation.
@@ -138,7 +131,7 @@ namespace AuroraPAR
             double end = Runway.TouchdownNM + Runway.Distance;
             if (Compressed)
             {
-                // Straight only at 3°: drawn as curves.
+                // Straight with the power law (drawn as a curve anyway: cheap, and exact).
                 AddCurve(t => { double d = threshold * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element, dashed: true);
                 AddCurve(t => { double d = threshold + (end - threshold) * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element);
                 return;

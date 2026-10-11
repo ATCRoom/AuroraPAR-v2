@@ -1154,19 +1154,36 @@ namespace AuroraPAR
         /// <summary>Distance of the touchdown point from the far end of the runway, NM.</summary>
         private double TouchdownFromRunwayEnd => Runway.LengthNM - Runway.TouchdownNM;
 
-        /// <summary>Compressed distance u(d) of a distance d from the touchdown (NM); d itself with the linear scale.</summary>
-        protected double CompressNM(double fromTouchdownNM)
+        // Version C: power law. u(d) = sign(d)·R·(|d|/R)^p, R = the end of the range from the touchdown (it stays
+        // there). Heights and lateral offsets get the same law with the same exponent (see the views), so every
+        // line through the touchdown point is straight whatever its angle, and the altitude lines are horizontal;
+        // the price: the scale grows without limit near the touchdown point (and near the ground / centreline).
+
+        /// <summary>Exponent of the power law (from the knee setting, see Profile.CompressionExponent).</summary>
+        protected double Exponent => Profile.CompressionExponent(Options.DistanceKnee);
+
+        /// <summary>Power law with the exponent of the view: sign(v)·reference·(|v|/reference)^p.</summary>
+        protected double PowerLaw(double value, double reference)
         {
-            double knee = Options.DistanceKnee;
-            return knee > 0 ? knee * Math.Asinh(fromTouchdownNM / knee) : fromTouchdownNM;
+            if (!Compressed || reference <= 0) return value;
+            return Math.Sign(value) * reference * Math.Pow(Math.Abs(value) / reference, Exponent);
         }
 
-        /// <summary>Inverse of <see cref="CompressNM"/>.</summary>
-        protected double ExpandNM(double compressed)
+        /// <summary>Inverse of <see cref="PowerLaw"/>.</summary>
+        protected double PowerLawInverse(double value, double reference)
         {
-            double knee = Options.DistanceKnee;
-            return knee > 0 ? knee * Math.Sinh(compressed / knee) : compressed;
+            if (!Compressed || reference <= 0) return value;
+            return Math.Sign(value) * reference * Math.Pow(Math.Abs(value) / reference, 1 / Exponent);
         }
+
+        /// <summary>Reference distance of the power law: the end of the range from the touchdown point.</summary>
+        private double DistanceReference => Runway.Distance + Runway.TouchdownNM;
+
+        /// <summary>Compressed distance u(d) of a distance d from the touchdown (NM); d itself with the linear scale.</summary>
+        protected double CompressNM(double fromTouchdownNM) => PowerLaw(fromTouchdownNM, DistanceReference);
+
+        /// <summary>Inverse of <see cref="CompressNM"/>.</summary>
+        protected double ExpandNM(double compressed) => PowerLawInverse(compressed, DistanceReference);
 
         /// <summary>
         /// Scale distance of a point at the given distance from the far end of the runway (NM): its logical x is

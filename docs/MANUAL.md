@@ -456,12 +456,11 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
 | Distance scale | linear (default) or **compressed** with a knee of 1–10 NM; key **C** switches (see below) |
 
-**Compressed distance scale (experimental, version B).** The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). In the elevation view the **heights are compressed the same way** (wide at the bottom, close at the top; knee = the height of a 3° glide path at the distance knee): the altitude lines stay horizontal and the altitude scale on the side is right everywhere. As a consequence:
+**Compressed distance scale (experimental, version C).** Distances, heights and lateral offsets are all compressed with the same power law (exponent 0.5–0.86, chosen in the list; the smaller, the stronger): the last miles, the low heights and the small offsets get more room. Every line through the touchdown point stays **straight** whatever its angle (glide path, approach limits, centreline), the altitude lines stay horizontal and the altitude scale on the side is right everywhere. As a consequence:
 
-- a **3° glide path is straight**; other angles and the approach limits bend a little (more the farther the angle is from 3°);
-- range marks, reminders and the DH lines move to their compressed distance and height;
+- near the touchdown point, near the ground and near the centreline the scale grows a lot: small movements there look large;
 - the lines from the antenna (scan limits, antenna beam, scan effect) are curves;
-- the azimuth view is as in version A: lateral offsets shrink with the distance, so the centreline and the approach limits stay straight there.
+- deviations look smaller compared with the linear scale (the glide path and its limits get closer).
 
 ---
 

@@ -319,6 +319,11 @@ namespace AuroraPAR
         /// <summary>Compressed scale: distance from the touchdown (NM) within which the scale stays almost linear.</summary>
         public double CompressionKnee { get; set; } = DefaultCompressionKnee;
         public const double DefaultCompressionKnee = 3;
+        /// <summary>
+        /// Compressed scale, version C (power law): exponent used for a knee setting (the smaller, the stronger):
+        /// 1 NM → 0.5, 3 NM → 0.66, 10 NM → 0.86.
+        /// </summary>
+        public static double CompressionExponent(double knee) => 0.5 + 0.4 * (1 - Math.Exp(-(Math.Max(1, knee) - 1) / 4));
         public const double MinCompressionKnee = 0.5;
         public const double MaxCompressionKnee = 20;
         /// <summary>
