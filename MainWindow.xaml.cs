@@ -2142,7 +2142,7 @@ namespace AuroraPAR
             phosphorGlow.Color = viewOptions.Theme.Glow;
             // The old scopes had no altitude scale.
             viewOptions.ShowAltitudeScale = profile.ShowAltitudeScale && !analog;
-            viewOptions.ShowAltitudeLines = profile.ShowAltitudeLines;
+            viewOptions.ShowAltitudeLines = profile.AltitudeLinesNow;
             viewOptions.ScaleInMetres = profile.AltitudeScaleUnit == LengthUnit.Metres;
             viewOptions.HistoryEnabled = profile.HistoryEnabled;
             viewOptions.HistoryDots = profile.HistoryDots;

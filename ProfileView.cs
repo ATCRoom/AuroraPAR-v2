@@ -299,7 +299,10 @@ namespace AuroraPAR
             double tanLower = Math.Tan(lower * Math.PI / 180);
             // The lines every 1000; the values at the step of the altitude scale (about six in the view).
             double[] steps = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
-            double textStep = steps.FirstOrDefault(s => s >= (topValue - baseValue) / 6, steps[^1]);
+            // Values at least ~28 px apart where the heights are the most shrunk (the far end): every altitude of the
+            // view gets its value, whatever the range.
+            double pixelsPerFoot = ShrinkAt(end) * yscale;
+            double textStep = steps.FirstOrDefault(s => s * unitToFeet * pixelsPerFoot >= 28, steps[^1]);
             bool lines = Options.ShowAltitudeLines;
             bool texts = Options.ShowAltitudeScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale);
             double step = lines && texts ? Math.Min(1000, textStep) : lines ? 1000 : textStep;
@@ -311,7 +314,12 @@ namespace AuroraPAR
                 double from = AntennaNM + heightNM / tanUpper;
                 double to = end;
                 if (lower > 0) to = Math.Min(to, AntennaNM + heightNM / tanLower);
-                if (from >= to) continue;
+                if (from >= to)
+                {
+                    // Above the scan limit at the end of the range: no line, but the value is written at the far edge.
+                    if (texts && IsMultiple(value, textStep)) DrawEdgeAltitude(value, unit, heightFt, end);
+                    continue;
+                }
                 if (lines && IsMultiple(value, 1000))
                 {
                     AddCurve(t => { double r = from + (to - from) * t; return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.AltitudeLines);
@@ -347,6 +355,22 @@ namespace AuroraPAR
                     }
                 }
             }
+        }
+
+        /// <summary>Value of an altitude (compressed scale) written inside the far edge of the view, at the height of that altitude.</summary>
+        private void DrawEdgeAltitude(double value, string unit, double heightFt, double end)
+        {
+            double y = YEnd(end, heightFt);
+            if (y <= 14) return;
+            string text = $"{value:0} {unit}";
+            TextBlock measure = new() { Text = text, FontSize = Options.RangeMarks.TextSize };
+            measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double width = measure.DesiredSize.Width;
+            // The far end is on the side away from the runway: the text is inside the view, next to the edge.
+            double dx = RunwayOnRight ? 4 : -4 - width;
+            double left = ToScreenX(XAt(end)) + dx;
+            dx += Math.Clamp(left, 2, Math.Max(2, Canvas.ActualWidth - width - 2)) - left;
+            if (y - 2 - measure.DesiredSize.Height > 0) AddText(text, XAt(end), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
         }
 
         private static bool IsMultiple(double value, double step)

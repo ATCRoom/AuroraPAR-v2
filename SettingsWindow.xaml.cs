@@ -202,6 +202,13 @@ namespace AuroraPAR
             MdaMdhRadio.Checked += (s, e) => SetProfileValue(p => p.MinimaLabel == MinimaLabel.MdaMdh, p => p.MinimaLabel = MinimaLabel.MdaMdh);
             AltitudeScaleCheck.Checked += (s, e) => SetProfileValue(p => p.ShowAltitudeScale, p => p.ShowAltitudeScale = true);
             AltitudeScaleCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowAltitudeScale, p => p.ShowAltitudeScale = false);
+            AltitudeLinesInComboBox.ItemsSource = new[] { "in the LOG scale only", "in the LIN scale only", "in both scales" };
+            AltitudeLinesInComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || AltitudeLinesInComboBox.SelectedIndex < 0) return;
+                AltitudeLinesScale value = (AltitudeLinesScale)AltitudeLinesInComboBox.SelectedIndex;
+                SetProfileValue(p => p.AltitudeLinesIn == value, p => p.AltitudeLinesIn = value);
+            };
             AltitudeLinesCheck.Checked += (s, e) => SetProfileValue(p => p.ShowAltitudeLines, p => p.ShowAltitudeLines = true);
             AltitudeLinesCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowAltitudeLines, p => p.ShowAltitudeLines = false);
             ScaleFeetRadio.Checked += (s, e) => SetProfileValue(p => p.AltitudeScaleUnit == LengthUnit.Feet, p => p.AltitudeScaleUnit = LengthUnit.Feet);
@@ -335,6 +342,8 @@ namespace AuroraPAR
                 MdaMdhRadio.IsChecked = Active.MinimaLabel == MinimaLabel.MdaMdh;
                 AltitudeScaleCheck.IsChecked = Active.ShowAltitudeScale;
                 AltitudeLinesCheck.IsChecked = Active.ShowAltitudeLines;
+                AltitudeLinesInComboBox.SelectedIndex = (int)Active.AltitudeLinesIn;
+                AltitudeLinesInComboBox.IsEnabled = Active.ShowAltitudeLines;
                 ScaleFeetRadio.IsChecked = Active.AltitudeScaleUnit == LengthUnit.Feet;
                 ScaleMetresRadio.IsChecked = Active.AltitudeScaleUnit == LengthUnit.Metres;
                 HistoryCheck.IsChecked = Active.HistoryEnabled;

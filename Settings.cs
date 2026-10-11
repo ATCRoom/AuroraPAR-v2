@@ -199,6 +199,9 @@ namespace AuroraPAR
     /// </summary>
     internal enum FinalSegment { Solid, FromDh, FromThreshold }
 
+    /// <summary>In which distance scale the horizontal altitude lines are drawn.</summary>
+    internal enum AltitudeLinesScale { LogOnly, LinOnly, Both }
+
     /// <summary>Where the vertical DH line goes from that point.</summary>
     internal enum DhVerticalSide { Down, Up, Both, None }
 
@@ -322,8 +325,19 @@ namespace AuroraPAR
         public PressureUnit PressureUnit { get; set; } = PressureUnit.HectoPascal;
         public MinimaLabel MinimaLabel { get; set; } = MinimaLabel.DaDh;
         public bool ShowAltitudeScale { get; set; } = true;
-        /// <summary>Horizontal lines every 1000 (in the unit of the scale) in the vertical view: off by default.</summary>
-        public bool ShowAltitudeLines { get; set; }
+        /// <summary>Horizontal lines every 1000 (in the unit of the scale) in the vertical view: on by default (see <see cref="AltitudeLinesIn"/>).</summary>
+        public bool ShowAltitudeLines { get; set; } = true;
+        /// <summary>The altitude lines are drawn in the log scale only (default), in the linear one only, or in both.</summary>
+        public AltitudeLinesScale AltitudeLinesIn { get; set; } = AltitudeLinesScale.LogOnly;
+
+        /// <summary>Altitude lines to draw now: the option, in the distance scale in use.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool AltitudeLinesNow => ShowAltitudeLines && AltitudeLinesIn switch
+        {
+            AltitudeLinesScale.LogOnly => CompressedScale,
+            AltitudeLinesScale.LinOnly => !CompressedScale,
+            _ => true
+        };
         /// <summary>
         /// Compressed distance scale: the last miles before the runway get more room, the far ones less, so the
         /// traffic stays in view without changing the range. Every line starting at the touchdown point (glide path,
@@ -439,6 +453,7 @@ namespace AuroraPAR
             if (!Enum.IsDefined(BrightnessControl)) BrightnessControl = AnalogControl.Knob;
             if (!Enum.IsDefined(Readouts)) Readouts = ReadoutStyle.Segments;
             if (!Enum.IsDefined(KeyStyle)) KeyStyle = AnalogKeyStyle.Console;
+            if (!Enum.IsDefined(AltitudeLinesIn)) AltitudeLinesIn = AltitudeLinesScale.LogOnly;
             RangeDefaultKey = (RangeDefaultKey ?? "").Trim().ToUpperInvariant();
             if (RangeDefaultKey.Length > MaxRangeKeyText) RangeDefaultKey = RangeDefaultKey[..MaxRangeKeyText];
             if (RangeDefaultKey.Length == 0) RangeDefaultKey = "DEF";

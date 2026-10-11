@@ -298,6 +298,8 @@
                         <TextBlock Text="Altitude grid" Style="{StaticResource Label}"/>
                         <CheckBox Name="AltitudeLinesCheck" Content="Horizontal lines every 1000" VerticalAlignment="Center"
                                   ToolTip="Lines across the vertical view every 1000 ft (or m, as the scale). Colour and style: Altitude lines in Colours and lines."/>
+                        <ComboBox Name="AltitudeLinesInComboBox" Width="150" Height="24" Margin="10,0,0,0" VerticalAlignment="Center"
+                                  ToolTip="In which distance scale the lines are drawn: switching between LIN and LOG shows or hides them, without changing profile."/>
                     </StackPanel>
                     <StackPanel Style="{StaticResource Line}" Tag="Advanced"
                                 ToolTip="Used for the magnetic final course (CRS) of the runways without their own variation in runways.par. East positive: 3E, 2.5W or -2.">

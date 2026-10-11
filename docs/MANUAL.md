@@ -455,7 +455,7 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Name of the minimum | DA/DH, OCA/OCH, MDA/MDH (section *Approach and DH*) |
 | Heights, deviations and vertical speed | ft and ft/min, or m and m/s |
 | Altitude scale | shown or not (Modern mode) |
-| Altitude grid | horizontal lines every 1000 (ft or m, as the scale) in the vertical view, inside the scan limits; off by default; colour and style: *Altitude lines* in the display colours |
+| Altitude grid | horizontal lines every 1000 (ft or m, as the scale) in the vertical view, inside the scan limits; on by default, **in the LOG scale only** (the menu next to the box: LOG only / LIN only / both: switching between LIN and LOG shows or hides them, without changing profile); colour and style: *Altitude lines* in the display colours |
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
 | Log distance scale (*Range and scale*) | how much the log scale compresses: knee 1–10 NM (default 3). LIN / LOG is switched on the main window (see below) or with key **C** |
 
@@ -463,7 +463,7 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 
 - range marks, reminders and the DH lines move to their compressed distance;
 - the lines from the antenna (scan limits, antenna beam, scan effect) bend slightly near the runway (the antenna is not at the touchdown point);
-- a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit;
+- a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit; the altitudes above the scan limit at the end of the range have no line, but their value is written at the far edge of the view, so every altitude of the view has its value at any range;
 - deviations from the glide path and the centreline are shown as with the linear scale near the runway, smaller far away (as all the distances there).
 
 ---
