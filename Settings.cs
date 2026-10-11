@@ -354,8 +354,8 @@ namespace AuroraPAR
         /// <summary>Horizontal DH line, drawn from the point where the glide path reaches the DH: side on the screen and length (NM) on each side.</summary>
         public DhHorizontalSide DhLineSide { get; set; } = DhHorizontalSide.Both;
         public double DhLineLength { get; set; } = 1;
-        /// <summary>Last part of the solid glide path, limits and centreline: solid, or dashed / dotted from the DH or from the threshold (default, as before).</summary>
-        public FinalSegment FinalSegment { get; set; } = FinalSegment.FromThreshold;
+        /// <summary>Last part of the solid glide path, limits and centreline: solid (default), or dashed / dotted from the DH or from the threshold.</summary>
+        public FinalSegment FinalSegment { get; set; } = FinalSegment.Solid;
         public LineDash FinalSegmentDash { get; set; } = LineDash.Dashed;
         /// <summary>Vertical DH line from the same point: direction and length in ft (0 = as long as the DH, down to the ground).</summary>
         public DhVerticalSide DhDropSide { get; set; } = DhVerticalSide.Down;
@@ -453,7 +453,7 @@ namespace AuroraPAR
             DhSymbol = NormalizeSymbol(DhSymbol, new(SymbolShape.None, 10));
             if (!Enum.IsDefined(DhLineSide)) DhLineSide = DhHorizontalSide.Both;
             if (!Enum.IsDefined(DhDropSide)) DhDropSide = DhVerticalSide.Down;
-            if (!Enum.IsDefined(FinalSegment)) FinalSegment = FinalSegment.FromThreshold;
+            if (!Enum.IsDefined(FinalSegment)) FinalSegment = FinalSegment.Solid;
             if (FinalSegmentDash is not (LineDash.Dashed or LineDash.Dotted)) FinalSegmentDash = LineDash.Dashed;
             // 0 = up to the edge of the view.
             DhLineLength = double.IsNaN(DhLineLength) || DhLineLength < 0 ? 1 : DhLineLength == 0 ? 0 : Math.Clamp(DhLineLength, 0.25, 5);

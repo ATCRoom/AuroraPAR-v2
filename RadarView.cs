@@ -36,7 +36,7 @@ namespace AuroraPAR
         public SymbolSetting DhSymbol { get; set; } = new(SymbolShape.None, 10);
         public DhHorizontalSide DhLineSide { get; set; } = DhHorizontalSide.Both;
         public double DhLineLength { get; set; } = 1;
-        public FinalSegment FinalSegment { get; set; } = FinalSegment.FromThreshold;
+        public FinalSegment FinalSegment { get; set; } = FinalSegment.Solid;
         public LineDash FinalSegmentDash { get; set; } = LineDash.Dashed;
         public DhVerticalSide DhDropSide { get; set; } = DhVerticalSide.Down;
         public double DhDropLength { get; set; }
