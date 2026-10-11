@@ -444,7 +444,8 @@ namespace AuroraPAR
             DhSymbol = NormalizeSymbol(DhSymbol, new(SymbolShape.None, 10));
             if (!Enum.IsDefined(DhLineSide)) DhLineSide = DhHorizontalSide.Both;
             if (!Enum.IsDefined(DhDropSide)) DhDropSide = DhVerticalSide.Down;
-            DhLineLength = double.IsNaN(DhLineLength) || DhLineLength <= 0 ? 1 : Math.Clamp(DhLineLength, 0.25, 5);
+            // 0 = up to the edge of the view.
+            DhLineLength = double.IsNaN(DhLineLength) || DhLineLength < 0 ? 1 : DhLineLength == 0 ? 0 : Math.Clamp(DhLineLength, 0.25, 5);
             DhDropLength = double.IsNaN(DhDropLength) || DhDropLength < 0 ? 0 : Math.Clamp(DhDropLength, 0, 1000);
             DhAzimuthLength = double.IsNaN(DhAzimuthLength) || DhAzimuthLength < 0 ? 0 : Math.Clamp(DhAzimuthLength, 0, 2000);
             DhAzimuthSymbol = NormalizeSymbol(DhAzimuthSymbol, new(SymbolShape.None, 10));

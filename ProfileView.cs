@@ -162,8 +162,13 @@ namespace AuroraPAR
                 // Horizontal line: left, right or both sides of the point on the screen (the runway may be on either side).
                 bool towardsApproach = Options.DhLineSide is DhHorizontalSide.Left or DhHorizontalSide.Right && (Options.DhLineSide == DhHorizontalSide.Right) != RunwayOnRight;
                 bool towardsRunway = Options.DhLineSide is DhHorizontalSide.Left or DhHorizontalSide.Right && !towardsApproach;
-                double from = towardsApproach ? intercept : Math.Max(0, intercept - Options.DhLineLength);
-                double to = towardsRunway ? intercept : Math.Min(displayEnd, intercept + Options.DhLineLength);
+                // Length 0: up to the edge of the view (a line across the screen, as on some scopes).
+                bool toEdge = Options.DhLineLength <= 0;
+                double touchdownFromEnd = Runway.LengthNM - Runway.TouchdownNM;
+                double edgeLow = FromRunwayEndOfScale(-XShift / xscale) - touchdownFromEnd;
+                double edgeHigh = FromRunwayEndOfScale((Canvas.ActualWidth - XShift) / xscale) - touchdownFromEnd;
+                double from = towardsApproach ? intercept : toEdge ? edgeLow : Math.Max(0, intercept - Options.DhLineLength);
+                double to = towardsRunway ? intercept : toEdge ? edgeHigh : Math.Min(displayEnd, intercept + Options.DhLineLength);
                 if (Options.DhLineSide != DhHorizontalSide.None)
                 {
                     // Constant height: straight with the linear scale, a slight curve with the compressed one.

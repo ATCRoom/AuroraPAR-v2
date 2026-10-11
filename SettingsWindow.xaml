@@ -179,7 +179,7 @@
                                 ToolTip="Decision height lines of the elevation view, drawn from the point where the glide path reaches the DH. Colour, line style and width: Colours and lines.">
                         <TextBlock Text="Horizontal line (side view)" Style="{StaticResource Label}"/>
                         <ComboBox Name="DhSideComboBox" Width="90"/>
-                        <ComboBox Name="DhLengthComboBox" Width="130" Margin="6,0,0,0" ToolTip="Length on each side of the point."/>
+                        <ComboBox Name="DhLengthComboBox" Width="170" Margin="6,0,0,0" ToolTip="Length on each side of the point, or up to the edge of the view (with both sides: a line across the screen)."/>
                     </StackPanel>
                     <StackPanel Style="{StaticResource Line}" Tag="Advanced"
                                 ToolTip="Vertical line from the point where the glide path reaches the DH: down, up or both; as long as the DH (down to the ground) or a given length.">

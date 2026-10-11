@@ -74,7 +74,7 @@ namespace AuroraPAR
                 DhHorizontalSide value = (DhHorizontalSide)DhSideComboBox.SelectedIndex;
                 SetProfileValue(p => p.DhLineSide == value, p => p.DhLineSide = value);
             };
-            DhLengthComboBox.ItemsSource = DhLengths.Select(l => FormatNumber(l) + " NM").ToList();
+            DhLengthComboBox.ItemsSource = DhLengths.Select(l => l == 0 ? "to the edge of the view" : FormatNumber(l) + " NM").ToList();
             DhLengthComboBox.SelectionChanged += (s, e) =>
             {
                 if (refreshing || DhLengthComboBox.SelectedIndex < 0) return;
@@ -568,7 +568,8 @@ namespace AuroraPAR
         /// <summary>
         /// One row per symbol (track, threshold, touchdown point, antenna): shape and size.
         /// </summary>
-        private static readonly double[] DhLengths = [0.25, 0.5, 1, 1.5, 2, 3, 4, 5];
+        /// <summary>Lengths of the horizontal DH line on each side (NM); 0 = up to the edge of the view.</summary>
+        private static readonly double[] DhLengths = [0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 0];
         /// <summary>Knees of the compressed distance scale offered (NM): the smaller, the stronger the compression.</summary>
         private static readonly double[] CompressionKnees = [1, 2, 3, 4, 6, 10];
 
