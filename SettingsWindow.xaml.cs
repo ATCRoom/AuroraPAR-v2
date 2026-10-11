@@ -84,7 +84,7 @@ namespace AuroraPAR
                 double value = DhAzimuthLengths[DhAzimuthLengthComboBox.SelectedIndex];
                 SetProfileValue(p => p.DhAzimuthLength == value, p => p.DhAzimuthLength = value);
             };
-            DistanceScaleComboBox.ItemsSource = new[] { "linear" }.Concat(CompressionKnees.Select(k => $"compressed, exponent {Profile.CompressionExponent(k).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}")).ToList();
+            DistanceScaleComboBox.ItemsSource = new[] { "linear" }.Concat(CompressionKnees.Select(k => $"compressed, knee {FormatNumber(k)} NM")).ToList();
             DistanceScaleComboBox.SelectionChanged += (s, e) =>
             {
                 if (refreshing || DistanceScaleComboBox.SelectedIndex < 0) return;

@@ -1125,7 +1125,7 @@ namespace AuroraPAR
             SettingsStore.Save(settings);
             ApplyProfile();
             ShowBanner(profile.CompressedScale
-                ? $"COMPRESSED SCALE (EXPONENT {Profile.CompressionExponent(profile.CompressionKnee).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)})"
+                ? $"COMPRESSED SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM)"
                 : "LINEAR SCALE");
         }
 

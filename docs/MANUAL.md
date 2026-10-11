@@ -456,11 +456,7 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
 | Distance scale | linear (default) or **compressed** with a knee of 1–10 NM; key **C** switches (see below) |
 
-**Compressed distance scale (experimental, version C).** Distances, heights and lateral offsets are all compressed with the same power law (exponent 0.5–0.86, chosen in the list; the smaller, the stronger): the last miles, the low heights and the small offsets get more room. Every line through the touchdown point stays **straight** whatever its angle (glide path, approach limits, centreline), the altitude lines stay horizontal and the altitude scale on the side is right everywhere. As a consequence:
-
-- near the touchdown point, near the ground and near the centreline the scale grows a lot: small movements there look large;
-- the lines from the antenna (scan limits, antenna beam, scan effect) are curves;
-- deviations look smaller compared with the linear scale (the glide path and its limits get closer).
+**Compressed distance scale (experimental, version D).** Only the distances are compressed: the last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range (within the *knee* the scale is almost linear; a smaller knee compresses more). Heights and lateral offsets stay linear: the altitude lines are horizontal and the altitude scale on the side is right everywhere. As a consequence the **glide path and the approach limits are curves** (as on some real compressed scopes), and so are the scan limits and the antenna beam; the centreline stays straight.
 
 ---
 

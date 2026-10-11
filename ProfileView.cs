@@ -45,20 +45,14 @@ namespace AuroraPAR
             return XAt(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM);
         }
 
-        // Compressed scale: the heights have their own compression (see V), so the altitude lines stay horizontal
-        // and the scale on the side is right everywhere, compressed at the top and wider at the bottom.
+        // Compressed scale, version D: heights linear, so the altitude lines stay horizontal and the scale on the
+        // side is right everywhere; the glide path and its limits are curves.
 
-        // Version C: the heights get the power law of the distances, with the same exponent (reference: the
-        // height of the reference upper scan limit at the end of the range, which stays at the top).
-
-        /// <summary>Reference height of the power law, ft.</summary>
-        private double HeightReferenceFt => Radar.ScanHeight(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanUp);
-
-        /// <summary>Compressed height (ft) of a height above the threshold; the height itself with the linear scale.</summary>
-        private double V(double heightFt) => PowerLaw(heightFt, HeightReferenceFt);
+        /// <summary>Height on the scale (ft): version D keeps the heights linear.</summary>
+        private static double V(double heightFt) => heightFt;
 
         /// <summary>Inverse of <see cref="V"/>.</summary>
-        private double VInverse(double compressedFt) => PowerLawInverse(compressedFt, HeightReferenceFt);
+        private static double VInverse(double compressedFt) => compressedFt;
 
         /// <summary>
         /// Logical y of a height in ft above the threshold elevation.
@@ -131,7 +125,7 @@ namespace AuroraPAR
             double end = Runway.TouchdownNM + Runway.Distance;
             if (Compressed)
             {
-                // Straight with the power law (drawn as a curve anyway: cheap, and exact).
+                // A curve: distances compressed, heights linear.
                 AddCurve(t => { double d = threshold * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element, dashed: true);
                 AddCurve(t => { double d = threshold + (end - threshold) * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element);
                 return;

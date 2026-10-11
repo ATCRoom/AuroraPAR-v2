@@ -1179,11 +1179,22 @@ namespace AuroraPAR
         /// <summary>Reference distance of the power law: the end of the range from the touchdown point.</summary>
         private double DistanceReference => Runway.Distance + Runway.TouchdownNM;
 
+        // Version D: only the distances are compressed (K·asinh(d/K), as in version A); heights and lateral offsets
+        // stay linear, so the glide path and the approach limits are curves (as on some real compressed scopes).
+
         /// <summary>Compressed distance u(d) of a distance d from the touchdown (NM); d itself with the linear scale.</summary>
-        protected double CompressNM(double fromTouchdownNM) => PowerLaw(fromTouchdownNM, DistanceReference);
+        protected double CompressNM(double fromTouchdownNM)
+        {
+            double knee = Options.DistanceKnee;
+            return knee > 0 ? knee * Math.Asinh(fromTouchdownNM / knee) : fromTouchdownNM;
+        }
 
         /// <summary>Inverse of <see cref="CompressNM"/>.</summary>
-        protected double ExpandNM(double compressed) => PowerLawInverse(compressed, DistanceReference);
+        protected double ExpandNM(double compressed)
+        {
+            double knee = Options.DistanceKnee;
+            return knee > 0 ? knee * Math.Sinh(compressed / knee) : compressed;
+        }
 
         /// <summary>
         /// Scale distance of a point at the given distance from the far end of the runway (NM): its logical x is

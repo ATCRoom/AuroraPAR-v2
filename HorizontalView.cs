@@ -39,14 +39,13 @@ namespace AuroraPAR
             return CenterY - W(offsetNM) * yscale;
         }
 
-        // Version C: lateral offsets get the power law of the distances with the same exponent (reference: the
-        // reference scan half width at the end of the range, which fills the view).
+        // Version D: lateral offsets stay linear (only the distances are compressed); the approach limits are curves.
 
         private double LateralReferenceNM => Radar.ScanOffset(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanHalfWidth);
 
-        private double W(double offsetNM) => PowerLaw(offsetNM, LateralReferenceNM);
+        private static double W(double offsetNM) => offsetNM;
 
-        private double WInverse(double compressed) => PowerLawInverse(compressed, LateralReferenceNM);
+        private static double WInverse(double compressed) => compressed;
 
         protected override Point Unwarp(Point logical)
         {
@@ -138,6 +137,16 @@ namespace AuroraPAR
                 double sign = isRight ? 1 : -1;
                 double atThreshold = LateralY(length, sign * Radar.ApproachHalfWidth(Runway.TouchdownNM, isRight));
                 double atEnd = LateralY(end, sign * Radar.ApproachHalfWidth(Runway.TouchdownNM + range, isRight));
+                if (Compressed)
+                {
+                    // Curves: distances compressed, lateral offsets linear.
+                    double touchdownFromEnd = length - Runway.TouchdownNM;
+                    Point At(double d) => new(XAt(touchdownFromEnd + d), LateralY(touchdownFromEnd + d, sign * Radar.ApproachHalfWidth(d, isRight)));
+                    double thresholdD = Runway.TouchdownNM, endD = Runway.TouchdownNM + range;
+                    AddCurve(t => At(thresholdD * t), StyleElement.ApproachLimits, dashed: true);
+                    AddCurve(t => At(thresholdD + (endD - thresholdD) * t), StyleElement.ApproachLimits);
+                    continue;
+                }
                 AddLine(xTouchdown, cy, xThreshold, atThreshold, StyleElement.ApproachLimits, dashed: true);
                 AddLine(xThreshold, atThreshold, xEnd, atEnd, StyleElement.ApproachLimits);
             }
