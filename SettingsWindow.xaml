@@ -192,6 +192,15 @@
                         <TextBlock Text="Line in the azimuth view" Style="{StaticResource Label}"/>
                         <ComboBox Name="DhAzimuthLengthComboBox" Width="190" ToolTip="Length on each side of the centreline."/>
                     </StackPanel>
+                    <!-- Only when the glide path is drawn solid (a dashed glide path stays so down to the runway). -->
+                    <StackPanel Tag="Advanced">
+                        <StackPanel Name="FinalSegmentPanel" Style="{StaticResource Line}" Margin="0,10,0,0"
+                                    ToolTip="Last part of the glide path, approach limits and centreline, down to the touchdown point: solid, or dashed / dotted from the point where the glide path reaches the DH, or from the threshold. Only for the lines drawn solid (Colours and lines); a dashed line stays dashed down to the runway.">
+                            <TextBlock Text="Glide path near the runway" Style="{StaticResource Label}"/>
+                            <ComboBox Name="FinalSegmentComboBox" Width="170"/>
+                            <ComboBox Name="FinalDashComboBox" Width="90" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
                     <Grid Name="DhSymbolGrid" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200"/>

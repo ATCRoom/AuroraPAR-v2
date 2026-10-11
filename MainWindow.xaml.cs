@@ -2150,6 +2150,8 @@ namespace AuroraPAR
             viewOptions.DhSymbol = profile.DhSymbol;
             viewOptions.DhLineSide = profile.DhLineSide;
             viewOptions.DhLineLength = profile.DhLineLength;
+            viewOptions.FinalSegment = profile.FinalSegment;
+            viewOptions.FinalSegmentDash = profile.FinalSegmentDash;
             viewOptions.DhDropSide = profile.DhDropSide;
             viewOptions.DhDropLength = profile.DhDropLength;
             viewOptions.DhAzimuthLength = profile.DhAzimuthLength;

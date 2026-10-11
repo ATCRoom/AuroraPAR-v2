@@ -95,6 +95,20 @@ namespace AuroraPAR
                 double knee = CompressionKnees[DistanceScaleComboBox.SelectedIndex];
                 SetProfileValue(p => p.CompressionKnee == knee, p => p.CompressionKnee = knee);
             };
+            FinalSegmentComboBox.ItemsSource = new[] { "solid to the runway", "dashed from the DH", "dashed from the threshold" };
+            FinalSegmentComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || FinalSegmentComboBox.SelectedIndex < 0) return;
+                FinalSegment value = (FinalSegment)FinalSegmentComboBox.SelectedIndex;
+                SetProfileValue(p => p.FinalSegment == value, p => p.FinalSegment = value);
+            };
+            FinalDashComboBox.ItemsSource = new[] { "dashed", "dotted" };
+            FinalDashComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || FinalDashComboBox.SelectedIndex < 0) return;
+                LineDash value = FinalDashComboBox.SelectedIndex == 0 ? LineDash.Dashed : LineDash.Dotted;
+                SetProfileValue(p => p.FinalSegmentDash == value, p => p.FinalSegmentDash = value);
+            };
             DhDropSideComboBox.ItemsSource = new[] { "down", "up", "both", "none" };
             DhDropSideComboBox.SelectionChanged += (s, e) =>
             {
@@ -278,6 +292,11 @@ namespace AuroraPAR
                 DhSideComboBox.SelectedIndex = (int)Active.DhLineSide;
                 DhLengthComboBox.SelectedIndex = Array.FindIndex(DhLengths, l => Math.Abs(l - Active.DhLineLength) < 0.01);
                 DistanceScaleComboBox.SelectedIndex = SelectedScaleIndex();
+                FinalSegmentComboBox.SelectedIndex = (int)Active.FinalSegment;
+                FinalDashComboBox.SelectedIndex = Active.FinalSegmentDash == LineDash.Dotted ? 1 : 0;
+                FinalDashComboBox.IsEnabled = Active.FinalSegment != FinalSegment.Solid;
+                // Shown only when the glide path is drawn solid (Colours and lines).
+                FinalSegmentPanel.Visibility = Active.Style.Get(StyleElement.GlidePath).Dash == LineDash.Solid ? Visibility.Visible : Visibility.Collapsed;
                 DhAzimuthLengthComboBox.SelectedIndex = Array.FindIndex(DhAzimuthLengths, l => Math.Abs(l - Active.DhAzimuthLength) < 0.5);
                 DhDropSideComboBox.SelectedIndex = (int)Active.DhDropSide;
                 DhDropLengthComboBox.SelectedIndex = Array.FindIndex(DhDropLengths, l => Math.Abs(l - Active.DhDropLength) < 0.5);

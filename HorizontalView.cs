@@ -98,20 +98,24 @@ namespace AuroraPAR
                 AddScanLine(beamRight, end, StyleElement.AntennaBeam);
             }
             AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), cy, Brush(StyleElement.Antenna));
-            // Extended centreline and its approach limits, all starting at the touchdown point:
-            // dashed between touchdown and threshold, solid beyond the threshold (straight with both scales).
-            double xTouchdown = XAt(length - Runway.TouchdownNM);
-            double xThreshold = XAt(length);
+            // Extended centreline and its approach limits, all starting at the touchdown point: the last part (from
+            // the threshold or the DH) dashed, the rest in their own style (straight with both scales).
+            double touchdownFromEnd = length - Runway.TouchdownNM;
+            double xTouchdown = XAt(touchdownFromEnd);
             double xEnd = XAt(end);
-            AddLine(xTouchdown, cy, xThreshold, cy, StyleElement.Centerline, dashed: true);
-            AddLine(xThreshold, cy, xEnd, cy, StyleElement.Centerline);
+            (double centreSplit, LineDash centreDash) = FinalSegmentOf(StyleElement.Centerline);
+            double xCentreSplit = XAt(touchdownFromEnd + centreSplit);
+            if (centreSplit > 0) AddLine(xTouchdown, cy, xCentreSplit, cy, StyleElement.Centerline, dash: centreDash);
+            AddLine(xCentreSplit, cy, xEnd, cy, StyleElement.Centerline);
+            (double limitSplit, LineDash limitDash) = FinalSegmentOf(StyleElement.ApproachLimits);
+            double xLimitSplit = XAt(touchdownFromEnd + limitSplit);
             foreach (bool isRight in new[] { false, true })
             {
                 double sign = isRight ? 1 : -1;
-                double atThreshold = LateralY(length, sign * Radar.ApproachHalfWidth(Runway.TouchdownNM, isRight));
+                double atSplit = LateralY(touchdownFromEnd + limitSplit, sign * Radar.ApproachHalfWidth(limitSplit, isRight));
                 double atEnd = LateralY(end, sign * Radar.ApproachHalfWidth(Runway.TouchdownNM + range, isRight));
-                AddLine(xTouchdown, cy, xThreshold, atThreshold, StyleElement.ApproachLimits, dashed: true);
-                AddLine(xThreshold, atThreshold, xEnd, atEnd, StyleElement.ApproachLimits);
+                if (limitSplit > 0) AddLine(xTouchdown, cy, xLimitSplit, atSplit, StyleElement.ApproachLimits, dash: limitDash);
+                AddLine(xLimitSplit, atSplit, xEnd, atEnd, StyleElement.ApproachLimits);
             }
             // Touchdown point.
             if (Options.TouchdownSymbol.Shape == SymbolShape.Line)

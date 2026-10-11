@@ -36,6 +36,8 @@ namespace AuroraPAR
         public SymbolSetting DhSymbol { get; set; } = new(SymbolShape.None, 10);
         public DhHorizontalSide DhLineSide { get; set; } = DhHorizontalSide.Both;
         public double DhLineLength { get; set; } = 1;
+        public FinalSegment FinalSegment { get; set; } = FinalSegment.FromThreshold;
+        public LineDash FinalSegmentDash { get; set; } = LineDash.Dashed;
         public DhVerticalSide DhDropSide { get; set; } = DhVerticalSide.Down;
         public double DhDropLength { get; set; }
         public double DhAzimuthLength { get; set; }
@@ -1224,6 +1226,23 @@ namespace AuroraPAR
             return new Point(XAt(fromEnd), AxisY + (linear.Y - AxisY) * ShrinkAt(fromEnd));
         }
 
+        /// <summary>
+        /// Last part of a line from the touchdown point (glide path, approach limits, centreline): its distance from
+        /// the touchdown (NM, 0 = none) and its dash. Only for a line drawn solid; a line with its own dash style keeps
+        /// it all along.
+        /// </summary>
+        protected (double Length, LineDash Dash) FinalSegmentOf(StyleElement element)
+        {
+            if (Options.Theme.Dash(element) != LineDash.Solid) return (0, LineDash.Solid);
+            double length = Options.FinalSegment switch
+            {
+                FinalSegment.FromThreshold => Runway.TouchdownNM,
+                FinalSegment.FromDh => Math.Clamp(Runway.MissedApproachPointNM, 0, Runway.TouchdownNM + Runway.Distance),
+                _ => 0
+            };
+            return (length, Options.FinalSegmentDash);
+        }
+
         /// <summary>Points of a line drawn with the compressed scale: segments enough to look smooth.</summary>
         private const int CurveSegments = 48;
 
@@ -1273,7 +1292,7 @@ namespace AuroraPAR
         /// Adds a static line (logical coordinates, see class description) with the colour, width and dash style of
         /// an element; <paramref name="dashed"/> forces a dashed line (e.g. glide path between touchdown and threshold).
         /// <paramref name="extraWidth"/>: pixels added to the width of the element (range marks inside the beam).</summary>
-        protected void AddLine(double x1, double y1, double x2, double y2, StyleElement element, bool dashed = false, double extraWidth = 0)
+        protected void AddLine(double x1, double y1, double x2, double y2, StyleElement element, bool dashed = false, double extraWidth = 0, LineDash? dash = null)
         {
             // Hidden in this mode (Display style → Colours & lines, Show).
             if (Options.Theme.IsHidden(element)) return;
@@ -1285,7 +1304,7 @@ namespace AuroraPAR
                 Y2 = ToScreenY(y2),
                 Stroke = Options.Theme.Brush(element),
                 StrokeThickness = Options.Theme.Width(element) + extraWidth,
-                StrokeDashArray = Theme.DashArray(dashed ? LineDash.Dashed : Options.Theme.Dash(element)),
+                StrokeDashArray = Theme.DashArray(dash ?? (dashed ? LineDash.Dashed : Options.Theme.Dash(element))),
                 IsHitTestVisible = false
             };
             AddStatic(line);

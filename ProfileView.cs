@@ -97,16 +97,16 @@ namespace AuroraPAR
         }
 
         /// <summary>
-        /// Draws a line starting at the touchdown point with angle GlideSlope + angleOffset:
-        /// dashed from touchdown to threshold, solid from threshold to the end of the display.
+        /// Draws a line starting at the touchdown point with angle GlideSlope + angleOffset: its last part (from the
+        /// threshold or the DH, see <see cref="RadarView.FinalSegmentOf"/>) dashed, the rest in its own style.
         /// </summary>
         private void AddGlidePathLine(double angleOffset, StyleElement element)
         {
-            double threshold = Runway.TouchdownNM;
+            (double split, LineDash dash) = FinalSegmentOf(element);
             double end = Runway.TouchdownNM + Runway.Distance;
             // Straight with both scales (a line from the touchdown point, see RadarView.ShrinkAt).
-            AddLine(X(0), Y(0), X(threshold), Y(threshold, Runway.GlidePathHeight(threshold, angleOffset)), element, dashed: true);
-            AddLine(X(threshold), Y(threshold, Runway.GlidePathHeight(threshold, angleOffset)), X(end), Y(end, Runway.GlidePathHeight(end, angleOffset)), element);
+            if (split > 0) AddLine(X(0), Y(0), X(split), Y(split, Runway.GlidePathHeight(split, angleOffset)), element, dash: dash);
+            AddLine(X(split), Y(split, Runway.GlidePathHeight(split, angleOffset)), X(end), Y(end, Runway.GlidePathHeight(end, angleOffset)), element);
         }
 
         protected override void DrawStatic()
