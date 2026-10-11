@@ -285,8 +285,6 @@ Some runways have approaches with different glide path angles. In `runways.par` 
 
 ![Analog console: LIRF, 16L, tilt on knobs](images/analog-knob.png)
 
-![Analog console](images/analog-console.svg)
-
 
 **Analog (A)** turns the window into an old PAR console. Press it again (**Modern (A)**) to go back. The choice is saved in the profile. *Settings → Display → Lock the display mode in this profile* removes the button and the key A for that profile (useful with one Modern and one Analog profile: change profile with P instead).
 
