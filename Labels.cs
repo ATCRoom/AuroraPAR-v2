@@ -52,10 +52,43 @@ namespace AuroraPAR
         }
     }
 
+    /// <summary>
+    /// Inner line of the label frame: between two columns (vertical, in the middle of the gap after its column) or
+    /// below a row (horizontal), from edge to edge of the framed rows. It follows the size of the grid cells it spans.
+    /// </summary>
+    internal sealed class LabelGridLine : System.Windows.FrameworkElement
+    {
+        public bool Vertical;
+        /// <summary>Gap between two columns (the right margin of the cells), the line is in its middle.</summary>
+        public double ColumnGap;
+        /// <summary>How far the line goes beyond the cells at each end (to reach the sides of the frame).</summary>
+        public double ExtendStart, ExtendEnd;
+        public System.Windows.Media.Pen Pen = null!;
+
+        public LabelGridLine() => IsHitTestVisible = false;
+
+        protected override void OnRender(System.Windows.Media.DrawingContext dc)
+        {
+            if (Vertical)
+            {
+                double x = ActualWidth - ColumnGap / 2;
+                dc.DrawLine(Pen, new System.Windows.Point(x, -ExtendStart), new System.Windows.Point(x, ActualHeight + ExtendEnd));
+            }
+            else
+            {
+                double y = ActualHeight;
+                dc.DrawLine(Pen, new System.Windows.Point(-ExtendStart, y), new System.Windows.Point(ActualWidth + ExtendEnd, y));
+            }
+        }
+    }
+
     /// <summary>Builds the visual of a label (frame, field outside the frame, cells) for the radar and for the preview.</summary>
     internal static class LabelVisual
     {
         private const double FramePadding = 3;
+        /// <summary>Space between two columns, and above / below an inner line between rows.</summary>
+        private const double ColumnGap = 8;
+        private const double RowLineGap = 2;
 
         /// <summary>Row kept outside the frame, or -1 (a single row cannot be outside).</summary>
         public static int OutsideIndex(LabelLayout layout) =>
@@ -85,6 +118,10 @@ namespace AuroraPAR
                     g.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto, SharedSizeGroup = "label" + c });
                 }
             }
+            // Inner lines of the frame between framed rows (not next to the row outside the frame).
+            HashSet<int> rowLines = frameShown
+                ? layout.RowLines.Where(r => r >= 0 && r + 1 < layout.Rows && r != outside && r + 1 != outside).ToHashSet()
+                : [];
             int framedRow = 0;
             for (int r = 0; r < layout.Rows; r++)
             {
@@ -97,7 +134,7 @@ namespace AuroraPAR
                     {
                         FontSize = 12,
                         Foreground = TextBrush(layout, r, theme),
-                        Margin = new System.Windows.Thickness(0, 0, c < layout.Columns - 1 ? 8 : 0, 0),
+                        Margin = new System.Windows.Thickness(0, rowLines.Contains(r - 1) ? RowLineGap : 0, c < layout.Columns - 1 ? ColumnGap : 0, rowLines.Contains(r) ? RowLineGap : 0),
                         Visibility = layout.Get(r, c) == LabelField.None ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible
                     };
                     System.Windows.Controls.Grid.SetRow(cell, gridRow);
@@ -124,6 +161,26 @@ namespace AuroraPAR
                 Left = frameShown && layout.FrameLeft
             };
             framed.Margin = new System.Windows.Thickness(box.Left ? FramePadding : 0, box.Top ? FramePadding : 0, box.Right ? FramePadding : 0, box.Bottom ? FramePadding : 0);
+            if (pen != null)
+            {
+                // Inner lines, from edge to edge (up to the sides of the frame when they are drawn).
+                int framedRows = framed.RowDefinitions.Count;
+                foreach (int r in rowLines)
+                {
+                    int gridRow = outside >= 0 && r > outside ? r - 1 : r;
+                    LabelGridLine line = new() { Pen = pen, ExtendStart = box.Left ? FramePadding : 0, ExtendEnd = box.Right ? FramePadding : 0 };
+                    System.Windows.Controls.Grid.SetRow(line, gridRow);
+                    System.Windows.Controls.Grid.SetColumnSpan(line, Math.Max(1, layout.Columns));
+                    framed.Children.Add(line);
+                }
+                foreach (int c in layout.ColumnLines.Where(c => c >= 0 && c + 1 < layout.Columns).Distinct())
+                {
+                    LabelGridLine line = new() { Pen = pen, Vertical = true, ColumnGap = ColumnGap, ExtendStart = box.Top ? FramePadding : 0, ExtendEnd = box.Bottom ? FramePadding : 0 };
+                    System.Windows.Controls.Grid.SetColumn(line, c);
+                    System.Windows.Controls.Grid.SetRowSpan(line, Math.Max(1, framedRows));
+                    framed.Children.Add(line);
+                }
+            }
             if (outside == 0)
             {
                 outer.Margin = new System.Windows.Thickness(box.Left ? FramePadding : 0, 0, 0, 3);
@@ -164,8 +221,27 @@ namespace AuroraPAR
         public bool FrameLeft { get; set; }
         /// <summary>A row kept outside the frame, above it (first row) or below it (last row), with its own text colour.</summary>
         public LabelOutsideRow OutsideRow { get; set; }
+        /// <summary>Inner lines of the frame: below each of these rows (0 = between the first and the second row).</summary>
+        public List<int> RowLines { get; set; } = [];
+        /// <summary>Inner lines of the frame: after each of these columns (0 = between the first and the second column).</summary>
+        public List<int> ColumnLines { get; set; } = [];
 
-        public bool HasFrame => FrameTop || FrameRight || FrameBottom || FrameLeft;
+        public bool HasFrame => FrameTop || FrameRight || FrameBottom || FrameLeft || RowLines.Count > 0 || ColumnLines.Count > 0;
+
+        /// <summary>Turns an inner line on or off.</summary>
+        public static void Toggle(List<int> lines, int index, bool on)
+        {
+            lines.Remove(index);
+            if (on) lines.Add(index);
+            lines.Sort();
+        }
+
+        /// <summary>Keeps only the inner lines inside the grid.</summary>
+        private void TrimLines()
+        {
+            RowLines = (RowLines ?? []).Where(r => r >= 0 && r < Rows - 1).Distinct().OrderBy(r => r).ToList();
+            ColumnLines = (ColumnLines ?? []).Where(c => c >= 0 && c < Columns - 1).Distinct().OrderBy(c => c).ToList();
+        }
 
         public LabelField Get(int row, int column) => Cells[row * Columns + column];
 
@@ -194,6 +270,7 @@ namespace AuroraPAR
             Rows = rows;
             Columns = columns;
             Cells = cells;
+            TrimLines();
         }
 
         /// <summary>
@@ -213,6 +290,7 @@ namespace AuroraPAR
             Columns = columns;
             Cells = cells;
             if (!Enum.IsDefined(OutsideRow)) OutsideRow = LabelOutsideRow.None;
+            TrimLines();
         }
 
         public static LabelLayout Create(int rows, int columns, params LabelField[] cells)

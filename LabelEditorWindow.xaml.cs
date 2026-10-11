@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace AuroraPAR
@@ -123,23 +124,19 @@ namespace AuroraPAR
             }
             panel.Children.Add(cells);
 
-            // Frame: sides, and the row kept outside it.
-            StackPanel frameRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-            frameRow.Children.Add(new TextBlock { Text = "Frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), ToolTip = "Sides of the frame drawn around the label (none by default). Colour, width and line: Settings → Colours and lines → Label frame." });
-            foreach ((string name, Func<bool> getSide, Action<bool> setSide) in new (string, Func<bool>, Action<bool>)[]
+            // Frame: a map of the label grid where every line (the four sides and the inner lines between rows
+            // and between columns, from edge to edge) is turned on or off with a click; and the row kept outside it.
+            panel.Children.Add(new TextBlock
             {
-                ("Top", () => layout.FrameTop, v => layout.FrameTop = v),
-                ("Right", () => layout.FrameRight, v => layout.FrameRight = v),
-                ("Bottom", () => layout.FrameBottom, v => layout.FrameBottom = v),
-                ("Left", () => layout.FrameLeft, v => layout.FrameLeft = v)
-            })
-            {
-                CheckBox side = new() { Content = name, IsChecked = getSide(), Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
-                side.Checked += (s, e) => { setSide(true); Changed(); };
-                side.Unchecked += (s, e) => { setSide(false); Changed(); };
-                frameRow.Children.Add(side);
-            }
-            frameRow.Children.Add(new TextBlock { Text = "Outside the frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 6, 0), ToolTip = "A row drawn outside the frame, above it (first row) or below it (last row), with its own text colour (Settings → Colours and lines → Label text outside)." });
+                Text = "Frame: click a line to draw it or not (orange = drawn). Colour, width and line: Settings → Colours and lines → Label frame.",
+                Foreground = Brushes.Gray,
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 8, 0, 2)
+            });
+            panel.Children.Add(BuildFrameMap(layout, Changed));
+            StackPanel frameRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+            frameRow.Children.Add(new TextBlock { Text = "Outside the frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0), ToolTip = "A row drawn outside the frame, above it (first row) or below it (last row), with its own text colour (Settings → Colours and lines → Label text outside)." });
             ComboBox outside = new() { Width = 100, ItemsSource = new[] { "None", "First row", "Last row" }, SelectedIndex = (int)layout.OutsideRow, IsEnabled = layout.Rows > 1 };
             outside.SelectionChanged += (s, e) =>
             {
@@ -173,6 +170,93 @@ namespace AuroraPAR
             };
             panel.Children.Add(new TextBlock { Text = "Preview:", Margin = new Thickness(0, 8, 0, 0) });
             panel.Children.Add(previewBox);
+        }
+
+        private static readonly Brush LineOn = new SolidColorBrush(Color.FromRgb(0xC8, 0x78, 0x32));
+        private static readonly Brush LineOff = new SolidColorBrush(Color.FromRgb(0xC9, 0xCE, 0xD6));
+
+        /// <summary>
+        /// Clickable map of the frame: the cells of the framed rows (the row outside the frame is not in it) and,
+        /// around and between them, the lines that can be drawn.
+        /// </summary>
+        private static Grid BuildFrameMap(LabelLayout layout, Action changed)
+        {
+            const double Thick = 6, CellWidth = 110, CellHeight = 22;
+            int outside = LabelVisual.OutsideIndex(layout);
+            List<int> framedRows = Enumerable.Range(0, layout.Rows).Where(r => r != outside).ToList();
+            Grid map = new() { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 2, 0, 0) };
+            for (int c = 0; c < layout.Columns; c++)
+            {
+                map.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Thick) });
+                map.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(CellWidth) });
+            }
+            map.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Thick) });
+            for (int i = 0; i < framedRows.Count; i++)
+            {
+                map.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Thick) });
+                map.RowDefinitions.Add(new RowDefinition { Height = new GridLength(CellHeight) });
+            }
+            map.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Thick) });
+            int mapColumns = map.ColumnDefinitions.Count, mapRows = map.RowDefinitions.Count;
+            // Cells.
+            for (int i = 0; i < framedRows.Count; i++)
+            {
+                for (int c = 0; c < layout.Columns; c++)
+                {
+                    LabelField field = layout.Get(framedRows[i], c);
+                    Border cell = new()
+                    {
+                        Background = new SolidColorBrush(Color.FromRgb(0xE8, 0xEE, 0xF6)),
+                        Margin = new Thickness(2),
+                        Child = new TextBlock
+                        {
+                            Text = field == LabelField.None ? "" : LabelFormatter.DisplayName(field),
+                            FontSize = 10,
+                            Foreground = Brushes.DimGray,
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }
+                    };
+                    Grid.SetRow(cell, 2 * i + 1);
+                    Grid.SetColumn(cell, 2 * c + 1);
+                    map.Children.Add(cell);
+                }
+            }
+            void AddLine(int row, int column, int rowSpan, int columnSpan, string tip, Func<bool> get, Action<bool> set)
+            {
+                Border line = new() { Background = get() ? LineOn : LineOff, Cursor = Cursors.Hand, ToolTip = tip, Margin = new Thickness(1) };
+                line.MouseLeftButtonUp += (s, e) =>
+                {
+                    set(!get());
+                    changed();
+                };
+                Grid.SetRow(line, row);
+                Grid.SetColumn(line, column);
+                Grid.SetRowSpan(line, rowSpan);
+                Grid.SetColumnSpan(line, columnSpan);
+                map.Children.Add(line);
+            }
+            // Sides.
+            AddLine(0, 0, 1, mapColumns, "Top side", () => layout.FrameTop, v => layout.FrameTop = v);
+            AddLine(mapRows - 1, 0, 1, mapColumns, "Bottom side", () => layout.FrameBottom, v => layout.FrameBottom = v);
+            AddLine(0, 0, mapRows, 1, "Left side", () => layout.FrameLeft, v => layout.FrameLeft = v);
+            AddLine(0, mapColumns - 1, mapRows, 1, "Right side", () => layout.FrameRight, v => layout.FrameRight = v);
+            // Inner lines between framed rows (label row index of the row above the line).
+            for (int i = 0; i + 1 < framedRows.Count; i++)
+            {
+                int row = framedRows[i];
+                AddLine(2 * i + 2, 1, 1, mapColumns - 2, "Line between these rows",
+                    () => layout.RowLines.Contains(row), v => LabelLayout.Toggle(layout.RowLines, row, v));
+            }
+            // Inner lines between columns.
+            for (int c = 0; c + 1 < layout.Columns; c++)
+            {
+                int column = c;
+                AddLine(1, 2 * c + 2, mapRows - 2, 1, "Line between these columns",
+                    () => layout.ColumnLines.Contains(column), v => LabelLayout.Toggle(layout.ColumnLines, column, v));
+            }
+            return map;
         }
     }
 }
