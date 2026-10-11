@@ -30,7 +30,9 @@ namespace AuroraPAR
             double top = Radar.ScanHeight(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanUp);
             // Room below the horizon for the distance text or the reminder markers (the larger of the two).
             double markers = VisibleReminders().Where(r => r.HasMarker).Select(r => r.Size + 8).DefaultIfEmpty(0).Max();
-            bottomBand = Math.Max(Options.RangeMarks.TextSize + 10, markers);
+            // Ticks below the horizon line push the distance text (when it is below) further down.
+            double textRoom = Options.RangeMarks.TextSize + 10 + (Options.RangeTextBelowHorizon ? Options.RangeMarks.TickBelow(true) : 0);
+            bottomBand = Math.Max(textRoom, markers + Options.RangeMarks.TickBelow(true));
             yscale = (H - 30) / top;
         }
 
@@ -152,7 +154,13 @@ namespace AuroraPAR
                 double top = ScanY(markNM, upper);
                 double bottom = lower > 0 ? ScanY(markNM, lower) : H;
                 // A reminder line at the same distance replaces the range mark (the text stays).
-                if (top < bottom && !HasReminderLine(reminders, distance))
+                // Ticks on the distance axis (the horizon line): the marks with text are longer.
+                double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
+                if (tickUp + tickDown > 0 && !HasReminderLine(reminders, distance))
+                {
+                    AddLine(markNM * xscale, H + tickDown, markNM * xscale, H - tickUp, element);
+                }
+                if (Options.RangeMarks.DrawLines && top < bottom && !HasReminderLine(reminders, distance))
                 {
                     AddLine(markNM * xscale, bottom, markNM * xscale, top, element);
                     // Thicker where the antenna beam looks.
@@ -165,7 +173,7 @@ namespace AuroraPAR
                 }
                 if (text)
                 {
-                    AddText(Options.RangeMarks.Label(distance, range), markNM * xscale, textBelow ? H + 2 : H - 1, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
+                    AddText(Options.RangeMarks.Label(distance, range), markNM * xscale, textBelow ? H + 2 + tickDown : H - 1 - tickUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
                 }
             }
             // Distance reminders: line between the scan limits and/or marker on the other side of the horizon from the text.

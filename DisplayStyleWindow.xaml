@@ -29,6 +29,15 @@
                         <TextBlock Text="Text size:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <ComboBox Name="TextSizeComboBox" Width="70" Height="22" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <TextBlock Text="Range marks:" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   ToolTip="Lines across the view (default), only short ticks on the distance axis (horizon line, centreline) as on some real scopes, or both."/>
+                        <ComboBox Name="DrawingComboBox" Width="90" Height="22" VerticalAlignment="Center"/>
+                        <TextBlock Text="Tick length:" VerticalAlignment="Center" Margin="16,0,8,0"/>
+                        <ComboBox Name="TickLengthComboBox" Width="70" Height="22" VerticalAlignment="Center"/>
+                        <TextBlock Text="Side:" VerticalAlignment="Center" Margin="16,0,8,0"/>
+                        <ComboBox Name="TickSideComboBox" Width="80" Height="22" VerticalAlignment="Center"/>
+                    </StackPanel>
                     <Button Name="RangeMarksDefaultButton" Content="Default" HorizontalAlignment="Left" Width="80" Height="26" Margin="0,10,0,0"/>
                 </StackPanel>
             </TabItem>

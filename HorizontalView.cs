@@ -114,10 +114,14 @@ namespace AuroraPAR
             }
             // Range marks, measured from the touchdown point, between the scan limits.
             List<DistanceReminder> reminders = VisibleReminders();
-            foreach ((double distance, StyleElement element, bool _) in Options.RangeMarks.Marks(range))
+            foreach ((double distance, StyleElement element, bool text) in Options.RangeMarks.Marks(range))
             {
                 if (HasReminderLine(reminders, distance)) continue;
                 double markNM = distance - Runway.TouchdownNM + length;
+                // Ticks on the distance axis (the centreline): the marks with text are longer.
+                double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
+                if (tickUp + tickDown > 0) AddLine(markNM * xscale, cy + tickDown, markNM * xscale, cy - tickUp, element);
+                if (!Options.RangeMarks.DrawLines) continue;
                 AddLine(markNM * xscale, ScanY(markNM, left), markNM * xscale, ScanY(markNM, right), element);
                 // Thicker where the antenna beam looks.
                 if (Radar.BeamEnabled)

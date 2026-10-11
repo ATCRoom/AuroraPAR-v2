@@ -149,7 +149,6 @@ namespace AuroraPAR
         {
             public readonly Path Symbol = new() { StrokeThickness = 2 };
             public readonly Border Label = new() { Background = Brushes.Transparent, Padding = new Thickness(1) };
-            public readonly Grid LabelGrid = new();
             public TextBlock[] Cells = [];
             public int LayoutVersion = -1;
             public int SymbolVersion = -1;
@@ -809,7 +808,7 @@ namespace AuroraPAR
             }
             if (track.LayoutVersion != Options.Version)
             {
-                BuildLabel(track, layout);
+                BuildLabel(track, layout, Options.Theme);
                 track.LayoutVersion = Options.Version;
             }
             for (int i = 0; i < track.Cells.Length; i++)
@@ -818,7 +817,7 @@ namespace AuroraPAR
                 if (field != LabelField.None)
                 {
                     track.Cells[i].Text = LabelFormatter.Format(field, aircraft, Runway, Options);
-                    track.Cells[i].Foreground = Options.Theme.Brush(StyleElement.LabelText);
+                    track.Cells[i].Foreground = LabelVisual.TextBrush(layout, i / layout.Columns, Options.Theme);
                 }
             }
             track.Label.Visibility = Visibility.Visible;
@@ -828,32 +827,9 @@ namespace AuroraPAR
         /// <summary>
         /// Builds the grid of text cells of a label from the layout.
         /// </summary>
-        private static void BuildLabel(Track track, LabelLayout layout)
+        private static void BuildLabel(Track track, LabelLayout layout, Theme theme)
         {
-            Grid grid = track.LabelGrid;
-            grid.Children.Clear();
-            grid.RowDefinitions.Clear();
-            grid.ColumnDefinitions.Clear();
-            for (int r = 0; r < layout.Rows; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            for (int c = 0; c < layout.Columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            track.Cells = new TextBlock[layout.Rows * layout.Columns];
-            for (int r = 0; r < layout.Rows; r++)
-            {
-                for (int c = 0; c < layout.Columns; c++)
-                {
-                    TextBlock cell = new()
-                    {
-                        FontSize = 12,
-                        Foreground = Brushes.White,
-                        Margin = new Thickness(0, 0, c < layout.Columns - 1 ? 8 : 0, 0),
-                        Visibility = layout.Get(r, c) == LabelField.None ? Visibility.Collapsed : Visibility.Visible
-                    };
-                    Grid.SetRow(cell, r);
-                    Grid.SetColumn(cell, c);
-                    grid.Children.Add(cell);
-                    track.Cells[r * layout.Columns + c] = cell;
-                }
-            }
+            track.Label.Child = LabelVisual.Build(layout, theme, out track.Cells);
         }
 
         /// <summary>
@@ -892,7 +868,6 @@ namespace AuroraPAR
         private Track CreateTrack()
         {
             Track track = new();
-            track.Label.Child = track.LabelGrid;
             Panel.SetZIndex(track.Symbol, TrackZIndex);
             Panel.SetZIndex(track.Leader, HistoryZIndex);
             Panel.SetZIndex(track.Label, LabelZIndex);

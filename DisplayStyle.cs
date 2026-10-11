@@ -71,8 +71,39 @@ namespace AuroraPAR
         Fractions
     }
 
+    /// <summary>How the range marks are drawn.</summary>
+    internal enum RangeMarkDrawing
+    {
+        /// <summary>Lines across the view (the default).</summary>
+        Lines,
+        /// <summary>Only short ticks on the distance axis (horizon line / centreline), as on some real scopes.</summary>
+        Ticks,
+        /// <summary>Lines and ticks.</summary>
+        Both
+    }
+
+    /// <summary>Side of the distance axis the ticks go to.</summary>
+    internal enum TickSide
+    {
+        Both,
+        Above,
+        Below
+    }
+
     internal class RangeMarkSettings
     {
+        public RangeMarkDrawing Drawing { get; set; } = RangeMarkDrawing.Lines;
+        /// <summary>Length of the ticks of the marks with text, in pixels (the others a little shorter).</summary>
+        public double TickLength { get; set; } = 10;
+        public TickSide TickSide { get; set; } = TickSide.Both;
+        public const double MinTickLength = 4;
+        public const double MaxTickLength = 30;
+
+        public bool DrawLines => Drawing != RangeMarkDrawing.Ticks;
+        public bool DrawTicks => Drawing != RangeMarkDrawing.Lines;
+        /// <summary>Tick length of a mark on each side of the axis (above = up on the screen / logical y smaller), 0 if no ticks.</summary>
+        public double TickAbove(bool withText) => DrawTicks && TickSide != TickSide.Below ? TickLength * (withText ? 1 : 0.6) : 0;
+        public double TickBelow(bool withText) => DrawTicks && TickSide != TickSide.Above ? TickLength * (withText ? 1 : 0.6) : 0;
         public List<RangeMarkRow> Rows { get; set; } = [];
         public DistanceTextFormat TextFormat { get; set; } = DistanceTextFormat.Decimal;
 
@@ -116,6 +147,9 @@ namespace AuroraPAR
         {
             Rows ??= [];
             if (!Enum.IsDefined(TextFormat)) TextFormat = DistanceTextFormat.Decimal;
+            if (!Enum.IsDefined(Drawing)) Drawing = RangeMarkDrawing.Lines;
+            if (!Enum.IsDefined(TickSide)) TickSide = TickSide.Both;
+            TickLength = TickLength <= 0 ? 10 : Math.Clamp(Math.Round(TickLength), MinTickLength, MaxTickLength);
             TextSize = TextSize <= 0 ? DefaultTextSize : Math.Clamp(Math.Round(TextSize), MinTextSize, MaxTextSize);
             List<RangeMarkRow> rows = [];
             foreach (double range in Ranges.All)
@@ -237,7 +271,11 @@ namespace AuroraPAR
         /// <summary>DH line of the azimuth view (added later: older profiles get the style of the DH line).</summary>
         DecisionHeightAzimuth,
         /// <summary>Line joining a dragged label to its track (added later: older profiles get the default pale yellow, not the colour of the track).</summary>
-        LabelLeader
+        LabelLeader,
+        /// <summary>Frame of the track label (sides chosen in the label editor; invisible by default).</summary>
+        LabelFrame,
+        /// <summary>Text colour of the field kept outside the label frame.</summary>
+        LabelTextOutside
     }
 
     /// <summary>Colour (as #RRGGBB), dash style and width of an element.</summary>
@@ -266,7 +304,7 @@ namespace AuroraPAR
         {
             StyleElement.RangeText or StyleElement.Background or StyleElement.PlotInside or StyleElement.PlotOutside
                 or StyleElement.Antenna or StyleElement.TrackInside or StyleElement.TrackOutside or StyleElement.TrackCoasting
-                or StyleElement.LabelText or StyleElement.DecisionHeightMark => false,
+                or StyleElement.LabelText or StyleElement.LabelTextOutside or StyleElement.DecisionHeightMark => false,
             _ => true
         };
 
@@ -295,6 +333,8 @@ namespace AuroraPAR
             StyleElement.DecisionHeightMark => "Decision height mark (symbol)",
             StyleElement.DecisionHeightAzimuth => "Decision height line (azimuth view)",
             StyleElement.LabelLeader => "Label leader line",
+            StyleElement.LabelFrame => "Label frame",
+            StyleElement.LabelTextOutside => "Label text (field outside the frame)",
             StyleElement.Runway => "Runway and threshold",
             StyleElement.Ground => "Ground",
             StyleElement.Touchdown => "Touchdown point",
@@ -327,6 +367,8 @@ namespace AuroraPAR
             StyleElement.DecisionHeightMark => new() { Color = "#FF0000" },
             StyleElement.DecisionHeightAzimuth => new() { Color = "#FF0000", Width = 2 },
             StyleElement.LabelLeader => new() { Color = "#F0E39E", Width = 1 },
+            StyleElement.LabelFrame => new() { Color = "#C87832", Width = 1 },
+            StyleElement.LabelTextOutside => new() { Color = "#FFFF00" },
             StyleElement.Runway => new() { Color = "#008000", Width = 3 },
             StyleElement.Ground => new() { Color = "#008000", Width = 2 },
             StyleElement.Touchdown => new() { Color = "#FFFF00", Width = 2 },

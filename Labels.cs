@@ -24,6 +24,126 @@ namespace AuroraPAR
         TrackId
     }
 
+    /// <summary>Row of the label drawn outside the frame.</summary>
+    internal enum LabelOutsideRow
+    {
+        None,
+        /// <summary>The first row, above the frame (like a title).</summary>
+        First,
+        /// <summary>The last row, below the frame.</summary>
+        Last
+    }
+
+    /// <summary>Frame around the framed rows of a label: any of the four sides, with colour, width and dash style of the theme.</summary>
+    internal sealed class LabelFrameBox : System.Windows.Controls.Decorator
+    {
+        public bool Top, Right, Bottom, Left;
+        public System.Windows.Media.Pen? Pen;
+
+        protected override void OnRender(System.Windows.Media.DrawingContext dc)
+        {
+            if (Pen == null) return;
+            double h = Pen.Thickness / 2;
+            System.Windows.Size size = RenderSize;
+            if (Top) dc.DrawLine(Pen, new System.Windows.Point(0, h), new System.Windows.Point(size.Width, h));
+            if (Bottom) dc.DrawLine(Pen, new System.Windows.Point(0, size.Height - h), new System.Windows.Point(size.Width, size.Height - h));
+            if (Left) dc.DrawLine(Pen, new System.Windows.Point(h, 0), new System.Windows.Point(h, size.Height));
+            if (Right) dc.DrawLine(Pen, new System.Windows.Point(size.Width - h, 0), new System.Windows.Point(size.Width - h, size.Height));
+        }
+    }
+
+    /// <summary>Builds the visual of a label (frame, field outside the frame, cells) for the radar and for the preview.</summary>
+    internal static class LabelVisual
+    {
+        private const double FramePadding = 3;
+
+        /// <summary>Row kept outside the frame, or -1 (a single row cannot be outside).</summary>
+        public static int OutsideIndex(LabelLayout layout) =>
+            layout.Rows < 2 ? -1 : layout.OutsideRow == LabelOutsideRow.First ? 0 : layout.OutsideRow == LabelOutsideRow.Last ? layout.Rows - 1 : -1;
+
+        /// <summary>Text colour of a row: its own for the field outside the frame.</summary>
+        public static System.Windows.Media.Brush TextBrush(LabelLayout layout, int row, Theme theme) =>
+            theme.Brush(row == OutsideIndex(layout) ? StyleElement.LabelTextOutside : StyleElement.LabelText);
+
+        /// <summary>
+        /// Panel with the framed rows and, if set, the row outside the frame (same column widths). <paramref name="cells"/>
+        /// gets the text cells row by row; the text is set by the caller.
+        /// </summary>
+        public static System.Windows.Controls.StackPanel Build(LabelLayout layout, Theme theme, out System.Windows.Controls.TextBlock[] cells)
+        {
+            int outside = OutsideIndex(layout);
+            bool frameShown = layout.HasFrame && !theme.IsHidden(StyleElement.LabelFrame);
+            cells = new System.Windows.Controls.TextBlock[layout.Rows * layout.Columns];
+            System.Windows.Controls.StackPanel root = new() { Orientation = System.Windows.Controls.Orientation.Vertical };
+            System.Windows.Controls.Grid.SetIsSharedSizeScope(root, true);
+            System.Windows.Controls.Grid framed = new();
+            System.Windows.Controls.Grid outer = new();
+            foreach (System.Windows.Controls.Grid g in new[] { framed, outer })
+            {
+                for (int c = 0; c < layout.Columns; c++)
+                {
+                    g.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto, SharedSizeGroup = "label" + c });
+                }
+            }
+            int framedRow = 0;
+            for (int r = 0; r < layout.Rows; r++)
+            {
+                System.Windows.Controls.Grid target = r == outside ? outer : framed;
+                int gridRow = r == outside ? 0 : framedRow++;
+                target.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = System.Windows.GridLength.Auto });
+                for (int c = 0; c < layout.Columns; c++)
+                {
+                    System.Windows.Controls.TextBlock cell = new()
+                    {
+                        FontSize = 12,
+                        Foreground = TextBrush(layout, r, theme),
+                        Margin = new System.Windows.Thickness(0, 0, c < layout.Columns - 1 ? 8 : 0, 0),
+                        Visibility = layout.Get(r, c) == LabelField.None ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible
+                    };
+                    System.Windows.Controls.Grid.SetRow(cell, gridRow);
+                    System.Windows.Controls.Grid.SetColumn(cell, c);
+                    target.Children.Add(cell);
+                    cells[r * layout.Columns + c] = cell;
+                }
+            }
+            System.Windows.Media.Pen? pen = null;
+            if (frameShown)
+            {
+                pen = new System.Windows.Media.Pen(theme.Brush(StyleElement.LabelFrame), Math.Max(1, theme.Width(StyleElement.LabelFrame)))
+                {
+                    DashStyle = Theme.DashArray(theme.Dash(StyleElement.LabelFrame)) is { } dash ? new System.Windows.Media.DashStyle(dash, 0) : System.Windows.Media.DashStyles.Solid
+                };
+            }
+            LabelFrameBox box = new()
+            {
+                Child = framed,
+                Pen = pen,
+                Top = frameShown && layout.FrameTop,
+                Right = frameShown && layout.FrameRight,
+                Bottom = frameShown && layout.FrameBottom,
+                Left = frameShown && layout.FrameLeft
+            };
+            framed.Margin = new System.Windows.Thickness(box.Left ? FramePadding : 0, box.Top ? FramePadding : 0, box.Right ? FramePadding : 0, box.Bottom ? FramePadding : 0);
+            if (outside == 0)
+            {
+                outer.Margin = new System.Windows.Thickness(box.Left ? FramePadding : 0, 0, 0, 3);
+                root.Children.Add(outer);
+                root.Children.Add(box);
+            }
+            else if (outside > 0)
+            {
+                outer.Margin = new System.Windows.Thickness(box.Left ? FramePadding : 0, 3, 0, 0);
+                root.Children.Add(box);
+                root.Children.Add(outer);
+            }
+            else
+            {
+                root.Children.Add(box);
+            }
+            return root;
+        }
+    }
+
     /// <summary>
     /// Layout of a track label: a grid of rows and columns, each cell showing one field (or nothing).
     /// </summary>
@@ -36,6 +156,16 @@ namespace AuroraPAR
         public int Columns { get; set; } = 1;
         /// <summary>Cells row by row (Rows × Columns).</summary>
         public List<LabelField> Cells { get; set; } = [];
+
+        /// <summary>Sides of the frame drawn around the label (none by default); colour and line: Display style → Label frame.</summary>
+        public bool FrameTop { get; set; }
+        public bool FrameRight { get; set; }
+        public bool FrameBottom { get; set; }
+        public bool FrameLeft { get; set; }
+        /// <summary>A row kept outside the frame, above it (first row) or below it (last row), with its own text colour.</summary>
+        public LabelOutsideRow OutsideRow { get; set; }
+
+        public bool HasFrame => FrameTop || FrameRight || FrameBottom || FrameLeft;
 
         public LabelField Get(int row, int column) => Cells[row * Columns + column];
 
@@ -82,6 +212,7 @@ namespace AuroraPAR
             Rows = rows;
             Columns = columns;
             Cells = cells;
+            if (!Enum.IsDefined(OutsideRow)) OutsideRow = LabelOutsideRow.None;
         }
 
         public static LabelLayout Create(int rows, int columns, params LabelField[] cells)
