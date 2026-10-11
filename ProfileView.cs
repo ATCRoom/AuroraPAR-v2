@@ -313,8 +313,19 @@ namespace AuroraPAR
                 }
                 if (texts && IsMultiple(value, textStep))
                 {
-                    double y = YEnd(from, heightFt);
-                    if (y > 10) AddText($"{value:0} {unit}", XAt(from), y, 4, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                    // Where the line starts, or where it comes into the view (scan limit tilted above the top).
+                    double at = from;
+                    for (int i = 0; i <= 48 && YEnd(at, heightFt) <= 14; i++) at = from + (to - from) * i / 48;
+                    double y = YEnd(at, heightFt);
+                    if (y > 14)
+                    {
+                        // Along the line, away from the antenna (to the left on the screen with the runway on the right).
+                        string text = $"{value:0} {unit}";
+                        TextBlock measure = new() { Text = text, FontSize = Options.RangeMarks.TextSize };
+                        measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        double dx = RunwayOnRight ? -4 - measure.DesiredSize.Width : 4;
+                        AddText(text, XAt(at), y, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                    }
                 }
             }
         }
