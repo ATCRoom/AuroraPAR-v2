@@ -19,6 +19,8 @@
 - **Quarantine (a proposal, to evaluate at the end or later; decided 9 Oct):** the **virtual keypad on a phone / tablet** (a web page like the coordination phone panel, same relay and pairing, sending named commands to AuroraPAR). Other free applications already do the same: worth it only if there is a real request.
 
 
+- **Coordination, relay reliability (11 Oct evening, from the logs):** the free public relays were slow/rejecting (emqx *ServerUnavailable*, hivemq timeouts) on both PCs, with and without panel code; before (9-10 Oct) ~1 s. Decision: the system must stay **totally free**; keep it as it is and see. If it happens again: try the relays **in parallel** (first that answers wins, both panels on the same one) and/or more free public relays; paid server or own broker only if really needed.
+
 ## Done, to be tested
 
 Last updates, newest first. When an item works in the test, delete it.
