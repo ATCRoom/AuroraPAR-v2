@@ -445,6 +445,8 @@ namespace AuroraPAR
             if (layout == analogControlsLayout) return;
             analogControlsLayout = layout;
             KnobPanel.Children.Clear();
+            // The range knob may be inside a frame (FIAR keys): free it before it is placed again.
+            if (rangeKnob.Parent is Panel knobParent) knobParent.Children.Remove(rangeKnob);
             analogKeys.Clear();
             System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
             switch (profile.RangeControl)

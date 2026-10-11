@@ -328,7 +328,10 @@ namespace AuroraPAR
                             // On the upper scan limit: just outside it, above and towards the runway, so the text
                             // never touches the scan limit (which goes down towards the runway) or the altitude line.
                             double dx = RunwayOnRight ? 4 : -4 - width;
-                            AddText(text, XAt(at), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                            // Inside the view (low values near the antenna, at the edge on the runway side).
+                            double left = ToScreenX(XAt(at)) + dx;
+                            dx += Math.Clamp(left, 2, Math.Max(2, Canvas.ActualWidth - width - 2)) - left;
+                            if (y - 2 - measure.DesiredSize.Height > 0) AddText(text, XAt(at), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
                         }
                         else
                         {
