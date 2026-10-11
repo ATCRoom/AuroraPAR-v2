@@ -200,7 +200,7 @@ namespace AuroraPAR
             RemindersGroup.IsEnabled = shown != null;
             RemindersInfo.Text = shown == null
                 ? ""
-                : $"Reminders of {ReminderKey(shown)} only, drawn in addition to those for all runways (Settings → Display style → Reminders). "
+                : $"Reminders of {ReminderKey(shown)} only, drawn in addition to those for all runways (Settings → Reminders). "
                   + "They are kept with the airport and runway name and saved at once (not with Save).";
             reminderEditor.Rebuild();
         }

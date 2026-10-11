@@ -8,21 +8,21 @@ using System.Windows.Shapes;
 namespace AuroraPAR
 {
     /// <summary>
-    /// Display style of the active profile: range marks at each range (and, in the next tabs, colours and lines).
-    /// Every change is applied and saved at once.
+    /// Display style of the active profile: range marks at each range, colours and lines, distance reminders.
+    /// Every change is applied and saved at once. The Settings window takes its three parts (see
+    /// <see cref="TakeParts"/>) into its sections; a new panel is made when the profile changes.
     /// </summary>
-    public partial class DisplayStyleWindow : Window
+    public partial class DisplayStylePanel : UserControl
     {
         private readonly AppSettings settings;
         private readonly Action commit;
         private bool building;
 
-        internal DisplayStyleWindow(AppSettings settings, Action commit)
+        internal DisplayStylePanel(AppSettings settings, Action commit)
         {
             InitializeComponent();
             this.settings = settings;
             this.commit = commit;
-            CloseButton.Click += (s, e) => Close();
             RangeMarksDefaultButton.Click += (s, e) =>
             {
                 DistanceTextFormat format = Active.RangeMarks.TextFormat;
@@ -127,6 +127,19 @@ namespace AuroraPAR
             MarkersBelowRadio.IsChecked = Active.RangeTextBelowHorizon;
             MarkersAboveRadio.Checked += (s, e) => SetTextBelowHorizon(false);
             MarkersBelowRadio.Checked += (s, e) => SetTextBelowHorizon(true);
+        }
+
+        /// <summary>The three parts (range marks, colours and lines, reminders), taken out of the panel.</summary>
+        internal (UIElement RangeMarks, UIElement Colours, UIElement Reminders) TakeParts()
+        {
+            static UIElement Take(object item)
+            {
+                TabItem tab = (TabItem)item;
+                UIElement content = (UIElement)tab.Content;
+                tab.Content = null;
+                return content;
+            }
+            return (Take(Tabs.Items[0]), Take(Tabs.Items[1]), Take(Tabs.Items[2]));
         }
 
         private static readonly string[] DashNames = ["Solid", "Dashed", "Dash-dot", "Dotted"];

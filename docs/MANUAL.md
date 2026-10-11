@@ -24,7 +24,7 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
 9. [Analog mode](#9-analog-mode)
    - [9b. Coordination panel](#9b-coordination-panel)
 10. [Settings and profiles](#10-settings-and-profiles)
-11. [Display style: range marks, colours, reminders](#11-display-style-range-marks-colours-reminders)
+11. [Range marks, colours, reminders](#11-range-marks-colours-reminders)
 12. [Runways and the runway editor](#12-runways-and-the-runway-editor)
     - [12.4 CRSCalculator: runway heading and magnetic variation](#124-crscalculator-runway-heading-and-magnetic-variation)
 13. [Where the settings are stored](#13-where-the-settings-are-stored)
@@ -73,10 +73,10 @@ The QNH is taken from the METAR of the airport in Aurora and refreshed every min
 | | Control | Use |
 |---|---|---|
 | **4** | **ICAO** and **Runway** keys | The ICAO box shows the airport in use. Type another ICAO: with the fourth letter (or **Enter**, when the letters typed fit a single airport) it is set and its first runway is selected. Red: no airport in `runways.par` starts with these letters. **Esc** or leaving the box shows the airport in use again. Below, one key per runway of the airport (two columns, the one in use in blue; none when the airport has a single runway); the approaches of the same runway are one key. When you connect with a callsign of an airport in the file (LIPC_APP → LIPC) that airport is set at the connection; without such a callsign the last runway stays. There is no drop-down list of the runways. |
-| **5** | Range list | Display range: the ranges ticked in *Settings → Display → Ranges offered* (1, 2.5, 5, 10, 15, 20, 30, 40 NM; up to 20 NM by default). The mouse wheel over the display does the same. |
+| **5** | Range list | Display range: the ranges ticked in *Settings → Range and scale → Ranges offered* (1, 2.5, 5, 10, 15, 20, 30, 40 NM; up to 20 NM by default). The mouse wheel over the display does the same. |
 | **6** | **Settings...** | Profiles and options ([section 10](#10-settings-and-profiles)). |
 | | **GP (°)** | Glide path of the approach: one key per published angle of the runway (when it has more than one), and below a box with the angle in use, where a free angle can be typed (Enter; unpublished approach, orange) ([section 8b](#8b-glide-path-several-approaches-and-unpublished-angle)). |
-| **8** | **DH** box with **−** / **+** (hidden by default: *Settings → Display → Show the DH selector*) | Decision height for this session ([section 8](#8-decision-height)). |
+| **8** | **DH** box with **−** / **+** (hidden by default: *Settings → Approach and DH → DH selector*) | Decision height for this session ([section 8](#8-decision-height)). |
 | | **BRT** with **−** / **+** | Brightness of the radar picture, 10–150% (also with the mouse wheel over it); saved in the profile. Up to 100% the picture is dimmed; above 100% the colours are made brighter and lighter, for dim monitors. |
 | **9** | **Antenna tilt** | EL ▲ / EL ▼, AZ L / AZ R, Neutral ([section 7](#7-antenna-tilt)). |
 | **10** | **Hide labels (L)** | Hides / shows all labels. |
@@ -115,7 +115,7 @@ The antenna always stays at the same place: zooming in enlarges the approach, it
 
 - **Horizon line** (ground at the threshold elevation) and the runway.
 - **Glide path** (yellow) from the touchdown point at the runway's glide slope angle, with its **approach limits** above and below (default ±0.5°).
-- **Decision height**: a red horizontal line at the DH and a dashed vertical line, both drawn **from the point where the glide path reaches the DH**. Both can be customised: colour, line style and width of each (*Display style → Colours & lines*: *Decision height line* and *Decision height drop line*, which can also be hidden); the horizontal line goes to the **left, right or both sides** of the point on the screen (or *none*: no line), with a length of 0.25–5 NM on each side (*Settings → DH horizontal line*); the vertical line goes **down, up or both** (or *none*), as long as the DH (down to the ground, the default) or 50–1000 ft (*Settings → DH vertical line*); and an optional **symbol** on the DH point, with the colour of the *Decision height mark* (*Settings → Symbols → DH point*, none by default). In the azimuth view (from above) the DH line crosses the centreline at the same distance, always on both sides: it has its own style (*Decision height line (azimuth view)*), a length on each side of the centreline (up to the scan limits, the default, or 50–1000 m: *Settings → DH line, azimuth view*) and an optional symbol on the centreline (*Settings → Symbols → DH point (azimuth view)*, with the colour of the *Decision height mark*).
+- **Decision height**: a red horizontal line at the DH and a dashed vertical line, both drawn **from the point where the glide path reaches the DH**. Both can be customised: colour, line style and width of each (*Settings → Colours and lines*: *Decision height line* and *Decision height drop line*, which can also be hidden); the horizontal line goes to the **left, right or both sides** of the point on the screen (or *none*: no line), with a length of 0.25–5 NM on each side (*Settings → DH horizontal line*); the vertical line goes **down, up or both** (or *none*), as long as the DH (down to the ground, the default) or 50–1000 ft (*Settings → DH vertical line*); and an optional **symbol** on the DH point, with the colour of the *Decision height mark* (*Settings → Symbols → DH point*, none by default). In the azimuth view (from above) the DH line crosses the centreline at the same distance, always on both sides: it has its own style (*Decision height line (azimuth view)*), a length on each side of the centreline (up to the scan limits, the default, or 50–1000 m: *Settings → DH line, azimuth view*) and an optional symbol on the centreline (*Settings → Symbols → DH point (azimuth view)*, with the colour of the *Decision height mark*).
 - **Altitude scale** (optional) on the runway side: altitudes with QNH, heights with QFE, in feet or metres.
 
 ### 4.3 Azimuth view (bottom)
@@ -161,7 +161,7 @@ Each aircraft inside the antenna beam is shown with a **track symbol** (default:
 - dots only where the aircraft was inside the beam;
 - colours of tracks and plots, inside and outside the limits, are configurable.
 
-**Coasting track** (modern display). When an aircraft leaves the beam, the radar computer keeps it for a few seconds at an **estimated position**: straight on from the last position seen in the beam, at the same ground speed and vertical speed (the real position is not used). The symbol changes to the **coasting symbol** (default: diamond) so you know it is no longer seen; the label stays, with the estimated values; no new history dots. After **8 s** by default (*Settings → Radar → Coasting tracks*, 0–30 s, 0 = hidden at once) track, label and tail disappear. If the aircraft comes back into the beam it is shown again at its real position (it may jump a little). Symbol and colour of the coasting track: *Settings → Symbols* and *Display style → Coasting tracks*. On the analog scope there is no estimate: out of the beam the echo goes dark and its afterglow fades (about 6 s).
+**Coasting track** (modern display). When an aircraft leaves the beam, the radar computer keeps it for a few seconds at an **estimated position**: straight on from the last position seen in the beam, at the same ground speed and vertical speed (the real position is not used). The symbol changes to the **coasting symbol** (default: diamond) so you know it is no longer seen; the label stays, with the estimated values; no new history dots. After **8 s** by default (*Settings → Tracks and labels → Coasting tracks*, advanced, 0–30 s, 0 = hidden at once) track, label and tail disappear. If the aircraft comes back into the beam it is shown again at its real position (it may jump a little). Symbol and colour of the coasting track: *Settings → Symbols* and *Settings → Colours and lines → Coasting tracks*. On the analog scope there is no estimate: out of the beam the echo goes dark and its afterglow fades (about 6 s).
 
 **Test traffic** (key **T**, or *Settings → Test traffic...*). Virtual aircraft to test the radar without waiting for real traffic, also without Aurora. While test aircraft are flying, **TEST TRAFFIC** is shown at the top of the views; closing the window removes them, nothing is saved. The window has:
 
@@ -199,7 +199,7 @@ Each track has a **label** in each view. Its content is configurable (*Settings 
 | SSR code | `A2201` — the transponder code given by Aurora (PAR+SSR radars); nothing when there is no valid code (or 0000) |
 | Track ID (fictitious) | `42` — for radars that receive neither the callsign nor the code (see below) |
 
-**Frame and field outside the frame** (in the same window, for each label): choose which **sides of a frame** to draw around the label — top, right, bottom, left, any combination (none by default; only the left side gives the vertical bar of some scopes). Colour, width and line style: *Display style → Colours & lines → Label frame*. **Outside the frame:** the first row (above the frame, like a title) or the last row (below it) can be kept outside, with its own text colour (*Label text (field outside the frame)*, default yellow). The preview in the window shows the result.
+**Frame and field outside the frame** (in the same window, for each label): choose which **sides of a frame** to draw around the label — top, right, bottom, left, any combination (none by default; only the left side gives the vertical bar of some scopes). Colour, width and line style: *Settings → Colours and lines → Label frame*. **Outside the frame:** the first row (above the frame, like a title) or the last row (below it) can be kept outside, with its own text colour (*Label text (field outside the frame)*, default yellow). The preview in the window shows the result.
 
 A label with no fields shows only the track symbol.
 
@@ -207,7 +207,7 @@ A label with no fields shows only the track symbol.
 
 **Moving and hiding labels:**
 
-- **Drag** a label with the mouse: a leader line joins it to its track: it has its own style (*Display style → Colours & lines → Label leader line*: colour, line, width, show / hide; default a pale yellow, not the colour of the track). **Double click** puts it back.
+- **Drag** a label with the mouse: a leader line joins it to its track: it has its own style (*Settings → Colours and lines → Label leader line*: colour, line, width, show / hide; default a pale yellow, not the colour of the track). **Double click** puts it back.
 - **Right click on a label** hides it (with a Track ID field: a menu with *Hide label* and *Set ID...*).
 - **Right click near a track** hides/shows its label. Where several tracks are close (formation), or labels are hidden elsewhere, a menu lists them by callsign, with *Show all hidden labels*.
 - **L** or **Hide labels** hides/shows all labels; showing them again also brings back the ones hidden one by one.
@@ -259,7 +259,7 @@ The tilt moves the **beam** inside the scan limits; the glide path, centreline a
 
 The DH of each runway comes from `runways.par`. During the session it can be changed **on the fly** with **−** / **+** (10 ft steps) or by typing a value in the box. It is not saved: it goes back to the file value when the runway is selected again.
 
-The DH selector (box with **−** / **+** in the modern display, knob or keys in the analog one) is an advanced function and is **hidden by default**: tick *Settings → Display → Show the DH selector* to show it (per profile; existing profiles start with it hidden). Hidden, the runway value is used, and **Shift+↑ / ↓ / Home** still change it.
+The DH selector (box with **−** / **+** in the modern display, knob or keys in the analog one) is an advanced function and is **hidden by default**: tick *Settings → Approach and DH → DH selector* to show it (per profile; existing profiles start with it hidden). Hidden, the runway value is used, and **Shift+↑ / ↓ / Home** still change it.
 
 The name shown (DA/DH, OCA/OCH, MDA/MDH) is chosen in *Settings → Units and references*.
 
@@ -284,12 +284,12 @@ Some runways have approaches with different glide path angles. In `runways.par` 
 
 ### 9.1 The scope
 
-- One **round screen** in a metal ring with the elevation view above and the azimuth view below, in **phosphor** colour (yellow-green by default, other colours in *Display style*).
+- One **round screen** in a metal ring with the elevation view above and the azimuth view below, in **phosphor** colour (yellow-green by default, other colours in *Settings → Colours and lines*).
 - The **antenna beam** sweeps the views in turn. Each aircraft is an **echo** that brightens as the beam arrives, is brightest at its centre and then fades until the next pass. Its position is always the latest one from Aurora: the beam changes only the brightness.
 - No labels and no altitude scale, as on the real scopes. The history tail fades with age.
 - The tooltips (help bubbles) are dark with amber text, like the console.
 - **Afterglow**: like the phosphor of the old screens, a faint trail of the echo stays where the aircraft was in the last seconds, and the history dots glow slightly when the beam passes over them.
-- **Rain clutter** (*Settings → Display → Rain clutter on the analog scope*, per profile, **off by default**): irregular green patches alternating with dots, only **inside the antenna beam** (it moves with the tilt; a short fade at its edges, no sharp cut), stronger towards the far end of the range. The intensity follows the **precipitation of the METAR** of the airport in use (received from Aurora): drizzle or light rain = a few dots and small patches, rain = patches, heavy rain or thunderstorm = large bright patches. Like the echoes, the clutter **lights up when the scan beam passes over it** and fades; the dots stay in place (their light changes with the beam) and the **patches drift with the wind** (METAR wind, or the wind set in Test traffic): real speed, in scale with the range, so slow with a light wind (about half a pixel per second at 15 kt and 10 NM) and faster at short ranges. When the **tilt** moves, the picture stays a moment where the beam was and fades out (about 2 s). The tracks are not hidden: they are drawn in the same green and **get lost in the clutter**. The **CLUTTER knob** (appears with the option) reduces the clutter, but dims the tracks too (OFF = no filter). To try it without waiting for a METAR with rain: *Test traffic → Rain* (From METAR / None / Light / Moderate / Heavy / Thunderstorm, works also with the option off, and the filter slider). Modern display: no clutter.
+- **Rain clutter** (*Settings → Display → Rain clutter*, advanced, per profile, **off by default**): irregular green patches alternating with dots, only **inside the antenna beam** (it moves with the tilt; a short fade at its edges, no sharp cut), stronger towards the far end of the range. The intensity follows the **precipitation of the METAR** of the airport in use (received from Aurora): drizzle or light rain = a few dots and small patches, rain = patches, heavy rain or thunderstorm = large bright patches. Like the echoes, the clutter **lights up when the scan beam passes over it** and fades; the dots stay in place (their light changes with the beam) and the **patches drift with the wind** (METAR wind, or the wind set in Test traffic): real speed, in scale with the range, so slow with a light wind (about half a pixel per second at 15 kt and 10 NM) and faster at short ranges. When the **tilt** moves, the picture stays a moment where the beam was and fades out (about 2 s). The tracks are not hidden: they are drawn in the same green and **get lost in the clutter**. The **CLUTTER knob** (appears with the option) reduces the clutter, but dims the tracks too (OFF = no filter). To try it without waiting for a METAR with rain: *Test traffic → Rain* (From METAR / None / Light / Moderate / Heavy / Thunderstorm, works also with the option off, and the filter slider). Modern display: no clutter.
 - **Readouts**: the windows of the left column (airport, runway, course, glide path, MAPt, DH, QNH, range, tilt) are 14-segment displays (default) or **mechanical drum counters** (*Settings → Analog controls → Readouts*): off-white digits and letters on black wheels behind a window; when a value changes the wheels roll to the new character, and each wheel is a little off, as on worn counters. Same data, only the look changes. The digits are in the Carlito font (SIL Open Font License, included).
 - **Edge of the antenna beam**: near the edge of the beam (the last half degree) the echo gets weaker; out of the beam it goes dark, and its afterglow and dots fade in about 6 s.
 - In a low window the screen is cut at the top and bottom (only frame and glass), so the views stay large.
@@ -330,7 +330,7 @@ The knobs always follow the real state, also when it is changed with the keyboar
 
 **Knobs or keys** (*Settings → Analog console controls*, per profile). Each group can be a knob or a row of console keys (lit key = the state in use):
 
-- **Range:** knob, **one key per range** (the ranges ticked in *Display → Ranges offered*; the one in use is lit), **`<` `DEF` `>`**: smaller / back to the preferred range (*Display*) / larger, or **Range panel (FIAR keys)**: large square backlit keys in two columns in a gold frame, as on the range panel of the FIAR PAR console (number over NM; all dimly lit, the range in use bright white; a small dot on the preferred range), with the key **PREF** back to the preferred range under them and, under it in the same frame, the double key **LIN | LOG** of the distance scale. With the console keys the text of the key back to the preferred range is free (at most 5 characters, default DEF); with the FIAR keys it is always PREF. Every range control has the **LIN / LOG** keys of the distance scale (console keys: in the RANGE group, or a SCALE group under the knob; FIAR keys: the double key in the same gold frame).
+- **Range:** knob, **one key per range** (the ranges ticked in *Range and scale → Ranges offered*; the one in use is lit), **`<` `DEF` `>`**: smaller / back to the preferred range (*Range and scale*) / larger, or **Range panel (FIAR keys)**: large square backlit keys in two columns in a gold frame, as on the range panel of the FIAR PAR console (number over NM; all dimly lit, the range in use bright white; a small dot on the preferred range), with the key **PREF** back to the preferred range under them and, under it in the same frame, the double key **LIN | LOG** of the distance scale. With the console keys the text of the key back to the preferred range is free (at most 5 characters, default DEF); with the FIAR keys it is always PREF. Every range control has the **LIN / LOG** keys of the distance scale (console keys: in the RANGE group, or a SCALE group under the knob; FIAR keys: the double key in the same gold frame).
 - **Antenna tilt:** two knobs (EL, AZ), keys **UP 0 DN** and **L 0 R** (0 = neutral of that axis, lit when neutral), or a **small 4-way joystick** as on some old American PAR consoles: push it (drag, or click on a direction) up/down for the elevation, left/right for the azimuth; one step, repeated while held; released it springs back; a click on the centre = neutral.
 - **DH:** knob or keys **− RWY +** (10 ft steps; RWY = the runway value, lit when in use).
 - Tilt, DH and BRT keys **repeat while held** (0, RWY, 100 do not); the range keys step only once per press.
@@ -401,6 +401,10 @@ Example: at 12 NM the radar presses white (flashing, alert in the tower), the to
 
 **Settings...** opens the options of the **active profile**. Every change is applied and saved immediately.
 
+The window has the **profile** bar at the top (everything below belongs to that profile), the **sections** on the left — *Display*, *Range and scale*, *Approach and DH*, *Tracks and labels*, *Radar*, *Units*, *Analog console*, *Colours and lines*, *Reminders* — and the tools at the bottom (runway editor, test traffic, joystick). One section is shown at a time; it scrolls only on a small screen.
+
+**Show advanced** (above the sections, off by default, remembered): shows the options that are seldom changed — lock of the display mode, rain clutter, marks per range, DH vertical and azimuth lines and DH symbols, history interval, track smoothing, coasting tracks and the symbols other than track and history, everything of the radar except the approach limits, magnetic variation. Off, they are only hidden: their values stay as set.
+
 ### 10.1 Profiles
 
 A profile holds all the display options, so that different controllers or different radar types can have their own set-up.
@@ -410,7 +414,7 @@ A profile holds all the display options, so that different controllers or differ
 - Select the active profile from the list; **Rename**, **Duplicate**, **Delete**.
 - **Export...** saves the profile as a `.json` file to share with other controllers; **Import...** loads one.
 
-### 10.2 Display
+### 10.2 Display and Range and scale
 
 | Option | Description |
 |---|---|
@@ -420,14 +424,13 @@ A profile holds all the display options, so that different controllers or differ
 | Ranges offered | Tick boxes 1, 2.5, 5, 10, 15, 20, 30, 40 NM: the range list, knob and keys, Page up / Page down and the mouse wheel step only through the ticked ranges (at least one). New and older profiles: up to 20 NM. If the preferred range is not ticked, the closest ticked one is used. |
 | Range at start | Last used, runway default (from `runways.par`) or preferred. |
 | Range when the runway changes | Keep current, runway default or preferred. |
-| Antenna scan effect, speed | Sweeping beam drawn over the modern display (graphic only); slow, normal, fast. Always on in Analog mode. Colour, line and width of the beam (default 1 px): *Display style → Antenna scan effect*. |
+| Antenna scan effect, speed | Sweeping beam drawn over the modern display (graphic only); slow, normal, fast. Always on in Analog mode. Colour, line and width of the beam (default 1 px): *Settings → Colours and lines → Antenna scan effect*. |
 
 ### 10.3 Tracks and labels
 
 - **History tails**: on/off, number of dots (3–100), one dot every *n* seconds (0.5–10).
-- **Symbols** (shape and size) of the track, history dots, threshold, touchdown point and antenna: circle, filled circle, circle with cross, square, diamond, triangle, inverted triangle, +, ×, capsule, line, none, or **Custom...**: the ✎ key (or choosing Custom in the list) opens the symbol editor: draw on a grid of 15 × 15 cells (click or drag; a drawn cell clears it) or type / correct the vector path (SVG syntax, box of 15 units centred on 0,0 = the position of the aircraft), filled or outline, with a preview at 12, 24 and 48 px. Colour and size stay those of the symbol; the custom symbol is saved in the profile (also in Export). The shapes are for the modern display: on the analog scope the track is the **phosphor echo**, a thin vertical bar as on the real PAR scopes, as tall as the **Track** size (12 px by default; e.g. 30 px for the long echoes of some scopes). *Display style → Analog scope → Echo length at the far end* (1× to 4×, 1× = off) makes the echo grow with the distance, as the beam widens on the real scopes: the echo is the Track size at the touchdown and up to 2×, 3× or 4× that size at the end of the range; the afterglow follows.
+- **Symbols** (shape and size) of the track, history dots, threshold, touchdown point and antenna: circle, filled circle, circle with cross, square, diamond, triangle, inverted triangle, +, ×, capsule, line, none, or **Custom...**: the ✎ key (or choosing Custom in the list) opens the symbol editor: draw on a grid of 15 × 15 cells (click or drag; a drawn cell clears it) or type / correct the vector path (SVG syntax, box of 15 units centred on 0,0 = the position of the aircraft), filled or outline, with a preview at 12, 24 and 48 px. Colour and size stay those of the symbol; the custom symbol is saved in the profile (also in Export). The shapes are for the modern display: on the analog scope the track is the **phosphor echo**, a thin vertical bar as on the real PAR scopes, as tall as the **Track** size (12 px by default; e.g. 30 px for the long echoes of some scopes). *Settings → Colours and lines → Echo length at the far end* (1× to 4×, 1× = off) makes the echo grow with the distance, as the beam widens on the real scopes: the echo is the Track size at the touchdown and up to 2×, 3× or 4× that size at the end of the range; the afterglow follows.
 - **Edit labels...**: label layouts of the two views ([section 5.2](#52-labels)).
-- **Display style...**: range marks, colours, reminders ([section 11](#11-display-style-range-marks-colours-reminders)).
 
 ### 10.4 Radar (angles in degrees)
 
@@ -439,22 +442,21 @@ Set once for your radar type:
 | Scan limits (physical) | up, down (negative = below the horizon), left, right | new profile: 10 / −1 / 15 / 15 |
 | Antenna beam | *Narrow antenna beam moved by the tilt* (on/off); elevation width, azimuth width, elevation centre in neutral (or *automatic: the glide path angle in use*, the default), azimuth centre in neutral (+ right); *Draw the edges of the beam* | new profile: off; when turned on: 7 / 24 / automatic (GP) / 0 |
 | Antenna tilt | step; *Azimuth: swap left and right* ([section 7](#7-antenna-tilt)) | 2 / not ticked |
-| Coasting tracks | seconds a track out of the beam is still shown at its estimated position (modern display; 0 = none) | 8 |
 
 Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 / −1 / 10 / 10), with the beam off; profiles converted by the first test builds with the beam go back to their old scan limits (or to the defaults above when they cannot be found). The scale of the views does not change with the scan limits or the beam: they move the lines, the rest keeps its size.
 
-### 10.5 Units and references
+### 10.5 Units (and Approach and DH)
 
 | Option | Choices |
 |---|---|
 | Pressure reference (all runways) | QNH (altitudes) or QFE (heights above the threshold) |
 | Pressure unit | hPa or inHg |
-| Name of the minimum | DA/DH, OCA/OCH, MDA/MDH |
+| Name of the minimum | DA/DH, OCA/OCH, MDA/MDH (section *Approach and DH*) |
 | Heights, deviations and vertical speed | ft and ft/min, or m and m/s |
 | Altitude scale | shown or not (Modern mode) |
 | Altitude grid | horizontal lines every 1000 (ft or m, as the scale) in the vertical view, inside the scan limits; off by default; colour and style: *Altitude lines* in the display colours |
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
-| Log distance scale | how much the log scale compresses: knee 1–10 NM (default 3). LIN / LOG is switched on the main window (see below) or with key **C** |
+| Log distance scale (*Range and scale*) | how much the log scale compresses: knee 1–10 NM (default 3). LIN / LOG is switched on the main window (see below) or with key **C** |
 
 **Log (compressed) distance scale.** Switched with **LIN | LOG** under the range list (modern display), on the analog console with the range controls (console keys: **LIN / LOG** in the RANGE group, or a SCALE group under the range knob; FIAR keys: the double key **LIN | LOG** in the gold frame of the range, under **PREF**), or with key **C**; saved in the profile. The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). Heights (elevation view) and lateral offsets (azimuth view) shrink with the distance by the same amount, so every line starting at the touchdown point stays **straight**: the glide path (whatever its angle), the approach limits and the centreline look as with the linear scale, and an aircraft on the glide path stays on its line; only the distances along them change. As a consequence:
 
@@ -465,13 +467,13 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 
 ---
 
-## 11. Display style: range marks, colours, reminders
+## 11. Range marks, colours, reminders
 
-*Settings → Display style...* has three tabs. Everything is saved in the profile.
+These are in the Settings window too: the range marks at the bottom of *Range and scale*, then the sections *Colours and lines* and *Reminders*. Everything is saved in the profile.
 
 ### 11.1 Range marks
 
-A table with one row per display range (all of them, also the ranges not ticked in *Ranges offered*). For each range choose:
+*Marks per range* (advanced): a table with one row per display range (all of them, also the ranges not ticked in *Ranges offered*). For each range choose:
 
 - which marks are drawn: every **5, 2, 1, ½ or ¼ NM** (marks longer than the range are disabled);
 - on which marks the **distance is written** (or none).
@@ -482,7 +484,7 @@ Defaults: every 5 NM at 40 and 30 NM; every 2 NM at 20 NM; every NM at 15 and 10
 
 **Distance text**: *Decimal* (`1.25NM`, `2.5NM`) or *Fractions* (`1 1/4NM`, `2 1/2NM`, `3/4NM`), and its **text size** (10–18 px, default 12). The **NM** box next to each range writes the unit (`1.25NM`) or only the number (`1.25`, `1 1/4`); for older scopes with no text, choose *none* in the range. At the top, **Distance text on all ranges** + **Apply to all** sets every range at once: *Full* or *Number only* (unit on/off; a range with no text gets the default marks again) or *None*. Single ranges can be changed afterwards. **Default** restores the table above; the text format and size stay as chosen.
 
-### 11.2 Colours & lines
+### 11.2 Colours and lines
 
 For every element of the **Modern** display:
 
@@ -516,7 +518,7 @@ The last two columns, **Modern** and **Analog**, show or hide each line (not the
 
   ![Horizon line options](images/horizon-options.svg)
 
-- Reminders in this tab apply to **all runways**. Each runway can also have **its own** reminders, in the runway editor ([section 12.2](#122-runway-reminders)).
+- Reminders in this section apply to **all runways**. Each runway can also have **its own** reminders, in the runway editor ([section 12.2](#122-runway-reminders)).
 
 ---
 

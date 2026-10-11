@@ -28,8 +28,10 @@ namespace AuroraPAR
             Action<Window>? openJoystick = null)
         {
             InitializeComponent();
-            // Never taller than the screen (a scroll bar appears), and its top edge on the screen.
-            MaxHeight = SystemParameters.WorkArea.Height;
+            // Never larger than the screen (each section scrolls if needed), and its top edge on the screen.
+            Rect workArea = SystemParameters.WorkArea;
+            Width = Math.Min(Width, workArea.Width);
+            Height = Math.Min(Height, workArea.Height);
             Loaded += (s, e) =>
             {
                 Rect area = SystemParameters.WorkArea;
@@ -168,11 +170,6 @@ namespace AuroraPAR
             {
                 if (e.Key == Key.Enter) ApplyHistoryDots();
             };
-            DisplayStyleButton.Click += (s, e) =>
-            {
-                DisplayStyleWindow window = new(settings, Commit) { Owner = this };
-                window.ShowDialog();
-            };
             EditLabelsButton.Click += (s, e) =>
             {
                 LabelEditorWindow editor = new(settings, Commit) { Owner = this };
@@ -192,7 +189,68 @@ namespace AuroraPAR
             ScaleFeetRadio.Checked += (s, e) => SetProfileValue(p => p.AltitudeScaleUnit == LengthUnit.Feet, p => p.AltitudeScaleUnit = LengthUnit.Feet);
             ScaleMetresRadio.Checked += (s, e) => SetProfileValue(p => p.AltitudeScaleUnit == LengthUnit.Metres, p => p.AltitudeScaleUnit = LengthUnit.Metres);
             FileLocationText.Text = $"Settings file{(SettingsStore.IsPortable ? " (portable mode)" : "")}: {SettingsStore.FilePath}";
+            FileLocationText.ToolTip = FileLocationText.Text;
+            // Sections: the menu on the left shows one at a time (the last one chosen, during the session).
+            SectionList.SelectionChanged += (s, e) => ShowSection(SectionList.SelectedIndex);
+            SectionList.SelectedIndex = Math.Clamp(lastSection, 0, SectionList.Items.Count - 1);
+            AdvancedCheck.IsChecked = settings.ShowAdvancedSettings;
+            AdvancedCheck.Checked += (s, e) => SetAdvanced(true);
+            AdvancedCheck.Unchecked += (s, e) => SetAdvanced(false);
             RefreshControls();
+            ApplyAdvanced();
+        }
+
+        /// <summary>Section shown last (kept while the program runs).</summary>
+        private static int lastSection;
+
+        private void ShowSection(int index)
+        {
+            if (index < 0) return;
+            lastSection = index;
+            for (int i = 0; i < SectionHost.Children.Count; i++)
+            {
+                SectionHost.Children[i].Visibility = i == index ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>Marks the options shown only with "Show advanced" (Tag = <see cref="AdvancedTag"/>).</summary>
+        private const string AdvancedTag = "Advanced";
+
+        private void SetAdvanced(bool show)
+        {
+            if (settings.ShowAdvancedSettings == show) return;
+            settings.ShowAdvancedSettings = show;
+            SettingsStore.Save(settings);
+            ApplyAdvanced();
+        }
+
+        /// <summary>Shows or hides the advanced options of all the sections (they keep their values).</summary>
+        private void ApplyAdvanced()
+        {
+            Visibility visibility = settings.ShowAdvancedSettings ? Visibility.Visible : Visibility.Collapsed;
+            void Walk(object node)
+            {
+                if (node is FrameworkElement element && AdvancedTag.Equals(element.Tag)) element.Visibility = visibility;
+                if (node is DependencyObject parent)
+                {
+                    foreach (object child in LogicalTreeHelper.GetChildren(parent)) Walk(child);
+                }
+            }
+            Walk(SectionHost);
+        }
+
+        /// <summary>Range marks, colours and reminders (the parts of a <see cref="DisplayStylePanel"/>), for this profile.</summary>
+        private Profile? styleProfile;
+
+        private void HostStyleParts()
+        {
+            if (ReferenceEquals(styleProfile, Active)) return;
+            styleProfile = Active;
+            (UIElement rangeMarks, UIElement colours, UIElement reminders) = new DisplayStylePanel(settings, Commit).TakeParts();
+            RangeMarksHost.Content = rangeMarks;
+            ColoursHost.Content = colours;
+            ReminderSectionHost.Content = reminders;
+            ApplyAdvanced();
         }
 
         private Profile Active => settings.Active;
@@ -202,6 +260,7 @@ namespace AuroraPAR
         /// </summary>
         private void RefreshControls()
         {
+            HostStyleParts();
             refreshing = true;
             try
             {
@@ -524,25 +583,42 @@ namespace AuroraPAR
         private static readonly double[] DhAzimuthLengths = [0, 50, 100, 200, 300, 500, 1000];
         private static readonly double[] DhDropLengths = [0, 50, 100, 200, 300, 500, 1000];
 
+        /// <summary>Grid the next rows are added to, and whether they are advanced options (see <see cref="ApplyAdvanced"/>).</summary>
+        private Grid builderGrid = null!;
+        private bool builderAdvanced;
+
+        /// <summary>Adds an element to <see cref="builderGrid"/>, marked as advanced when the rows are.</summary>
+        private void Place(FrameworkElement element)
+        {
+            if (builderAdvanced) element.Tag = AdvancedTag;
+            builderGrid.Children.Add(element);
+        }
+
         private void BuildSymbolRows()
         {
             // Fifth column: the key that edits a custom symbol.
             SymbolGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            DhSymbolGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             SymbolShape[] all = Enum.GetValues<SymbolShape>();
+            builderGrid = SymbolGrid;
+            builderAdvanced = false;
             AddSymbolRow("Track", p => p.TrackSymbol, all.Where(s => s != SymbolShape.None && s != SymbolShape.Line).ToArray());
-            AddSymbolRow("Coasting track", p => p.CoastSymbol, all.Where(s => s != SymbolShape.None && s != SymbolShape.Line).ToArray());
             AddSymbolRow("History dots", p => p.HistorySymbol, all.Where(s => s != SymbolShape.None).ToArray());
+            builderAdvanced = true;
+            AddSymbolRow("Coasting track", p => p.CoastSymbol, all.Where(s => s != SymbolShape.None && s != SymbolShape.Line).ToArray());
             AddSymbolRow("Threshold", p => p.ThresholdSymbol, all);
             AddSymbolRow("Touchdown point", p => p.TouchdownSymbol, all);
             AddSymbolRow("Antenna", p => p.AntennaSymbol, all);
-            AddSymbolRow("DH point (side view)", p => p.DhSymbol, all);
-            AddSymbolRow("DH point (azimuth view)", p => p.DhAzimuthSymbol, all);
+            builderGrid = DhSymbolGrid;
+            AddSymbolRow("DH point symbol (side view)", p => p.DhSymbol, all);
+            AddSymbolRow("DH point symbol (azimuth view)", p => p.DhAzimuthSymbol, all);
+            builderAdvanced = false;
         }
 
         private void AddSymbolRow(string label, Func<Profile, SymbolSetting> get, SymbolShape[] shapes)
         {
-            int row = SymbolGrid.RowDefinitions.Count;
-            SymbolGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            int row = builderGrid.RowDefinitions.Count;
+            builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             TextBlock text = new() { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 8, 2) };
             ComboBox shapeBox = new()
             {
@@ -567,14 +643,14 @@ namespace AuroraPAR
             Grid.SetColumn(shapeBox, 1);
             Grid.SetColumn(sizeBox, 2);
             Grid.SetColumn(unit, 3);
-            SymbolGrid.Children.Add(text);
-            SymbolGrid.Children.Add(shapeBox);
-            SymbolGrid.Children.Add(sizeBox);
-            SymbolGrid.Children.Add(unit);
+            Place(text);
+            Place(shapeBox);
+            Place(sizeBox);
+            Place(unit);
             Button edit = new() { Content = "✎", Width = 26, Height = 22, Margin = new Thickness(6, 2, 0, 2), ToolTip = "Draw a custom symbol (grid or vector path)." };
             Grid.SetRow(edit, row);
             Grid.SetColumn(edit, 4);
-            SymbolGrid.Children.Add(edit);
+            Place(edit);
             // Custom symbol: the editor; cancelled, the shape stays as it was.
             bool EditCustom()
             {
@@ -684,11 +760,15 @@ namespace AuroraPAR
 
         private void BuildRadarFields()
         {
+            builderGrid = RadarGrid;
+            builderAdvanced = false;
             AddHeader("Approach limits (track green inside, red outside)");
             AddNumberField("Above the glide path", p => p.ApproachAbove, (p, v) => p.ApproachAbove = v, 0.1, 5);
             AddNumberField("Below the glide path", p => p.ApproachBelow, (p, v) => p.ApproachBelow = v, 0.1, 5);
             AddNumberField("Left of the centreline", p => p.ApproachLeft, (p, v) => p.ApproachLeft = v, 0.1, 10);
             AddNumberField("Right of the centreline", p => p.ApproachRight, (p, v) => p.ApproachRight = v, 0.1, 10);
+            // The rest of the radar is advanced.
+            builderAdvanced = true;
             AddHeader("Scan limits from the antenna (physical limits, fixed)");
             AddNumberField("Up", p => p.ScanUp, (p, v) => p.ScanUp = v, 1, Profile.MaxScanAngle, (p, v) => v > p.ScanDown);
             AddNumberField("Down (negative = below the horizon)", p => p.ScanDown, (p, v) => p.ScanDown = v, -Profile.MaxScanAngle, 30, (p, v) => v < p.ScanUp);
@@ -713,8 +793,6 @@ namespace AuroraPAR
                 p => p.ShowBeamEdges, (p, v) => p.ShowBeamEdges = v);
             AddHeader("Antenna tilt (moves the beam inside the scan limits)");
             AddNumberField("Step", p => p.TiltStep, (p, v) => p.TiltStep = v, 0.5, 10);
-            AddHeader("Coasting tracks (modern display)");
-            AddNumberField("Seconds shown out of the beam (0 = none)", p => p.CoastSeconds, (p, v) => p.CoastSeconds = v, 0, Profile.MaxCoastSeconds, unitText: "s");
             int row = RadarGrid.RowDefinitions.Count;
             RadarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             CheckBox swap = new()
@@ -730,18 +808,23 @@ namespace AuroraPAR
             refreshers.Add(() => swap.IsChecked = Active.AzimuthTiltSwapped);
             Grid.SetRow(swap, row);
             Grid.SetColumnSpan(swap, 3);
-            RadarGrid.Children.Add(swap);
+            Place(swap);
+            // Coasting tracks: in Tracks and labels (advanced).
+            builderGrid = CoastGrid;
+            AddNumberField("Coasting tracks (modern display): seconds shown out of the beam (0 = none)", p => p.CoastSeconds, (p, v) => p.CoastSeconds = v, 0, Profile.MaxCoastSeconds, unitText: "s");
+            builderGrid = RadarGrid;
+            builderAdvanced = false;
         }
 
         /// <summary>A check box over the whole width of the radar group, bound to a profile value.</summary>
         private void AddCheckRow(string text, Func<Profile, bool> get, Action<Profile, bool> set)
         {
-            int row = RadarGrid.RowDefinitions.Count;
-            RadarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            int row = builderGrid.RowDefinitions.Count;
+            builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             // Long texts wrap instead of being cut at the edge of the window.
             CheckBox check = new()
             {
-                Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 },
+                Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 520 },
                 Margin = new Thickness(0, 4, 0, 2)
             };
             check.Checked += (s, e) => SetProfileValue(p => get(p), p => set(p, true));
@@ -749,22 +832,23 @@ namespace AuroraPAR
             refreshers.Add(() => check.IsChecked = get(Active));
             Grid.SetRow(check, row);
             Grid.SetColumnSpan(check, 3);
-            RadarGrid.Children.Add(check);
+            Place(check);
         }
 
         private void AddHeader(string text)
         {
-            int row = RadarGrid.RowDefinitions.Count;
-            RadarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            int row = builderGrid.RowDefinitions.Count;
+            builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             TextBlock header = new()
             {
                 Text = text,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, row == 0 ? 0 : 8, 0, 2)
+                Foreground = new SolidColorBrush(Color.FromRgb(0x00, 0x67, 0xB8)),
+                Margin = new Thickness(0, row == 0 ? 0 : 12, 0, 4)
             };
             Grid.SetRow(header, row);
             Grid.SetColumnSpan(header, 3);
-            RadarGrid.Children.Add(header);
+            Place(header);
         }
 
         /// <summary>
@@ -774,12 +858,13 @@ namespace AuroraPAR
         private void AddNumberField(string label, Func<Profile, double> get, Action<Profile, double> set, double min, double max,
                                     Func<Profile, double, bool>? isValid = null, string unitText = "°")
         {
-            int row = RadarGrid.RowDefinitions.Count;
-            RadarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            int row = builderGrid.RowDefinitions.Count;
+            builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             TextBlock text = new()
             {
                 Text = label,
                 VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 2, 8, 2)
             };
             TextBox box = new()
@@ -801,9 +886,9 @@ namespace AuroraPAR
             Grid.SetRow(unit, row);
             Grid.SetColumn(box, 1);
             Grid.SetColumn(unit, 2);
-            RadarGrid.Children.Add(text);
-            RadarGrid.Children.Add(box);
-            RadarGrid.Children.Add(unit);
+            Place(text);
+            Place(box);
+            Place(unit);
             void Apply()
             {
                 if (refreshing) return;

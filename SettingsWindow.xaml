@@ -1,230 +1,357 @@
 ﻿<Window x:Class="AuroraPAR.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Aurora PAR - Settings" Width="880" SizeToContent="Height"
-        ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Title="Aurora PAR - Settings" Width="1060" Height="700" MinWidth="860" MinHeight="480"
+        ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         Icon="AuroraPAR.ico">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="12">
-        <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="12"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0">
-        <GroupBox Header="Profile" Padding="8">
-            <StackPanel>
-                <ComboBox Name="ProfileComboBox" Height="26"/>
-                <DockPanel Margin="0,8,0,0">
-                    <Button Name="RenameButton" DockPanel.Dock="Right" Content="Rename" Width="80" Margin="6,0,0,0"/>
-                    <TextBox Name="ProfileNameTextBox" VerticalContentAlignment="Center" Height="24"/>
-                </DockPanel>
-                <UniformGrid Columns="4" Margin="0,8,0,0">
-                    <Button Name="NewButton" Content="Duplicate" Margin="0,0,4,0" Height="26"/>
-                    <Button Name="DeleteButton" Content="Delete" Margin="2,0,2,0"/>
-                    <Button Name="ImportButton" Content="Import..." Margin="2,0,2,0"/>
-                    <Button Name="ExportButton" Content="Export..." Margin="4,0,0,0"/>
-                </UniformGrid>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Display" Padding="8" Margin="0,10,0,0">
-            <StackPanel>
-                <TextBlock Text="Display mode"/>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <RadioButton Name="ModernRadio" GroupName="DisplayMode" Content="Modern" Margin="0,0,20,0"/>
-                    <RadioButton Name="AnalogRadio" GroupName="DisplayMode" Content="Analog (old radar scope)"/>
-                </StackPanel>
-                <CheckBox Name="LockModeCheck" Content="Lock the display mode in this profile (no button, key A off)" Margin="0,6,0,0"
-                          ToolTip="With two profiles, one Modern and one Analog, the mode cannot be switched by mistake: change profile instead (keys P / Shift+P)."/>
-                <CheckBox Name="ShowDhCheck" Content="Show the DH selector (advanced: field, knob or keys; Shift+arrows work anyway)" Margin="0,6,0,0"
-                          ToolTip="Decision height selector on the right panel, in both displays. Off by default: the DH of the runway is used."/>
-                <CheckBox Name="RainClutterCheck" Content="Rain clutter on the analog scope (from the METAR, with a CLUTTER knob)" Margin="0,6,0,0"
-                          ToolTip="Patches and dots of rain echoes inside the antenna beam, that can hide the tracks. The intensity follows the precipitation of the METAR of the airport (it can be forced in the Test traffic window). The CLUTTER knob reduces it, but dims the tracks too. Off by default."/>
-                <TextBlock Text="Runway position on screen" Margin="0,10,0,0"/>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <RadioButton Name="RunwayLeftRadio" GroupName="RunwaySide" Content="Left" Margin="0,0,20,0"/>
-                    <RadioButton Name="RunwayRightRadio" GroupName="RunwaySide" Content="Right"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                    <TextBlock Text="Preferred range:" VerticalAlignment="Center"/>
-                    <ComboBox Name="FixedRangeComboBox" Width="80" Margin="8,0,0,0"/>
-                    <TextBlock Text="NM" VerticalAlignment="Center" Margin="6,0,0,0"/>
-                </StackPanel>
-                <TextBlock Text="Ranges offered (NM)" Margin="0,10,0,0"
-                           ToolTip="The range box, knob and keys, Page up / Page down and the mouse wheel step only through the ticked ranges (at least one)."/>
-                <WrapPanel Name="RangeChecksPanel" Margin="0,6,0,0"
-                           ToolTip="The range box, knob and keys, Page up / Page down and the mouse wheel step only through the ticked ranges (at least one)."/>
-                <TextBlock Text="Range at start" Margin="0,10,0,0"/>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <RadioButton Name="StartRangeLastRadio" GroupName="StartRange" Content="Last used" Margin="0,0,16,0"/>
-                    <RadioButton Name="StartRangeRunwayRadio" GroupName="StartRange" Content="Runway default" Margin="0,0,16,0"/>
-                    <RadioButton Name="StartRangeFixedRadio" GroupName="StartRange" Content="Preferred"/>
-                </StackPanel>
-                <TextBlock Text="Range when the runway changes" Margin="0,10,0,0"/>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <RadioButton Name="ChangeRangeKeepRadio" GroupName="ChangeRange" Content="Keep current" Margin="0,0,16,0"/>
-                    <RadioButton Name="ChangeRangeRunwayRadio" GroupName="ChangeRange" Content="Runway default" Margin="0,0,16,0"/>
-                    <RadioButton Name="ChangeRangeFixedRadio" GroupName="ChangeRange" Content="Preferred"/>
-                </StackPanel>
-                <TextBlock Text="Runway default = the range set for the runway in runways.par." Foreground="Gray" FontSize="11" Margin="0,4,0,0"/>
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                    <CheckBox Name="ScanEffectCheck" Content="Antenna scan effect, speed:" VerticalAlignment="Center"/>
-                    <ComboBox Name="ScanEffectSpeedComboBox" Width="80" Margin="8,0,0,0"/>
-                </StackPanel>
-                <TextBlock Text="Sweeping beam as on the old PAR screens: graphic only, tracks are not affected." Foreground="Gray" FontSize="11" Margin="0,4,0,0"/>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Tracks and labels" Padding="8" Margin="0,10,0,0">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <CheckBox Name="HistoryCheck" Content="History tails, number of dots:" VerticalAlignment="Center"/>
-                    <TextBox Name="HistoryDotsBox" Width="50" Height="22" Margin="8,0,4,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
-                    <TextBlock Text="(3 to 100)" Foreground="Gray" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="20,6,0,0"
-                            ToolTip="Seconds between two dots of the history tail (0.5 to 10). Aurora sends a position every 0.5 s: with a dot at every position the tail looks like a line.">
-                    <TextBlock Text="One dot every" VerticalAlignment="Center"/>
-                    <TextBox Name="HistoryIntervalBox" Width="50" Height="22" Margin="8,0,4,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
-                    <TextBlock Text="s" VerticalAlignment="Center"/>
-                    <TextBlock Text="(0.5 to 10)" Foreground="Gray" VerticalAlignment="Center" Margin="6,0,0,0"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
-                            ToolTip="Modern display: the track moves smoothly, as with the computer of a modern radar, instead of jumping at every position received from Aurora (and the altitude without its steps). The history dots stay at the real positions.&#x0a;Strong: smoother, a little late in turns and rate changes. Off: the raw positions. The analog scope always shows the raw echo.">
-                    <TextBlock Text="Track smoothing (modern display):" VerticalAlignment="Center"/>
-                    <ComboBox Name="SmoothingComboBox" Width="90" Margin="8,0,0,0"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
-                            ToolTip="Decision height lines of the elevation view, drawn from the point where the glide path reaches the DH. Colour, line style and width: Display style, Colours &amp; lines.">
-                    <TextBlock Text="DH horizontal line:" VerticalAlignment="Center" Width="120"/>
-                    <ComboBox Name="DhSideComboBox" Width="90" Margin="8,0,0,0"/>
-                    <ComboBox Name="DhLengthComboBox" Width="130" Margin="6,0,0,0" ToolTip="Length on each side of the point."/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
-                            ToolTip="Vertical line from the point where the glide path reaches the DH: down, up or both; as long as the DH (down to the ground) or a given length.">
-                    <TextBlock Text="DH vertical line:" VerticalAlignment="Center" Width="120"/>
-                    <ComboBox Name="DhDropSideComboBox" Width="90" Margin="8,0,0,0"/>
-                    <ComboBox Name="DhDropLengthComboBox" Width="130" Margin="6,0,0,0" ToolTip="Length on each side of the point."/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
-                            ToolTip="Decision height line of the azimuth view (from above): always on both sides of the centreline, up to the scan limits or a given length. Colour, line style and width: Display style, Colours &amp; lines.">
-                    <TextBlock Text="DH line, azimuth view:" VerticalAlignment="Center" Width="120"/>
-                    <ComboBox Name="DhAzimuthLengthComboBox" Width="190" Margin="8,0,0,0" ToolTip="Length on each side of the centreline."/>
-                </StackPanel>
-                <Grid Name="SymbolGrid" Margin="0,8,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                </Grid>
-                <TextBlock Text="Shapes: modern display. On the analog scope the track is the phosphor echo (a vertical bar), as tall as the Track size." Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Name="EditLabelsButton" Content="Edit labels..." Width="120" Height="26"/>
-                    <Button Name="DisplayStyleButton" Content="Display style..." Width="120" Height="26" Margin="8,0,0,0"
-                            ToolTip="Range marks at each range, colours, line styles and widths."/>
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-            <GroupBox Header="Analog console controls (this profile)" Padding="8" Margin="0,10,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="Range:" VerticalAlignment="Center"/>
-                    <ComboBox Name="RangeControlComboBox" Grid.Column="1" Width="170" Margin="8,2,0,2"/>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0"
-                                ToolTip="Text of the key back to the preferred range of the Display settings (middle key, or the key under the range panel), at most 5 characters.">
-                        <TextBlock Text="middle key:" VerticalAlignment="Center"/>
-                        <TextBox Name="RangeKeyTextBox" Width="52" Height="22" Margin="6,0,0,0" MaxLength="5" CharacterCasing="Upper" VerticalContentAlignment="Center"/>
-                    </StackPanel>
-                    <TextBlock Grid.Row="1" Text="Antenna tilt:" VerticalAlignment="Center"/>
-                    <ComboBox Name="TiltControlComboBox" Grid.Row="1" Grid.Column="1" Width="170" Margin="8,2,0,2"/>
-                    <TextBlock Grid.Row="2" Text="DH:" VerticalAlignment="Center"/>
-                    <ComboBox Name="DhControlComboBox" Grid.Row="2" Grid.Column="1" Width="170" Margin="8,2,0,2"/>
-                    <TextBlock Grid.Row="3" Text="Brightness:" VerticalAlignment="Center"/>
-                    <ComboBox Name="BrightnessControlComboBox" Grid.Row="3" Grid.Column="1" Width="170" Margin="8,2,0,2"/>
-                    <TextBlock Grid.Row="4" Text="Readouts:" VerticalAlignment="Center"
-                               ToolTip="The windows of the left column of the analog console (airport, runway, course, ...)."/>
-                    <ComboBox Name="ReadoutsComboBox" Grid.Row="4" Grid.Column="1" Width="170" Margin="8,2,0,2"/>
-                    <TextBlock Grid.Row="5" Text="Keys:" VerticalAlignment="Center"
-                               ToolTip="Look of all the keys of the analog console: grey console keys, or backlit keys in gold frames as on the FIAR console."/>
-                    <ComboBox Name="KeyStyleComboBox" Grid.Row="5" Grid.Column="1" Width="170" Margin="8,2,0,2"/>
-                </Grid>
-            </GroupBox>
-        </StackPanel>
-        <StackPanel Grid.Column="2">
-            <GroupBox Header="Radar (angles in degrees)" Padding="8">
-                <Grid Name="RadarGrid">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                </Grid>
-            </GroupBox>
-            <GroupBox Header="Units and references" Padding="8" Margin="0,10,0,0">
+    <Window.Resources>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="SubHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#0067B8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,14,0,4"/>
+        </Style>
+        <Style x:Key="Note" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Gray"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="Width" Value="200"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Line" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Margin" Value="0,5,0,0"/>
+        </Style>
+        <Style x:Key="SectionPage" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Setter Property="Padding" Value="18,12,18,12"/>
+        </Style>
+    </Window.Resources>
+    <DockPanel>
+        <!-- Profile: always on top, everything below belongs to it. -->
+        <Border DockPanel.Dock="Top" Background="#E9EDF2" BorderBrush="#D0D6DE" BorderThickness="0,0,0,1" Padding="12,8">
+            <DockPanel>
+                <TextBlock Text="Profile" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox Name="ProfileComboBox" Width="190" Height="24"/>
+                <TextBox Name="ProfileNameTextBox" Width="150" Height="24" Margin="12,0,0,0" VerticalContentAlignment="Center"
+                         ToolTip="New name of the profile (Enter or Rename)."/>
+                <Button Name="RenameButton" Content="Rename" Padding="10,0" Height="24" Margin="4,0,0,0"/>
+                <Button Name="NewButton" Content="Duplicate" Padding="10,0" Height="24" Margin="8,0,0,0"/>
+                <Button Name="DeleteButton" Content="Delete" Padding="10,0" Height="24" Margin="4,0,0,0"/>
+                <Button Name="ImportButton" Content="Import..." Padding="10,0" Height="24" Margin="4,0,0,0"/>
+                <Button Name="ExportButton" Content="Export..." Padding="10,0" Height="24" Margin="4,0,0,0"/>
+                <TextBlock Text="All the settings below are saved in this profile" Foreground="#555" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+        <!-- Tools and Close: always at the bottom. -->
+        <Border DockPanel.Dock="Bottom" Background="#E9EDF2" BorderBrush="#D0D6DE" BorderThickness="0,1,0,0" Padding="12,8">
+            <DockPanel LastChildFill="False">
+                <Button Name="CloseButton" DockPanel.Dock="Right" Content="Close" Width="80" Height="26" IsCancel="True"/>
+                <Button Name="EditRunwaysButton" Content="Runways (runways.par)..." Height="26" Padding="12,0"
+                        ToolTip="Runway editor: add, change, duplicate or delete runways and approaches; the previous file is kept as runways.par.bak."/>
+                <Button Name="TestTrafficButton" Content="Test traffic... (T)" Height="26" Padding="12,0" Margin="8,0,0,0"
+                        ToolTip="Virtual aircraft on the glide path, moved with a joystick, to test the radar without real traffic (also without Aurora)."/>
+                <Button Name="JoystickButton" Content="Joystick..." Height="26" Padding="12,0" Margin="8,0,0,0"
+                        ToolTip="A real joystick or gamepad (USB) for the test aircraft and the antenna tilt: device, buttons, live test."/>
+                <TextBlock Name="FileLocationText" Margin="16,0,8,0" VerticalAlignment="Center" Foreground="Gray" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="380"/>
+            </DockPanel>
+        </Border>
+        <!-- Sections on the left, the chosen one on the right. -->
+        <Border DockPanel.Dock="Left" Width="200" Background="#EAEAEA" BorderBrush="#D0D0D0" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <CheckBox Name="AdvancedCheck" DockPanel.Dock="Top" Content="Show advanced" Margin="14,12,8,10"
+                          ToolTip="Shows the options that are seldom changed (antenna beam, scan limits, smoothing, coasting, marks per range...). Off: only the essentials. It only hides them: their values stay as set."/>
+                <ListBox Name="SectionList" Background="Transparent" BorderThickness="0" Padding="0">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="14,7"/>
+                            <Setter Property="FontSize" Value="13"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBoxItem Content="Display"/>
+                    <ListBoxItem Content="Range and scale"/>
+                    <ListBoxItem Content="Approach and DH"/>
+                    <ListBoxItem Content="Tracks and labels"/>
+                    <ListBoxItem Content="Radar"/>
+                    <ListBoxItem Content="Units"/>
+                    <ListBoxItem Content="Analog console"/>
+                    <ListBoxItem Content="Colours and lines"/>
+                    <ListBoxItem Content="Reminders"/>
+                </ListBox>
+            </DockPanel>
+        </Border>
+        <Grid Name="SectionHost" Background="#FBFBFB">
+            <!-- 1 Display -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
                 <StackPanel>
-                    <TextBlock Text="Pressure reference (all runways)"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <RadioButton Name="QnhRadio" GroupName="PressureRef" Content="QNH (altitudes)" Margin="0,0,16,0"/>
-                        <RadioButton Name="QfeRadio" GroupName="PressureRef" Content="QFE (heights above threshold)"/>
+                    <TextBlock Text="Display" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Display mode" Style="{StaticResource Label}"/>
+                        <RadioButton Name="ModernRadio" GroupName="DisplayMode" Content="Modern" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="AnalogRadio" GroupName="DisplayMode" Content="Analog (old radar scope)" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <TextBlock Text="Pressure unit" Margin="0,8,0,0"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <RadioButton Name="HpaRadio" GroupName="PressureUnit" Content="hPa" Margin="0,0,16,0"/>
-                        <RadioButton Name="InHgRadio" GroupName="PressureUnit" Content="inHg"/>
+                    <CheckBox Name="LockModeCheck" Tag="Advanced" Content="Lock the display mode in this profile (no button, key A off)" Margin="200,6,0,0"
+                              ToolTip="With two profiles, one Modern and one Analog, the mode cannot be switched by mistake: change profile instead (keys P / Shift+P)."/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Runway position on screen" Style="{StaticResource Label}"/>
+                        <RadioButton Name="RunwayLeftRadio" GroupName="RunwaySide" Content="Left" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="RunwayRightRadio" GroupName="RunwaySide" Content="Right" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <TextBlock Text="Name of the minimum" Margin="0,8,0,0"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <RadioButton Name="DaDhRadio" GroupName="Minima" Content="DA / DH" Margin="0,0,16,0"/>
-                        <RadioButton Name="OcaOchRadio" GroupName="Minima" Content="OCA / OCH" Margin="0,0,16,0"/>
-                        <RadioButton Name="MdaMdhRadio" GroupName="Minima" Content="MDA / MDH"/>
+                    <StackPanel Style="{StaticResource Line}" Margin="0,10,0,0">
+                        <TextBlock Text="Antenna scan effect" Style="{StaticResource Label}"/>
+                        <CheckBox Name="ScanEffectCheck" Content="On, speed:" VerticalAlignment="Center"/>
+                        <ComboBox Name="ScanEffectSpeedComboBox" Width="90" Margin="8,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="Heights, deviations and vertical speed (scale and labels)" Margin="0,8,0,0"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="Sweeping beam as on the old PAR screens: graphic only, tracks are not affected." Style="{StaticResource Note}" Margin="200,4,0,0"/>
+                    <StackPanel Style="{StaticResource Line}" Margin="0,10,0,0" Tag="Advanced">
+                        <TextBlock Text="Rain clutter (analog scope)" Style="{StaticResource Label}"/>
+                        <CheckBox Name="RainClutterCheck" Content="From the METAR, with a CLUTTER knob" VerticalAlignment="Center"
+                                  ToolTip="Patches and dots of rain echoes inside the antenna beam, that can hide the tracks. The intensity follows the precipitation of the METAR of the airport (it can be forced in the Test traffic window). The CLUTTER knob reduces it, but dims the tracks too. Off by default."/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 2 Range and scale -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Range and scale" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Preferred range" Style="{StaticResource Label}"/>
+                        <ComboBox Name="FixedRangeComboBox" Width="80"/>
+                        <TextBlock Text="NM" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Ranges offered (NM)" Style="{StaticResource Label}"
+                                   ToolTip="The range box, knob and keys, Page up / Page down and the mouse wheel step only through the ticked ranges (at least one)."/>
+                        <WrapPanel Name="RangeChecksPanel" VerticalAlignment="Center" MaxWidth="560"
+                                   ToolTip="The range box, knob and keys, Page up / Page down and the mouse wheel step only through the ticked ranges (at least one)."/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Range at start" Style="{StaticResource Label}"/>
+                        <RadioButton Name="StartRangeLastRadio" GroupName="StartRange" Content="Last used" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="StartRangeRunwayRadio" GroupName="StartRange" Content="Runway default" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="StartRangeFixedRadio" GroupName="StartRange" Content="Preferred" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Range when the runway changes" Style="{StaticResource Label}"/>
+                        <RadioButton Name="ChangeRangeKeepRadio" GroupName="ChangeRange" Content="Keep current" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="ChangeRangeRunwayRadio" GroupName="ChangeRange" Content="Runway default" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="ChangeRangeFixedRadio" GroupName="ChangeRange" Content="Preferred" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Runway default = the range set for the runway in runways.par." Style="{StaticResource Note}" Margin="200,4,0,0"/>
+                    <TextBlock Text="LOG DISTANCE SCALE" Style="{StaticResource SubHeader}"/>
+                    <StackPanel Style="{StaticResource Line}"
+                                ToolTip="How much the log distance scale compresses: the last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the knee the scale is almost linear; a smaller knee compresses more. The glide path and the approach limits stay straight; heights and lateral offsets shrink with the distance, so the altitude lines bend down.">
+                        <TextBlock Text="Compression" Style="{StaticResource Label}"/>
+                        <ComboBox Name="DistanceScaleComboBox" Width="130"/>
+                    </StackPanel>
+                    <TextBlock Text="LIN / LOG: keys next to the range on the main window, or key C. Within the knee the scale is almost linear; a smaller knee compresses more." Style="{StaticResource Note}" Margin="200,4,0,0"/>
+                    <TextBlock Text="RANGE MARKS" Style="{StaticResource SubHeader}"/>
+                    <ContentControl Name="RangeMarksHost" Focusable="False"/>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 3 Approach and DH -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Approach and DH" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Name of the minimum" Style="{StaticResource Label}"/>
+                        <RadioButton Name="DaDhRadio" GroupName="Minima" Content="DA / DH" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="OcaOchRadio" GroupName="Minima" Content="OCA / OCH" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="MdaMdhRadio" GroupName="Minima" Content="MDA / MDH" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="DH selector" Style="{StaticResource Label}"/>
+                        <CheckBox Name="ShowDhCheck" Content="Show (field, knob or keys)" VerticalAlignment="Center"
+                                  ToolTip="Decision height selector on the right panel, in both displays. Off by default: the DH of the runway is used."/>
+                    </StackPanel>
+                    <TextBlock Text="Off: the DH of the runway is used; Shift+arrows change it anyway." Style="{StaticResource Note}" Margin="200,4,0,0"/>
+                    <TextBlock Text="DH LINES" Style="{StaticResource SubHeader}"/>
+                    <StackPanel Style="{StaticResource Line}"
+                                ToolTip="Decision height lines of the elevation view, drawn from the point where the glide path reaches the DH. Colour, line style and width: Colours and lines.">
+                        <TextBlock Text="Horizontal line (side view)" Style="{StaticResource Label}"/>
+                        <ComboBox Name="DhSideComboBox" Width="90"/>
+                        <ComboBox Name="DhLengthComboBox" Width="130" Margin="6,0,0,0" ToolTip="Length on each side of the point."/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced"
+                                ToolTip="Vertical line from the point where the glide path reaches the DH: down, up or both; as long as the DH (down to the ground) or a given length.">
+                        <TextBlock Text="Vertical line (side view)" Style="{StaticResource Label}"/>
+                        <ComboBox Name="DhDropSideComboBox" Width="90"/>
+                        <ComboBox Name="DhDropLengthComboBox" Width="160" Margin="6,0,0,0" ToolTip="Length of the line."/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced"
+                                ToolTip="Decision height line of the azimuth view (from above): always on both sides of the centreline, up to the scan limits or a given length. Colour, line style and width: Colours and lines.">
+                        <TextBlock Text="Line in the azimuth view" Style="{StaticResource Label}"/>
+                        <ComboBox Name="DhAzimuthLengthComboBox" Width="190" ToolTip="Length on each side of the centreline."/>
+                    </StackPanel>
+                    <Grid Name="DhSymbolGrid" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 4 Tracks and labels -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Tracks and labels" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="History tails" Style="{StaticResource Label}"/>
+                        <CheckBox Name="HistoryCheck" Content="On, number of dots:" VerticalAlignment="Center"/>
+                        <TextBox Name="HistoryDotsBox" Width="50" Height="22" Margin="8,0,4,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
+                        <TextBlock Text="(3 to 100)" Foreground="Gray" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced"
+                                ToolTip="Seconds between two dots of the history tail (0.5 to 10). Aurora sends a position every 0.5 s: with a dot at every position the tail looks like a line.">
+                        <TextBlock Text="One dot every" Style="{StaticResource Label}"/>
+                        <TextBox Name="HistoryIntervalBox" Width="50" Height="22" Margin="0,0,4,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
+                        <TextBlock Text="s" VerticalAlignment="Center"/>
+                        <TextBlock Text="(0.5 to 10)" Foreground="Gray" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced"
+                                ToolTip="Modern display: the track moves smoothly, as with the computer of a modern radar, instead of jumping at every position received from Aurora (and the altitude without its steps). The history dots stay at the real positions.&#x0a;Strong: smoother, a little late in turns and rate changes. Off: the raw positions. The analog scope always shows the raw echo.">
+                        <TextBlock Text="Track smoothing (modern display)" Style="{StaticResource Label}"/>
+                        <ComboBox Name="SmoothingComboBox" Width="90"/>
+                    </StackPanel>
+                    <Grid Name="CoastGrid" Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                    <StackPanel Style="{StaticResource Line}" Margin="0,10,0,0">
+                        <TextBlock Text="Labels" Style="{StaticResource Label}"/>
+                        <Button Name="EditLabelsButton" Content="Edit labels..." Padding="12,0" Height="26"
+                                ToolTip="Fields, rows, frame and colours of the labels of both views, and the track ID."/>
+                    </StackPanel>
+                    <TextBlock Text="SYMBOLS" Style="{StaticResource SubHeader}"/>
+                    <Grid Name="SymbolGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                    <TextBlock Text="Shapes: modern display. On the analog scope the track is the phosphor echo (a vertical bar), as tall as the Track size." Style="{StaticResource Note}"/>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 5 Radar -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Radar (angles in degrees)" Style="{StaticResource SectionTitle}"/>
+                    <Grid Name="RadarGrid" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="320"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 6 Units -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Units and references" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Pressure reference (all runways)" Style="{StaticResource Label}"/>
+                        <RadioButton Name="QnhRadio" GroupName="PressureRef" Content="QNH (altitudes)" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="QfeRadio" GroupName="PressureRef" Content="QFE (heights above threshold)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Pressure unit" Style="{StaticResource Label}"/>
+                        <RadioButton Name="HpaRadio" GroupName="PressureUnit" Content="hPa" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="InHgRadio" GroupName="PressureUnit" Content="inHg" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Heights, deviations, vertical speed" Style="{StaticResource Label}"
+                                   ToolTip="Altitude scale and labels."/>
                         <RadioButton Name="ScaleFeetRadio" GroupName="ScaleUnit" Content="ft, ft/min" Margin="0,0,16,0" VerticalAlignment="Center"/>
                         <RadioButton Name="ScaleMetresRadio" GroupName="ScaleUnit" Content="m, m/s" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <CheckBox Name="AltitudeScaleCheck" Content="Show the altitude scale" Margin="0,8,0,0"/>
-                    <CheckBox Name="AltitudeLinesCheck" Content="Show horizontal lines every 1000 (altitude grid)" Margin="0,4,0,0"
-                              ToolTip="Lines across the vertical view every 1000 ft (or m, as the scale). Colour and style: Altitude lines in the display colours."/>
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
-                                ToolTip="How much the log distance scale compresses: the last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the knee the scale is almost linear; a smaller knee compresses more. The glide path and the approach limits stay straight; heights and lateral offsets shrink with the distance, so the altitude lines bend down. LIN / LOG: keys next to the range, or key C.">
-                        <TextBlock Text="Log distance scale:" VerticalAlignment="Center"/>
-                        <ComboBox Name="DistanceScaleComboBox" Width="150" Margin="8,0,0,0"/>
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Altitude scale" Style="{StaticResource Label}"/>
+                        <CheckBox Name="AltitudeScaleCheck" Content="Show" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                    <StackPanel Style="{StaticResource Line}">
+                        <TextBlock Text="Altitude grid" Style="{StaticResource Label}"/>
+                        <CheckBox Name="AltitudeLinesCheck" Content="Horizontal lines every 1000" VerticalAlignment="Center"
+                                  ToolTip="Lines across the vertical view every 1000 ft (or m, as the scale). Colour and style: Altitude lines in Colours and lines."/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced"
                                 ToolTip="Used for the magnetic final course (CRS) of the runways without their own variation in runways.par. East positive: 3E, 2.5W or -2.">
-                        <TextBlock Text="Default magnetic variation:" VerticalAlignment="Center"/>
-                        <TextBox Name="MagVarBox" Width="60" Height="22" Margin="8,0,6,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
+                        <TextBlock Text="Default magnetic variation" Style="{StaticResource Label}"/>
+                        <TextBox Name="MagVarBox" Width="60" Height="22" Margin="0,0,6,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Right"/>
                         <TextBlock Name="MagVarNote" Text="e.g. 3E or 2W" Foreground="Gray" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
-            </GroupBox>
-        </StackPanel>
+            </ScrollViewer>
+            <!-- 7 Analog console -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Analog console controls" Style="{StaticResource SectionTitle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Range" VerticalAlignment="Center"/>
+                        <ComboBox Name="RangeControlComboBox" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0"
+                                    ToolTip="Console keys: text of the key back to the preferred range (middle key), at most 5 characters. FIAR keys: always PREF.">
+                            <TextBlock Text="middle key:" VerticalAlignment="Center"/>
+                            <TextBox Name="RangeKeyTextBox" Width="52" Height="22" Margin="6,0,0,0" MaxLength="5" CharacterCasing="Upper" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="1" Text="Antenna tilt" VerticalAlignment="Center"/>
+                        <ComboBox Name="TiltControlComboBox" Grid.Row="1" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
+                        <TextBlock Grid.Row="2" Text="DH" VerticalAlignment="Center"/>
+                        <ComboBox Name="DhControlComboBox" Grid.Row="2" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
+                        <TextBlock Grid.Row="3" Text="Brightness" VerticalAlignment="Center"/>
+                        <ComboBox Name="BrightnessControlComboBox" Grid.Row="3" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
+                        <TextBlock Grid.Row="4" Text="Readouts" VerticalAlignment="Center"
+                                   ToolTip="The windows of the left column of the analog console (airport, runway, course, ...)."/>
+                        <ComboBox Name="ReadoutsComboBox" Grid.Row="4" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
+                        <TextBlock Grid.Row="5" Text="Keys" VerticalAlignment="Center"
+                                   ToolTip="Look of all the keys of the analog console: grey console keys, or backlit keys in gold frames as on the FIAR console."/>
+                        <ComboBox Name="KeyStyleComboBox" Grid.Row="5" Grid.Column="1" Width="190" Margin="0,3,0,3"/>
+                    </Grid>
+                    <TextBlock Text="Every range control has the LIN / LOG keys of the distance scale (FIAR keys: a double key in the range frame)." Style="{StaticResource Note}" Margin="0,8,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 8 Colours and lines -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Colours and lines" Style="{StaticResource SectionTitle}"/>
+                    <ContentControl Name="ColoursHost" Focusable="False"/>
+                </StackPanel>
+            </ScrollViewer>
+            <!-- 9 Reminders -->
+            <ScrollViewer Style="{StaticResource SectionPage}">
+                <StackPanel>
+                    <TextBlock Text="Distance reminders" Style="{StaticResource SectionTitle}"/>
+                    <ContentControl Name="ReminderSectionHost" Focusable="False"/>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
-        <TextBlock Name="FileLocationText" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="Gray" FontSize="11"/>
-        <DockPanel Margin="0,8,0,0" LastChildFill="False">
-            <Button Name="CloseButton" DockPanel.Dock="Right" Content="Close" Width="80" Height="26" IsCancel="True"/>
-            <Button Name="EditRunwaysButton" Content="Edit the runways file (runways.par)..." Height="26" Padding="12,0"
-                    ToolTip="Runway editor: add, change, duplicate or delete runways and approaches; the previous file is kept as runways.par.bak."/>
-            <Button Name="TestTrafficButton" Content="Test traffic... (T)" Height="26" Padding="12,0" Margin="8,0,0,0"
-                    ToolTip="Virtual aircraft on the glide path, moved with a joystick, to test the radar without real traffic (also without Aurora)."/>
-            <Button Name="JoystickButton" Content="Joystick..." Height="26" Padding="12,0" Margin="8,0,0,0"
-                    ToolTip="A real joystick or gamepad (USB) for the test aircraft and the antenna tilt: device, buttons, live test."/>
-        </DockPanel>
-    </StackPanel>
-    </ScrollViewer>
+    </DockPanel>
 </Window>

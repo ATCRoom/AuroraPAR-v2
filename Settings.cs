@@ -624,6 +624,8 @@ namespace AuroraPAR
         public Dictionary<string, List<DistanceReminder>> RunwayReminders { get; set; } = [];
         /// <summary>Coordination light panel with the tower.</summary>
         public CoordinationSettings Coordination { get; set; } = new();
+        /// <summary>Settings window: the advanced options shown too (off: only the essentials).</summary>
+        public bool ShowAdvancedSettings { get; set; }
         /// <summary>Joystick or gamepad: test aircraft and antenna tilt.</summary>
         public JoystickSettings Joystick { get; set; } = new();
 

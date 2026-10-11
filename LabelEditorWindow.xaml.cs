@@ -125,7 +125,7 @@ namespace AuroraPAR
 
             // Frame: sides, and the row kept outside it.
             StackPanel frameRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-            frameRow.Children.Add(new TextBlock { Text = "Frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), ToolTip = "Sides of the frame drawn around the label (none by default). Colour, width and line: Display style → Label frame." });
+            frameRow.Children.Add(new TextBlock { Text = "Frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), ToolTip = "Sides of the frame drawn around the label (none by default). Colour, width and line: Settings → Colours and lines → Label frame." });
             foreach ((string name, Func<bool> getSide, Action<bool> setSide) in new (string, Func<bool>, Action<bool>)[]
             {
                 ("Top", () => layout.FrameTop, v => layout.FrameTop = v),
@@ -139,7 +139,7 @@ namespace AuroraPAR
                 side.Unchecked += (s, e) => { setSide(false); Changed(); };
                 frameRow.Children.Add(side);
             }
-            frameRow.Children.Add(new TextBlock { Text = "Outside the frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 6, 0), ToolTip = "A row drawn outside the frame, above it (first row) or below it (last row), with its own text colour (Display style → Label text outside)." });
+            frameRow.Children.Add(new TextBlock { Text = "Outside the frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 6, 0), ToolTip = "A row drawn outside the frame, above it (first row) or below it (last row), with its own text colour (Settings → Colours and lines → Label text outside)." });
             ComboBox outside = new() { Width = 100, ItemsSource = new[] { "None", "First row", "Last row" }, SelectedIndex = (int)layout.OutsideRow, IsEnabled = layout.Rows > 1 };
             outside.SelectionChanged += (s, e) =>
             {

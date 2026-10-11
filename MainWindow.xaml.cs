@@ -464,7 +464,7 @@ namespace AuroraPAR
                     [
                         ("<", "Range down (smaller) (key Page down).", () => SetRangeIndex(DistanceComboBox.SelectedIndex - 1), null),
                         // FIAR style: always PREF (the preferred range is set in Settings).
-                        (FiarKeys ? "PREF" : profile.RangeDefaultKey, "Back to the preferred range (Settings → Display) (key End).",
+                        (FiarKeys ? "PREF" : profile.RangeDefaultKey, "Back to the preferred range (Settings → Range and scale) (key End).",
                             () => SetRangeIndex(Ranges.IndexOfClosest(settings.Active.PreferredRange)),
                             () => DistanceComboBox.SelectedIndex == Ranges.IndexOfClosest(settings.Active.PreferredRange)),
                         (">", "Range up (larger) (key Page up).", () => SetRangeIndex(DistanceComboBox.SelectedIndex + 1), null)
@@ -708,7 +708,7 @@ namespace AuroraPAR
                     Content = face,
                     HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     VerticalContentAlignment = VerticalAlignment.Stretch,
-                    ToolTip = $"Range {value} NM" + (i == preferred ? " (preferred range, Settings → Display)." : ".") + " Keys Page up / Page down / End.",
+                    ToolTip = $"Range {value} NM" + (i == preferred ? " (preferred range, Settings → Range and scale)." : ".") + " Keys Page up / Page down / End.",
                     Style = (Style)FindResource("PanelKey"),
                     Width = PanelKeyWidth,
                     Height = PanelKeyHeight,
@@ -735,7 +735,7 @@ namespace AuroraPAR
             {
                 // Always PREF (the preferred range is set in Settings).
                 Content = new TextBlock { Text = "PREF", FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
-                ToolTip = "Back to the preferred range (Settings → Display) (key End).",
+                ToolTip = "Back to the preferred range (Settings → Range and scale) (key End).",
                 Style = (Style)FindResource("PanelKey"),
                 Width = 64,
                 Height = 26,
