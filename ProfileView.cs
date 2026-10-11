@@ -299,6 +299,9 @@ namespace AuroraPAR
             }
         }
 
+        /// <summary>Compressed scale: highest altitude (in the unit of the scale) with its line and value; above, nothing is drawn.</summary>
+        private const double MaxCompressedAltitude = 10000;
+
         /// <summary>
         /// Compressed scale: heights shrink with the distance, so a constant altitude is a curve going down towards
         /// the far end. The lines every 1000 (option) are drawn as such curves, and the altitude scale (option) is
@@ -326,7 +329,7 @@ namespace AuroraPAR
             bool lines = Options.ShowAltitudeLines;
             bool texts = Options.ShowAltitudeScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale);
             double step = lines && texts ? Math.Min(1000, textStep) : lines ? 1000 : textStep;
-            for (double value = (Math.Floor(baseValue / step) + 1) * step; value <= topValue; value += step)
+            for (double value = (Math.Floor(baseValue / step) + 1) * step; value <= Math.Min(topValue, MaxCompressedAltitude); value += step)
             {
                 double heightFt = (value - baseValue) * unitToFeet;
                 if (heightFt <= 0) continue;

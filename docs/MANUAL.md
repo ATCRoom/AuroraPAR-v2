@@ -463,7 +463,7 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 
 - range marks, reminders and the DH lines move to their compressed distance;
 - the lines from the antenna (scan limits, antenna beam, scan effect) bend slightly near the runway (the antenna is not at the touchdown point);
-- a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit; the altitudes above the scan limit at the end of the range have no line, but their value is written at the far edge of the view, so every altitude of the view has its value at any range;
+- a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit; the altitudes above the scan limit at the end of the range have no line, but their value is written at the far edge of the view, so every altitude of the view has its value at any range (up to 10000: nothing is drawn above);
 - deviations from the glide path and the centreline are shown as with the linear scale near the runway, smaller far away (as all the distances there).
 
 ---
