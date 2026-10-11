@@ -745,7 +745,7 @@ namespace AuroraPAR
             };
             back.Click += (s, e) => SetRangeIndex(Ranges.IndexOfClosest(settings.Active.PreferredRange));
             framed.Children.Add(back);
-            analogKeys.Add((back, null, false));
+            analogKeys.Add((back, () => DistanceComboBox.SelectedIndex == Ranges.IndexOfClosest(settings.Active.PreferredRange), false));
             framed.Children.Add(SplitScaleKey());
             KnobPanel.Children.Add(group);
         }
