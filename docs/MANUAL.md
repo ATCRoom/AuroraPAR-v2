@@ -205,7 +205,7 @@ A label with no fields shows only the track symbol.
 
 **Moving and hiding labels:**
 
-- **Drag** a label with the mouse: a leader line joins it to its track. **Double click** puts it back.
+- **Drag** a label with the mouse: a leader line joins it to its track: it has its own style (*Display style → Colours & lines → Label leader line*: colour, line, width, show / hide; default a pale yellow, not the colour of the track). **Double click** puts it back.
 - **Right click on a label** hides it (with a Track ID field: a menu with *Hide label* and *Set ID...*).
 - **Right click near a track** hides/shows its label. Where several tracks are close (formation), or labels are hidden elsewhere, a menu lists them by callsign, with *Show all hidden labels*.
 - **L** or **Hide labels** hides/shows all labels; showing them again also brings back the ones hidden one by one.

@@ -877,8 +877,11 @@ namespace AuroraPAR
                 track.Leader.Y1 = track.Position.Y;
                 track.Leader.X2 = x;
                 track.Leader.Y2 = y;
-                track.Leader.Stroke = track.Color;
-                track.Leader.Visibility = Visibility.Visible;
+                // Own colour, width and dash style (Display style → Label leader line), not the colour of the track.
+                track.Leader.Stroke = Options.Theme.Brush(StyleElement.LabelLeader);
+                track.Leader.StrokeThickness = Options.Theme.Width(StyleElement.LabelLeader);
+                track.Leader.StrokeDashArray = Theme.DashArray(Options.Theme.Dash(StyleElement.LabelLeader));
+                track.Leader.Visibility = Options.Theme.IsHidden(StyleElement.LabelLeader) ? Visibility.Collapsed : Visibility.Visible;
             }
             else
             {

@@ -235,7 +235,9 @@ namespace AuroraPAR
         /// <summary>Colour of the symbol on the DH point (added later: older profiles get the colour of the DH line).</summary>
         DecisionHeightMark,
         /// <summary>DH line of the azimuth view (added later: older profiles get the style of the DH line).</summary>
-        DecisionHeightAzimuth
+        DecisionHeightAzimuth,
+        /// <summary>Line joining a dragged label to its track (added later: older profiles get the default pale yellow, not the colour of the track).</summary>
+        LabelLeader
     }
 
     /// <summary>Colour (as #RRGGBB), dash style and width of an element.</summary>
@@ -292,6 +294,7 @@ namespace AuroraPAR
             StyleElement.DecisionHeightDrop => "Decision height drop line (vertical)",
             StyleElement.DecisionHeightMark => "Decision height mark (symbol)",
             StyleElement.DecisionHeightAzimuth => "Decision height line (azimuth view)",
+            StyleElement.LabelLeader => "Label leader line",
             StyleElement.Runway => "Runway and threshold",
             StyleElement.Ground => "Ground",
             StyleElement.Touchdown => "Touchdown point",
@@ -323,6 +326,7 @@ namespace AuroraPAR
             StyleElement.DecisionHeightDrop => new() { Color = "#FF0000", Width = 2, Dash = LineDash.Dashed },
             StyleElement.DecisionHeightMark => new() { Color = "#FF0000" },
             StyleElement.DecisionHeightAzimuth => new() { Color = "#FF0000", Width = 2 },
+            StyleElement.LabelLeader => new() { Color = "#F0E39E", Width = 1 },
             StyleElement.Runway => new() { Color = "#008000", Width = 3 },
             StyleElement.Ground => new() { Color = "#008000", Width = 2 },
             StyleElement.Touchdown => new() { Color = "#FFFF00", Width = 2 },
