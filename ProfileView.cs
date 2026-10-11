@@ -319,12 +319,23 @@ namespace AuroraPAR
                     double y = YEnd(at, heightFt);
                     if (y > 14)
                     {
-                        // Along the line, away from the antenna (to the left on the screen with the runway on the right).
                         string text = $"{value:0} {unit}";
                         TextBlock measure = new() { Text = text, FontSize = Options.RangeMarks.TextSize };
                         measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                        double dx = RunwayOnRight ? -4 - measure.DesiredSize.Width : 4;
-                        AddText(text, XAt(at), y, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                        double width = measure.DesiredSize.Width;
+                        if (at == from)
+                        {
+                            // On the upper scan limit: just outside it, above and towards the runway, so the text
+                            // never touches the scan limit (which goes down towards the runway) or the altitude line.
+                            double dx = RunwayOnRight ? 4 : -4 - width;
+                            AddText(text, XAt(at), y - 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
+                        }
+                        else
+                        {
+                            // The line comes into the view from the top: under it, towards the far end.
+                            double dx = RunwayOnRight ? -4 - width : 4;
+                            AddText(text, XAt(at), y + 2, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: false);
+                        }
                     }
                 }
             }
