@@ -60,11 +60,7 @@ The QNH is taken from the METAR of the airport in Aurora and refreshed every min
 
 ## 3. The main window
 
-![The main window, Modern display, Default profile](images/main-window-modern.png)
-
-The numbered diagram below explains the parts:
-
-![Main window](images/main-window.svg)
+![The main window, Modern display, Default profile](images/main-window-numbered.png)
 
 | | |
 |---|---|
@@ -78,13 +74,13 @@ The numbered diagram below explains the parts:
 |---|---|---|
 | **4** | **ICAO** and **Runway** keys | The ICAO box shows the airport in use. Type another ICAO: with the fourth letter (or **Enter**, when the letters typed fit a single airport) it is set and its first runway is selected. Red: no airport in `runways.par` starts with these letters. **Esc** or leaving the box shows the airport in use again. Below, one key per runway of the airport (two columns, the one in use in blue; none when the airport has a single runway); the approaches of the same runway are one key. When you connect with a callsign of an airport in the file (LIPC_APP → LIPC) that airport is set at the connection; without such a callsign the last runway stays. There is no drop-down list of the runways. |
 | **5** | Range list | Display range: the ranges ticked in *Settings → Range and scale → Ranges offered* (1, 2.5, 5, 10, 15, 20, 30, 40 NM; up to 20 NM by default). The mouse wheel over the display does the same. The button under the list (**PREF** by default) goes back to the preferred range (also key End); its text is chosen in *Settings → Range and scale → PREF button* (free text of up to 5 characters, or the preferred range itself, e.g. `15NM`). |
-| **6** | **Settings...** | Profiles and options ([section 10](#10-settings-and-profiles)). |
-| | **GP (°)** | Glide path of the approach: one key per published angle of the runway (when it has more than one), and below a box with the angle in use, where a free angle can be typed (Enter; unpublished approach, orange) ([section 8b](#8b-glide-path-several-approaches-and-unpublished-angle)). |
-| **8** | **DH** box with **−** / **+** (hidden by default: *Settings → Approach and DH → DH selector*) | Decision height for this session ([section 8](#8-decision-height)). |
-| | **BRT** with **−** / **+** | Brightness of the radar picture, 10–150% (also with the mouse wheel over it); saved in the profile. Up to 100% the picture is dimmed; above 100% the colours are made brighter and lighter, for dim monitors. |
-| **9** | **Antenna tilt** | EL ▲ / EL ▼, AZ L / AZ R, Neutral ([section 7](#7-antenna-tilt)). |
-| **10** | **Hide labels (L)** | Hides / shows all labels. |
-| **11** | **Analog (A)** | Switches to the analog scope ([section 9](#9-analog-mode)). |
+| **6** | **GP (°)** | Glide path of the approach: one key per published angle of the runway (when it has more than one), and below a box with the angle in use, where a free angle can be typed (Enter; unpublished approach, orange) ([section 8b](#8b-glide-path-several-approaches-and-unpublished-angle)). |
+| | **DH** box with **−** / **+** (hidden by default, so not numbered: *Settings → Approach and DH → DH selector*) | Decision height for this session ([section 8](#8-decision-height)). |
+| **7** | **BRT** with **−** / **+** | Brightness of the radar picture, 10–150% (also with the mouse wheel over it); saved in the profile. Up to 100% the picture is dimmed; above 100% the colours are made brighter and lighter, for dim monitors. |
+| **8** | **Antenna tilt** | EL ▲ / EL ▼, AZ L / AZ R, Neutral ([section 7](#7-antenna-tilt)). |
+| **9** | **Hide labels (L)** | Hides / shows all labels. |
+| **10** | **Analog (A)** | Switches to the analog scope ([section 9](#9-analog-mode)). |
+| **11** | **Settings...** | Profiles and options ([section 10](#10-settings-and-profiles)). |
 
 The window remembers its size and position, the runway and the range for the next start. If the column is too short for all the controls (small window), it shrinks to fit.
 
