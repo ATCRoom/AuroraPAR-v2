@@ -114,7 +114,7 @@ namespace AuroraPAR
         private const int TrailMax = 5;
         private Wedge[] wedges = new Wedge[TrailMax + 1];
         /// <summary>Compressed scale: linear-scale x and factor of each column of the bitmap (see Frame.Unwarp).</summary>
-        private double[] columnX = [], columnFactor = [];
+        private double[] columnX = [], columnFactor = [], rowY = [];
 
         public Image Element => image;
 
@@ -135,6 +135,8 @@ namespace AuroraPAR
             /// geometry above (origin, end, limits) is given in linear-scale coordinates.
             /// </summary>
             public Func<double, (double X, double Factor)>? Unwarp;
+            /// <summary>Compressed vertical axis (profile, version B): logical y → linear-scale y, before the column factor; null otherwise.</summary>
+            public Func<double, double>? UnwarpY;
             public double AxisY;
         }
 
@@ -209,12 +211,22 @@ namespace AuroraPAR
                     (columnX[bx], columnFactor[bx]) = f.Unwarp((f.RunwayOnRight ? f.Width - sx : sx) - f.XShift);
                 }
             }
+            if (f.UnwarpY != null)
+            {
+                if (rowY.Length != h) rowY = new double[h];
+                for (int by = 0; by < h; by++)
+                {
+                    double sy = (by + 0.5) * Pixel;
+                    rowY[by] = f.UnwarpY(f.RunwayOnRight && f.FlipVertically ? f.Height - sy : sy);
+                }
+            }
             Array.Clear(pixels);
             for (int by = 0; by < h; by++)
             {
                 double sy = (by + 0.5) * Pixel;
                 double ly = f.RunwayOnRight && f.FlipVertically ? f.Height - sy : sy;
                 if (ly > f.HorizonY) continue;
+                double rowLinearY = f.UnwarpY != null ? rowY[by] : ly;
                 for (int bx = 0; bx < w; bx++)
                 {
                     double sx = (bx + 0.5) * Pixel;
@@ -225,7 +237,7 @@ namespace AuroraPAR
                     if (f.Unwarp != null)
                     {
                         linearX = columnX[bx];
-                        linearY = f.AxisY + (ly - f.AxisY) * columnFactor[bx];
+                        linearY = f.AxisY + (rowLinearY - f.AxisY) * columnFactor[bx];
                     }
                     double dx = linearX - f.OriginX;
                     if (dx <= 1) continue;

@@ -2071,7 +2071,7 @@ namespace AuroraPAR
             horizontalView.SetRunwayOnRight(right);
             // Information area in the top corner on the runway side, away from the far end of the scan limits.
             // Leave room for the altitude scale, drawn on the same side.
-            double margin = viewOptions.ShowAltitudeScale && viewOptions.DistanceKnee <= 0 ? 75 : 4;
+            double margin = viewOptions.ShowAltitudeScale ? 75 : 4;
             ApplyDisplayMode(analog);
             if (right)
             {

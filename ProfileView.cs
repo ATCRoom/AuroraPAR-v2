@@ -27,9 +27,8 @@ namespace AuroraPAR
             CalculateHorizontalScale();
             // Fixed vertical scale, depending only on the range: the default upper scan limit (8°) reaches the top at
             // the end of the range. Other scan limits or a tilt move the lines (beyond the view if needed), as on a real PAR.
-            // With the compressed scale heights shrink with the distance (see RadarView.ShrinkAt): the same rule there.
-            double end = Runway.Distance + Runway.LengthNM;
-            double top = Radar.ScanHeight(end - AntennaNM, Radar.ReferenceScanUp) * ShrinkAt(end);
+            // With the compressed scale the heights are compressed too (see V): the same rule there.
+            double top = V(Radar.ScanHeight(Runway.Distance + Runway.LengthNM - AntennaNM, Radar.ReferenceScanUp));
             // Room below the horizon for the distance text or the reminder markers (the larger of the two).
             double markers = VisibleReminders().Where(r => r.HasMarker).Select(r => r.Size + 8).DefaultIfEmpty(0).Max();
             // Ticks below the horizon line push the distance text (when it is below) further down.
@@ -46,28 +45,61 @@ namespace AuroraPAR
             return XAt(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM);
         }
 
+        // Compressed scale, version B: the heights have their own compression, the same law as the distances
+        // (V(h) = Kh·asinh(h/Kh)), with the knee Kh = the height of a 3° glide path at the distance knee: so the
+        // altitude lines stay horizontal and the scale on the side is right everywhere, compressed at the top and
+        // wider at the bottom. A 3° glide path is straight; other angles (and the approach limits) bend a little.
+
+        /// <summary>Knee of the height compression, ft: a 3° glide path at the distance knee.</summary>
+        private double HeightKneeFt => Options.DistanceKnee * Math.Tan(3 * Math.PI / 180) * Runway.FeetPerNM;
+
+        /// <summary>Compressed height (ft) of a height above the threshold; the height itself with the linear scale.</summary>
+        private double V(double heightFt)
+        {
+            double knee = HeightKneeFt;
+            return Compressed ? knee * Math.Asinh(heightFt / knee) : heightFt;
+        }
+
+        /// <summary>Inverse of <see cref="V"/>.</summary>
+        private double VInverse(double compressedFt)
+        {
+            double knee = HeightKneeFt;
+            return Compressed ? knee * Math.Sinh(compressedFt / knee) : compressedFt;
+        }
+
         /// <summary>
-        /// Logical y of a height in ft above the threshold elevation, with the linear scale (or at the touchdown).
+        /// Logical y of a height in ft above the threshold elevation.
         /// </summary>
         private double Y(double heightFt)
         {
-            return H - heightFt * yscale;
+            return H - V(heightFt) * yscale;
         }
 
-        /// <summary>
-        /// Logical y of a height in ft above the threshold elevation at the given distance from the touchdown
-        /// (heights shrink with the distance with the compressed scale; the same as <see cref="Y"/> otherwise).
-        /// </summary>
-        private double Y(double distanceFromTouchdownNM, double heightFt)
-        {
-            return YEnd(Runway.LengthNM - Runway.TouchdownNM + distanceFromTouchdownNM, heightFt);
-        }
+        /// <summary>Logical y of a height in ft (the distance does not matter in this version).</summary>
+        private double Y(double distanceFromTouchdownNM, double heightFt) => Y(heightFt);
 
         /// <summary>Logical y of a height in ft at the given distance (NM) from the far end of the runway.</summary>
-        private double YEnd(double fromRunwayEndNM, double heightFt)
+        private double YEnd(double fromRunwayEndNM, double heightFt) => Y(heightFt);
+
+        protected override Point Unwarp(Point logical)
         {
-            return H - heightFt * ShrinkAt(fromRunwayEndNM) * yscale;
+            if (!Compressed) return logical;
+            double fromEnd = FromRunwayEndOfScale(logical.X / xscale);
+            return new Point(fromEnd * xscale, H - VInverse((H - logical.Y) / yscale) * yscale);
         }
+
+        protected override Point Warp(Point linear)
+        {
+            if (!Compressed) return linear;
+            return new Point(XAt(linear.X / xscale), Y((H - linear.Y) / yscale));
+        }
+
+        protected override (double X, double Factor) ClutterColumn(double logicalX)
+        {
+            return (FromRunwayEndOfScale(logicalX / xscale) * xscale, 1);
+        }
+
+        protected override Func<double, double>? ClutterRow => y => H - VInverse((H - y) / yscale) * yscale;
 
         /// <summary>
         /// Logical y of an elevation scan limit (angle from the antenna) at the given distance (NM) from the far end of the runway.
@@ -104,7 +136,13 @@ namespace AuroraPAR
         {
             double threshold = Runway.TouchdownNM;
             double end = Runway.TouchdownNM + Runway.Distance;
-            // Straight with both scales (a line from the touchdown point, see RadarView.ShrinkAt).
+            if (Compressed)
+            {
+                // Straight only at 3°: drawn as curves.
+                AddCurve(t => { double d = threshold * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element, dashed: true);
+                AddCurve(t => { double d = threshold + (end - threshold) * t; return new Point(X(d), Y(Runway.GlidePathHeight(d, angleOffset))); }, element);
+                return;
+            }
             AddLine(X(0), Y(0), X(threshold), Y(threshold, Runway.GlidePathHeight(threshold, angleOffset)), element, dashed: true);
             AddLine(X(threshold), Y(threshold, Runway.GlidePathHeight(threshold, angleOffset)), X(end), Y(end, Runway.GlidePathHeight(end, angleOffset)), element);
         }
@@ -119,7 +157,7 @@ namespace AuroraPAR
             double lower = Radar.ScanDown;
             double beamUpper = Radar.ElevationUpper;
             double beamLower = Radar.ElevationLower;
-            if (Options.ShowAltitudeLines || (Compressed && Options.ShowAltitudeScale)) DrawAltitudeLines(end, upper, lower);
+            if (Options.ShowAltitudeLines) DrawAltitudeLines(end, upper, lower);
             // Ground beyond the threshold.
             AddLine(XAt(length), H, XAt(end), H, StyleElement.Ground);
             // Runway.
@@ -236,9 +274,7 @@ namespace AuroraPAR
                     AddReminderMarker(reminder, XAt(markNM), y);
                 }
             }
-            // With the compressed scale heights depend on the distance: no scale on the side, the values are written
-            // on the altitude lines instead (see DrawAltitudeLines).
-            if (Options.ShowAltitudeScale && !Compressed)
+            if (Options.ShowAltitudeScale)
             {
                 DrawAltitudeScale();
             }
@@ -250,15 +286,10 @@ namespace AuroraPAR
         /// </summary>
         private void DrawAltitudeLines(double end, double upper, double lower)
         {
-            if (Compressed)
-            {
-                DrawCompressedAltitudeLines(end, upper, lower);
-                return;
-            }
             const double FeetPerMetre = 1 / 0.3048;
             double unitToFeet = Options.ScaleInMetres ? FeetPerMetre : 1;
             double baseValue = Options.Qfe ? 0 : Runway.Elevation / unitToFeet;
-            double topValue = baseValue + H / yscale / unitToFeet;
+            double topValue = baseValue + VInverse(H / yscale) / unitToFeet;
             double tanUpper = Math.Tan(upper * Math.PI / 180);
             if (tanUpper <= 0) return;
             for (double value = (Math.Floor(baseValue / 1000) + 1) * 1000; value <= topValue; value += 1000)
@@ -268,72 +299,11 @@ namespace AuroraPAR
                 double y = Y(heightFt);
                 if (y < 0) break;
                 double heightNM = heightFt / Runway.FeetPerNM;
-                double fromX = (AntennaNM + heightNM / tanUpper) * xscale;
-                double toX = end * xscale;
-                if (lower > 0) toX = Math.Min(toX, (AntennaNM + heightNM / Math.Tan(lower * Math.PI / 180)) * xscale);
+                double fromX = XAt(AntennaNM + heightNM / tanUpper);
+                double toX = XAt(end);
+                if (lower > 0) toX = Math.Min(toX, XAt(AntennaNM + heightNM / Math.Tan(lower * Math.PI / 180)));
                 if (fromX < toX) AddLine(fromX, y, toX, y, StyleElement.AltitudeLines);
             }
-        }
-
-        /// <summary>
-        /// Compressed scale: heights shrink with the distance, so a constant altitude is a curve going down towards
-        /// the far end. The lines every 1000 (option) are drawn as such curves, and the altitude scale (option) is
-        /// written as values where they start, on the upper scan limit (a scale on the side would be right only at
-        /// the touchdown).
-        /// </summary>
-        private void DrawCompressedAltitudeLines(double end, double upper, double lower)
-        {
-            const double FeetPerMetre = 1 / 0.3048;
-            double unitToFeet = Options.ScaleInMetres ? FeetPerMetre : 1;
-            string unit = Options.ScaleInMetres ? "m" : "ft";
-            double baseValue = Options.Qfe ? 0 : Runway.Elevation / unitToFeet;
-            // Highest value seen in the view: at the far end, where heights shrink the most.
-            double topValue = baseValue + H / (yscale * ShrinkAt(end)) / unitToFeet;
-            double tanUpper = Math.Tan(upper * Math.PI / 180);
-            if (tanUpper <= 0) return;
-            double tanLower = Math.Tan(lower * Math.PI / 180);
-            // The lines every 1000; the values at the step of the altitude scale (about six in the view).
-            double[] steps = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
-            double textStep = steps.FirstOrDefault(s => s >= (topValue - baseValue) / 6, steps[^1]);
-            bool lines = Options.ShowAltitudeLines;
-            bool texts = Options.ShowAltitudeScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale);
-            double step = lines && texts ? Math.Min(1000, textStep) : lines ? 1000 : textStep;
-            for (double value = (Math.Floor(baseValue / step) + 1) * step; value <= topValue; value += step)
-            {
-                double heightFt = (value - baseValue) * unitToFeet;
-                if (heightFt <= 0) continue;
-                double heightNM = heightFt / Runway.FeetPerNM;
-                double from = AntennaNM + heightNM / tanUpper;
-                double to = end;
-                if (lower > 0) to = Math.Min(to, AntennaNM + heightNM / tanLower);
-                if (from >= to) continue;
-                if (lines && IsMultiple(value, 1000))
-                {
-                    AddCurve(t => { double r = from + (to - from) * t; return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.AltitudeLines);
-                }
-                if (texts && IsMultiple(value, textStep))
-                {
-                    // Where the line starts, or where it comes into the view (scan limit tilted above the top).
-                    double at = from;
-                    for (int i = 0; i <= 48 && YEnd(at, heightFt) <= 14; i++) at = from + (to - from) * i / 48;
-                    double y = YEnd(at, heightFt);
-                    if (y > 14)
-                    {
-                        // Along the line, away from the antenna (to the left on the screen with the runway on the right).
-                        string text = $"{value:0} {unit}";
-                        TextBlock measure = new() { Text = text, FontSize = Options.RangeMarks.TextSize };
-                        measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                        double dx = RunwayOnRight ? -4 - measure.DesiredSize.Width : 4;
-                        AddText(text, XAt(at), y, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: true);
-                    }
-                }
-            }
-        }
-
-        private static bool IsMultiple(double value, double step)
-        {
-            double ratio = value / step;
-            return Math.Abs(ratio - Math.Round(ratio)) < 1e-6;
         }
 
         /// <summary>
@@ -349,7 +319,7 @@ namespace AuroraPAR
             string unit = Options.ScaleInMetres ? "m" : "ft";
             // Value (in display units) at the bottom (threshold elevation) and at the top of the view.
             double baseValue = Options.Qfe ? 0 : Runway.Elevation / unitToFeet;
-            double topValue = baseValue + H / yscale / unitToFeet;
+            double topValue = baseValue + VInverse(H / yscale) / unitToFeet;
             double[] steps = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
             double step = steps.FirstOrDefault(s => s >= (topValue - baseValue) / 6, steps[^1]);
             for (double value = Math.Ceiling(baseValue / step) * step; value <= topValue; value += step)

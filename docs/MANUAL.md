@@ -456,12 +456,12 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Default magnetic variation | e.g. `3E`, `2W`: used for the final course of runways without their own variation |
 | Distance scale | linear (default) or **compressed** with a knee of 1–10 NM; key **C** switches (see below) |
 
-**Compressed distance scale (experimental).** The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). Heights (elevation view) and lateral offsets (azimuth view) shrink with the distance by the same amount, so every line starting at the touchdown point stays **straight**: the glide path (whatever its angle), the approach limits and the centreline look as with the linear scale, and an aircraft on the glide path stays on its line; only the distances along them change. As a consequence:
+**Compressed distance scale (experimental, version B).** The last miles before the runway get more room and the far ones less, so the traffic stays in view without changing the range. Within the *knee* (distance from the touchdown point) the scale is almost linear, beyond it the miles get closer and closer (a smaller knee compresses more). In the elevation view the **heights are compressed the same way** (wide at the bottom, close at the top; knee = the height of a 3° glide path at the distance knee): the altitude lines stay horizontal and the altitude scale on the side is right everywhere. As a consequence:
 
-- range marks, reminders and the DH lines move to their compressed distance;
-- the lines from the antenna (scan limits, antenna beam, scan effect) bend slightly near the runway (the antenna is not at the touchdown point);
-- a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit;
-- deviations from the glide path and the centreline are shown as with the linear scale near the runway, smaller far away (as all the distances there).
+- a **3° glide path is straight**; other angles and the approach limits bend a little (more the farther the angle is from 3°);
+- range marks, reminders and the DH lines move to their compressed distance and height;
+- the lines from the antenna (scan limits, antenna beam, scan effect) are curves;
+- the azimuth view is as in version A: lateral offsets shrink with the distance, so the centreline and the approach limits stay straight there.
 
 ---
 

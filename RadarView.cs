@@ -473,7 +473,8 @@ namespace AuroraPAR
                 DriftY = -Options.ClutterWindRightKt / 3600 * LateralPixelsPerNM,
                 Colour = colour,
                 AxisY = AxisY,
-                Unwarp = Compressed ? ClutterColumn : null
+                Unwarp = Compressed ? ClutterColumn : null,
+                UnwarpY = Compressed ? ClutterRow : null
             });
         }
 
@@ -481,11 +482,17 @@ namespace AuroraPAR
         /// Compressed scale, for the clutter layer: linear-scale x of a logical x, and the factor that brings a
         /// logical distance from the axis back to the linear scale (see <see cref="Unwarp"/>).
         /// </summary>
-        private (double X, double Factor) ClutterColumn(double logicalX)
+        protected virtual (double X, double Factor) ClutterColumn(double logicalX)
         {
             double fromEnd = FromRunwayEndOfScale(logicalX / xscale);
             return (fromEnd * xscale, 1 / ShrinkAt(fromEnd));
         }
+
+        /// <summary>
+        /// Compressed scale, for the clutter layer: a logical y brought back to the linear scale before the column
+        /// factor (only for a view whose vertical axis is compressed on its own; null otherwise).
+        /// </summary>
+        protected virtual Func<double, double>? ClutterRow => null;
 
         /// <summary>
         /// Analog scope: each echo lights up when the beam passes over it, then fades until the next pass,
@@ -1112,11 +1119,8 @@ namespace AuroraPAR
         /// </summary>
         protected double XShift;
 
-        /// <summary>
-        /// Distance of the antenna from the edge of the view (room for the altitude scale when shown; the compressed
-        /// scale has no scale on the side, its values are on the altitude lines).
-        /// </summary>
-        protected double LeftMargin => Options.ShowAltitudeScale && !Compressed ? 70 : 24;
+        /// <summary>Distance of the antenna from the edge of the view (room for the altitude scale when shown).</summary>
+        protected double LeftMargin => Options.ShowAltitudeScale ? 70 : 24;
 
         /// <summary>
         /// Horizontal scale and shift: the antenna at <see cref="LeftMargin"/>, the end of the range 50 px from the
@@ -1209,7 +1213,7 @@ namespace AuroraPAR
         /// With the compressed scale: the point in the coordinates the same picture would have with the linear scale
         /// (same xscale and yscale), where the lines from the antenna are straight again. Unchanged with the linear scale.
         /// </summary>
-        protected Point Unwarp(Point logical)
+        protected virtual Point Unwarp(Point logical)
         {
             if (!Compressed) return logical;
             double fromEnd = FromRunwayEndOfScale(logical.X / xscale);
@@ -1217,7 +1221,7 @@ namespace AuroraPAR
         }
 
         /// <summary>Inverse of <see cref="Unwarp"/>.</summary>
-        protected Point Warp(Point linear)
+        protected virtual Point Warp(Point linear)
         {
             if (!Compressed) return linear;
             double fromEnd = linear.X / xscale;
