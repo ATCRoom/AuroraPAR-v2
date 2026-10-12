@@ -1067,6 +1067,8 @@ namespace AuroraPAR
                 ShowBanner("ONLY ONE PROFILE");
                 return;
             }
+            // Key S was for the profile in use: the next one starts with its own smoothing.
+            smoothingToggled = false;
             int index = profiles.IndexOf(settings.Active);
             Profile next = profiles[((index + direction) % profiles.Count + profiles.Count) % profiles.Count];
             settings.ActiveProfile = next.Name;

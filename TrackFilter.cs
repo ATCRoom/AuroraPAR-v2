@@ -42,8 +42,8 @@ namespace AuroraPAR
             public double RawLongitude = double.NaN;
             public double RawAltitude = double.NaN;
             /// <summary>
-            /// How far (NM) the estimate is ahead of the real aircraft along its track: never corrected by moving
-            /// back, but by moving on more slowly until the aircraft has caught up.
+            /// Correction still owed (NM) because the estimate is ahead of the real aircraft along its track (alpha of
+            /// the gap at the last position): never made by moving back, but by moving on more slowly.
             /// </summary>
             public double Ahead;
         }
@@ -136,12 +136,11 @@ namespace AuroraPAR
         private static void Correct(State state, Aircraft aircraft, double northNM, double eastNM, double alpha)
         {
             double cosLatitude = Math.Max(0.01, Math.Cos(state.Latitude * Math.PI / 180));
-            double alongNM = 0;
             if (aircraft.Speed >= 30)
             {
                 double track = aircraft.Track * Math.PI / 180;
                 (double unitNorth, double unitEast) = (Math.Cos(track), Math.Sin(track));
-                alongNM = northNM * unitNorth + eastNM * unitEast;
+                double alongNM = northNM * unitNorth + eastNM * unitEast;
                 // Across the track: corrected as before.
                 northNM -= alongNM * unitNorth;
                 eastNM -= alongNM * unitEast;
@@ -175,15 +174,17 @@ namespace AuroraPAR
             state.Time = now;
             if (seconds <= 0) return;
             double nm = aircraft.Speed * seconds / 3600;
-            // Ahead of the real aircraft: move on at half speed until it has caught up (never backwards).
+            // Ahead of the real aircraft: move on at half speed until it has caught up (never backwards); the
+            // altitude slows down in the same way, so the track stays on its glide path.
             double hold = Math.Min(state.Ahead, nm / 2);
+            double rate = nm > 0 ? (nm - hold) / nm : 1;
             nm -= hold;
             state.Ahead -= hold;
             double track = aircraft.Track * Math.PI / 180;
             double cosLatitude = Math.Max(0.01, Math.Cos(state.Latitude * Math.PI / 180));
             state.Latitude += nm * Math.Cos(track) / 60;
             state.Longitude += nm * Math.Sin(track) / (60 * cosLatitude);
-            state.Altitude += (aircraft.VerticalSpeedFpm ?? 0) * seconds / 60;
+            state.Altitude += (aircraft.VerticalSpeedFpm ?? 0) * seconds * rate / 60;
         }
     }
 }
