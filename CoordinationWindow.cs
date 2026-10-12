@@ -227,7 +227,7 @@ namespace AuroraPAR
             StackPanel pairing = new() { Orientation = Orientation.Horizontal };
             pairing.Children.Add(Label("Airport:"));
             airportBox.Text = Options.Airport ?? "";
-            airportBox.ToolTip = "Empty: from the callsign you are connected with (e.g. LIRF_APP). Needed when connected as observer.";
+            airportBox.ToolTip = "Empty: from the callsign you are connected with (e.g. LIRF_APP). Typed: this airport, whatever the callsign (needed as observer).";
             pairing.Children.Add(airportBox);
             pairing.Children.Add(new Border { Width = 16 });
             pairing.Children.Add(Label("Role:"));
@@ -265,7 +265,7 @@ namespace AuroraPAR
 
             options.Children.Add(new TextBlock
             {
-                Text = "Both panels of an airport are linked automatically: _TWR is the tower, any other callsign the radar. As observer (_OBS), type the airport and choose the role. Monitor: an instructor sees the lights and who is online, without pressing anything. Panel code (optional): the same on both sides keeps the panels of strangers out (🔒 in the status line).",
+                Text = "Both panels of an airport are linked automatically: _TWR is the tower, any other callsign the radar. An airport or role chosen here wins over the callsign (e.g. connected as LIBB_MIL_CTR, coordinating with the tower of LIBN); leave them empty / From callsign for the automatic choice. As observer (_OBS), type the airport and choose the role. Monitor: an instructor sees the lights and who is online, without pressing anything. Panel code (optional): the same on both sides keeps the panels of strangers out (🔒 in the status line).",
                 Foreground = Brushes.Gray,
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
@@ -405,9 +405,8 @@ namespace AuroraPAR
         private (string? Airport, CoordinationRole? Role) Effective()
         {
             (string? airport, CoordinationRole? role) = CoordinationSettings.FromCallsign(callsign);
-            // Connected as a controller (e.g. LIBV_TWR): who you are online decides, in every program, also over an
-            // airport or role chosen earlier in Options (only Monitor, the instructor's read-only panel, stays).
-            if (airport != null && role != null && Options.Role != CoordinationRole.Monitor) return (airport, role);
+            // What is chosen in Options wins (decided 12 Oct: e.g. LIBB_MIL_CTR coordinating with the tower of LIBN);
+            // what is left empty / "From callsign" comes from the callsign (_TWR tower, any other the radar).
             return (Options.Airport ?? airport, Options.Role ?? role);
         }
 
@@ -459,7 +458,10 @@ namespace AuroraPAR
                 relay = link.Connected ? (partnerOnline ? $"linked with the {other}" : $"waiting for the {other}") : "connecting...";
             }
             string side = role switch { CoordinationRole.Tower => "TOWER", CoordinationRole.Monitor => "MONITOR", _ => "RADAR" };
-            status.Text = $"{(link.Code != null ? "🔒 " : "")}{airport} · {side} · {relay}";
+            // Airport or role from Options instead of the callsign: said, so a choice left there is seen at once.
+            (string? callsignAirport, CoordinationRole? callsignRole) = CoordinationSettings.FromCallsign(callsign);
+            bool fromOptions = callsignAirport != null && (airport != callsignAirport || role != callsignRole);
+            status.Text = $"{(link.Code != null ? "🔒 " : "")}{airport} · {side}{(fromOptions ? " (Options)" : "")} · {relay}";
             partnerDot.Background = link.Connected && partnerOnline ? new SolidColorBrush(Color.FromRgb(0x50, 0xE0, 0x50))
                 : link.Connected ? new SolidColorBrush(Color.FromRgb(0xFF, 0xB0, 0x20)) : Brushes.Red;
             bool monitor = role == CoordinationRole.Monitor;
