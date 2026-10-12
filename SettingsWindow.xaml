@@ -235,7 +235,7 @@
                         <TextBlock Text="(0.5 to 10)" Foreground="Gray" VerticalAlignment="Center" Margin="6,0,0,0"/>
                     </StackPanel>
                     <StackPanel Style="{StaticResource Line}" Tag="Advanced"
-                                ToolTip="Modern display: the track moves smoothly, as with the computer of a modern radar, instead of jumping at every position received from Aurora (and the altitude without its steps). The history dots stay at the real positions.&#x0a;Strong: smoother, a little late in turns and rate changes. Off: the raw positions. The analog scope always shows the raw echo.">
+                                ToolTip="Modern display: the track moves smoothly, as with the computer of a modern radar, instead of jumping at every position received from Aurora (and the altitude without its steps). The history dots stay at the real positions.&#x0a;Strong: smoother, a little late in turns and rate changes. Off: the raw positions. The analog scope always shows the raw echo.&#x0a;Key S on the main window: on / off for this session only.">
                         <TextBlock Text="Track smoothing (modern display)" Style="{StaticResource Label}"/>
                         <ComboBox Name="SmoothingComboBox" Width="90"/>
                     </StackPanel>

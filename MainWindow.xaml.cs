@@ -120,6 +120,13 @@ namespace AuroraPAR
         private readonly Radar radar = new();
         private readonly ViewOptions viewOptions = new();
         private readonly TrackFilter trackFilter = new();
+        /// <summary>Key S: track smoothing switched on / off for this session (not saved), to compare.</summary>
+        private bool smoothingToggled;
+
+        /// <summary>Track smoothing in use: the one of the profile, or the opposite after key S.</summary>
+        private TrackSmoothing Smoothing => !smoothingToggled
+            ? settings.Active.TrackSmoothing
+            : settings.Active.TrackSmoothing == TrackSmoothing.Off ? TrackSmoothing.Light : TrackSmoothing.Off;
         /// <summary>Virtual aircraft for tests (key T), merged with the traffic of Aurora.</summary>
         private readonly TestTraffic testTraffic = new();
         private TestTrafficWindow? testTrafficWindow;
@@ -360,12 +367,12 @@ namespace AuroraPAR
         /// </summary>
         private void MoveTracks()
         {
-            if (!Open || viewOptions.Analog || settings.Active.TrackSmoothing == TrackSmoothing.Off) return;
+            if (!Open || viewOptions.Analog || Smoothing == TrackSmoothing.Off) return;
             List<Aircraft> aircrafts = lastAircrafts;
             if (aircrafts.Count == 0) return;
             try
             {
-                trackFilter.Apply(aircrafts, DateTime.UtcNow, settings.Active.TrackSmoothing);
+                trackFilter.Apply(aircrafts, DateTime.UtcNow, Smoothing);
                 profileView.MoveTracks(aircrafts);
                 horizontalView.MoveTracks(aircrafts);
             }
@@ -1226,6 +1233,20 @@ namespace AuroraPAR
                 : "LINEAR SCALE");
         }
 
+        /// <summary>
+        /// Key S: track smoothing on / off for this session (to compare with the raw positions); the profile setting
+        /// is not changed and comes back at the next start.
+        /// </summary>
+        private void ToggleSmoothing()
+        {
+            smoothingToggled = !smoothingToggled;
+            TrackSmoothing smoothing = Smoothing;
+            ShowBanner(viewOptions.Analog
+                ? $"TRACK SMOOTHING {(smoothing == TrackSmoothing.Off ? "OFF" : "ON")} (MODERN DISPLAY ONLY)"
+                : smoothing == TrackSmoothing.Off ? "TRACK SMOOTHING OFF" : $"TRACK SMOOTHING {smoothing.ToString().ToUpperInvariant()}");
+            Redraw();
+        }
+
         private void ToggleDisplayMode()
         {
             Profile profile = settings.Active;
@@ -2035,6 +2056,7 @@ namespace AuroraPAR
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
                 case Key.T: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
+                case Key.S when modifiers == 0: ToggleSmoothing(); break;
                 default: return;
             }
             e.Handled = true;
@@ -2362,7 +2384,7 @@ namespace AuroraPAR
                 }
             }
             // Track filter (modern display): smoothed positions of the tracks at this moment.
-            trackFilter.Apply(aircrafts, DateTime.UtcNow, viewOptions.Analog ? TrackSmoothing.Off : settings.Active.TrackSmoothing);
+            trackFilter.Apply(aircrafts, DateTime.UtcNow, viewOptions.Analog ? TrackSmoothing.Off : Smoothing);
             // Fictitious IDs: given to the tracks inside the scan.
             viewOptions.Identities.Update(aircrafts.Where(a => radar.IsSeen(a, runway)).Select(a => a.Callsign), DateTime.UtcNow);
             UpdateInfo();

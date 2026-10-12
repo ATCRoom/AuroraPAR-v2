@@ -41,6 +41,11 @@ namespace AuroraPAR
             public double RawLatitude = double.NaN;
             public double RawLongitude = double.NaN;
             public double RawAltitude = double.NaN;
+            /// <summary>
+            /// How far (NM) the estimate is ahead of the real aircraft along its track: never corrected by moving
+            /// back, but by moving on more slowly until the aircraft has caught up.
+            /// </summary>
+            public double Ahead;
         }
 
         private readonly Dictionary<string, State> states = [];
@@ -71,7 +76,6 @@ namespace AuroraPAR
                 }
                 else
                 {
-                    double elapsed = Math.Max(0, (now - state.Time).TotalSeconds);
                     Predict(state, aircraft, now);
                     bool newPosition = aircraft.Latitude != state.RawLatitude || aircraft.Longitude != state.RawLongitude
                         || aircraft.Altitude != state.RawAltitude;
@@ -86,8 +90,7 @@ namespace AuroraPAR
                         }
                         else
                         {
-                            state.Latitude += alpha * (aircraft.Latitude - state.Latitude);
-                            state.Longitude += alpha * (aircraft.Longitude - state.Longitude);
+                            Correct(state, aircraft, northNM, eastNM, alpha);
                             state.Altitude += altitudeAlpha * (aircraft.Altitude - state.Altitude);
                             state.RawLatitude = aircraft.Latitude;
                             state.RawLongitude = aircraft.Longitude;
@@ -95,15 +98,8 @@ namespace AuroraPAR
                             state.RawTime = now;
                         }
                     }
-                    else if ((now - state.RawTime).TotalSeconds > MaxPredictSeconds)
-                    {
-                        // No new position for a while (simulator paused, data stopped): back onto the last real one in
-                        // about a second, whatever the number of calls per second.
-                        double back = 1 - Math.Exp(-elapsed / 0.5);
-                        state.Latitude += back * (aircraft.Latitude - state.Latitude);
-                        state.Longitude += back * (aircraft.Longitude - state.Longitude);
-                        state.Altitude += back * (aircraft.Altitude - state.Altitude);
-                    }
+                    // No new position for a while (data late, simulator paused): the estimate stops where it is (Predict
+                    // moves it on at most MaxPredictSeconds) and never goes back; the next position corrects it.
                     // Vertical speed not known yet (first seconds of a track): the real altitude.
                     if (aircraft.VerticalSpeedFpm == null) state.Altitude = aircraft.Altitude;
                 }
@@ -126,7 +122,46 @@ namespace AuroraPAR
             state.Altitude = state.RawAltitude = aircraft.Altitude;
             state.Time = now;
             state.RawTime = now;
+            state.Ahead = 0;
             return state;
+        }
+
+        /// <summary>
+        /// Pulls the estimate towards a new real position by <paramref name="alpha"/> of the difference
+        /// (<paramref name="northNM"/>, <paramref name="eastNM"/>: real minus estimate), but never backwards along the
+        /// track: across the track and forwards it is corrected at once; when the real position is behind (it arrived
+        /// late, the estimate went too far) the difference is kept in <see cref="State.Ahead"/> and taken back by
+        /// moving on more slowly. So the track always moves forwards, without jumps back.
+        /// </summary>
+        private static void Correct(State state, Aircraft aircraft, double northNM, double eastNM, double alpha)
+        {
+            double cosLatitude = Math.Max(0.01, Math.Cos(state.Latitude * Math.PI / 180));
+            double alongNM = 0;
+            if (aircraft.Speed >= 30)
+            {
+                double track = aircraft.Track * Math.PI / 180;
+                (double unitNorth, double unitEast) = (Math.Cos(track), Math.Sin(track));
+                alongNM = northNM * unitNorth + eastNM * unitEast;
+                // Across the track: corrected as before.
+                northNM -= alongNM * unitNorth;
+                eastNM -= alongNM * unitEast;
+                // Along the track: forwards at once; backwards later, by moving on more slowly. The new position
+                // tells the whole gap at this moment, so it replaces what was still owed.
+                double along = alpha * alongNM;
+                state.Ahead = along < 0 ? -along : 0;
+                along = Math.Max(0, along);
+                northNM = alpha * northNM + along * unitNorth;
+                eastNM = alpha * eastNM + along * unitEast;
+            }
+            else
+            {
+                // Slow or still (on the ground): no track to keep, plain correction.
+                northNM *= alpha;
+                eastNM *= alpha;
+                state.Ahead = 0;
+            }
+            state.Latitude += northNM / 60;
+            state.Longitude += eastNM / (60 * cosLatitude);
         }
 
         /// <summary>
@@ -140,6 +175,10 @@ namespace AuroraPAR
             state.Time = now;
             if (seconds <= 0) return;
             double nm = aircraft.Speed * seconds / 3600;
+            // Ahead of the real aircraft: move on at half speed until it has caught up (never backwards).
+            double hold = Math.Min(state.Ahead, nm / 2);
+            nm -= hold;
+            state.Ahead -= hold;
             double track = aircraft.Track * Math.PI / 180;
             double cosLatitude = Math.Max(0.01, Math.Cos(state.Latitude * Math.PI / 180));
             state.Latitude += nm * Math.Cos(track) / 60;
