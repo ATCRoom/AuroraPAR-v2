@@ -21,6 +21,8 @@
 
 - **Coordination, relay reliability (11 Oct evening, from the logs):** the free public relays were slow/rejecting (emqx *ServerUnavailable*, hivemq timeouts) on both PCs, with and without panel code; before (9-10 Oct) ~1 s. Decision: the system must stay **totally free**; keep it as it is and see. If it happens again: try the relays **in parallel** (first that answers wins, both panels on the same one) and/or more free public relays; paid server or own broker only if really needed.
 
+- **Track smoothing Auto (idea 13 Oct, after the tests of Light / Strong with key S):** fourth option *Auto*, per aircraft and gradual: regular data (positions every ~0.5 s) → like Light; irregular (pauses, late positions, bursts) → slides towards Strong. Judged **only on the timing** of the positions, never on how far a new position is from the estimate (a turn or a rate change would otherwise look like noise and get more smoothing just when it should get less). Key S: Off → Light → Strong → Auto. Then decide if Auto becomes the default. Use the user's notes from the S tests to set it.
+
 ## Done, to be tested
 
 Last updates, newest first. When an item works in the test, delete it.
