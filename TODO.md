@@ -24,8 +24,8 @@
 - **Track smoothing Auto (idea 13 Oct, after the tests of Light / Strong with key S):** fourth option *Auto*, per aircraft and gradual: regular data (positions every ~0.5 s) → like Light; irregular (pauses, late positions, bursts) → slides towards Strong. Judged **only on the timing** of the positions, never on how far a new position is from the estimate (a turn or a rate change would otherwise look like noise and get more smoothing just when it should get less). Key S: Off → Light → Strong → Auto. Then decide if Auto becomes the default. Use the user's notes from the S tests to set it.
 
 - **Help buttons (asked 13 Oct):**
-  - **Manual button**: opens the user manual (online page of the manual, the address changes with the ATCRoom migration; maybe a packaged copy as fallback when offline). Where: Settings (tools at the bottom) and/or main window; analog: a key or only in Settings.
-  - **Shortcuts button**: opens an internal window (no file to download) listing all the keyboard shortcuts and mouse actions (the table of manual section 6, plus Shift / Ctrl combinations, S, C, P, T, L, A, wheel, label drag / right-click...), built from one list in the code so it never gets out of date. Maybe also on key **F1** or **?**.
+  - **Manual button**: opens the user manual (online page of the manual, the address changes with the ATCRoom migration; maybe a packaged copy as fallback when offline). Where (decided 13 Oct): **always bottom right, with the other buttons** (modern: with Coordination / Test traffic / Settings; analog: with the MODERN / COORD / SETUP keys).
+  - **Shortcuts button**: opens an internal window (no file to download) listing all the keyboard shortcuts and mouse actions (the table of manual section 6, plus Shift / Ctrl combinations, S, C, P, T, L, A, wheel, label drag / right-click...), built from one list in the code so it never gets out of date. Same place (bottom right, next to the Manual button); maybe also on key **F1** or **?**.
 
 ## Done, to be tested
 
