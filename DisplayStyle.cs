@@ -90,12 +90,26 @@ namespace AuroraPAR
         Below
     }
 
+    /// <summary>Where the ticks of the elevation view go (the azimuth view always has them on the centreline).</summary>
+    internal enum TickPlace
+    {
+        /// <summary>On the horizon line (the distance axis).</summary>
+        Horizon,
+        /// <summary>On the glide path, vertical, as on the PAR 2000 (UK).</summary>
+        GlidePath,
+        Both
+    }
+
     internal class RangeMarkSettings
     {
         public RangeMarkDrawing Drawing { get; set; } = RangeMarkDrawing.Lines;
         /// <summary>Length of the ticks of the marks with text, in pixels (the others a little shorter).</summary>
         public double TickLength { get; set; } = 10;
         public TickSide TickSide { get; set; } = TickSide.Both;
+        /// <summary>Elevation view: ticks on the horizon line, on the glide path or on both.</summary>
+        public TickPlace TicksOn { get; set; } = TickPlace.Horizon;
+        public bool TicksOnHorizon => TicksOn != TickPlace.GlidePath;
+        public bool TicksOnGlidePath => TicksOn != TickPlace.Horizon;
         public const double MinTickLength = 4;
         public const double MaxTickLength = 30;
 
@@ -149,6 +163,7 @@ namespace AuroraPAR
             if (!Enum.IsDefined(TextFormat)) TextFormat = DistanceTextFormat.Decimal;
             if (!Enum.IsDefined(Drawing)) Drawing = RangeMarkDrawing.Lines;
             if (!Enum.IsDefined(TickSide)) TickSide = TickSide.Both;
+            if (!Enum.IsDefined(TicksOn)) TicksOn = TickPlace.Horizon;
             TickLength = TickLength <= 0 ? 10 : Math.Clamp(Math.Round(TickLength), MinTickLength, MaxTickLength);
             TextSize = TextSize <= 0 ? DefaultTextSize : Math.Clamp(Math.Round(TextSize), MinTextSize, MaxTextSize);
             List<RangeMarkRow> rows = [];

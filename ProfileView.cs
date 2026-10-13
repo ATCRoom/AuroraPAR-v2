@@ -224,7 +224,13 @@ namespace AuroraPAR
                 double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
                 if (tickUp + tickDown > 0 && !HasReminderLine(reminders, distance))
                 {
-                    AddLine(XAt(markNM), H + tickDown, XAt(markNM), H - tickUp, element);
+                    if (Options.RangeMarks.TicksOnHorizon) AddLine(XAt(markNM), H + tickDown, XAt(markNM), H - tickUp, element);
+                    // On the glide path (as on the PAR 2000): vertical, centred on the line, in its colour.
+                    if (Options.RangeMarks.TicksOnGlidePath && distance > 0)
+                    {
+                        double gpY = Y(distance, Runway.GlidePathHeight(distance, 0));
+                        AddLine(XAt(markNM), gpY + tickDown, XAt(markNM), gpY - tickUp, StyleElement.GlidePath, dash: LineDash.Solid);
+                    }
                 }
                 if (Options.RangeMarks.DrawLines && top < bottom && !HasReminderLine(reminders, distance))
                 {
@@ -239,7 +245,8 @@ namespace AuroraPAR
                 }
                 if (text && shownTexts.Contains(distance))
                 {
-                    AddText(Options.RangeMarks.Label(distance, range), XAt(markNM), textBelow ? H + 2 + tickDown : H - 1 - tickUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
+                    double axisDown = Options.RangeMarks.TicksOnHorizon ? tickDown : 0, axisUp = Options.RangeMarks.TicksOnHorizon ? tickUp : 0;
+                    AddText(Options.RangeMarks.Label(distance, range), XAt(markNM), textBelow ? H + 2 + axisDown : H - 1 - axisUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
                 }
             }
             // Distance reminders: line between the scan limits and/or marker on the other side of the horizon from the text.

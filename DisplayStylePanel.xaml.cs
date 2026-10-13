@@ -30,6 +30,7 @@ namespace AuroraPAR
                 RangeMarkDrawing drawing = Active.RangeMarks.Drawing;
                 double tickLength = Active.RangeMarks.TickLength;
                 TickSide tickSide = Active.RangeMarks.TickSide;
+                TickPlace ticksOn = Active.RangeMarks.TicksOn;
                 Active.RangeMarks = RangeMarkSettings.Default();
                 // The text format and size are separate choices: Default resets only the table.
                 Active.RangeMarks.TextFormat = format;
@@ -37,6 +38,7 @@ namespace AuroraPAR
                 Active.RangeMarks.Drawing = drawing;
                 Active.RangeMarks.TickLength = tickLength;
                 Active.RangeMarks.TickSide = tickSide;
+                Active.RangeMarks.TicksOn = ticksOn;
                 commit();
                 BuildRangeMarks();
             };
@@ -76,7 +78,7 @@ namespace AuroraPAR
             {
                 if (DrawingComboBox.SelectedIndex < 0) return;
                 Active.RangeMarks.Drawing = (RangeMarkDrawing)DrawingComboBox.SelectedIndex;
-                TickLengthComboBox.IsEnabled = TickSideComboBox.IsEnabled = Active.RangeMarks.DrawTicks;
+                TickLengthComboBox.IsEnabled = TickSideComboBox.IsEnabled = TicksOnComboBox.IsEnabled = Active.RangeMarks.DrawTicks;
                 commit();
             };
             List<int> tickLengths = Enumerable.Range((int)RangeMarkSettings.MinTickLength, (int)(RangeMarkSettings.MaxTickLength - RangeMarkSettings.MinTickLength) + 1).ToList();
@@ -96,7 +98,15 @@ namespace AuroraPAR
                 Active.RangeMarks.TickSide = (TickSide)TickSideComboBox.SelectedIndex;
                 commit();
             };
-            TickLengthComboBox.IsEnabled = TickSideComboBox.IsEnabled = Active.RangeMarks.DrawTicks;
+            TicksOnComboBox.ItemsSource = new[] { "Horizon", "Glide path", "Both" };
+            TicksOnComboBox.SelectedIndex = (int)Active.RangeMarks.TicksOn;
+            TicksOnComboBox.SelectionChanged += (s, e) =>
+            {
+                if (TicksOnComboBox.SelectedIndex < 0) return;
+                Active.RangeMarks.TicksOn = (TickPlace)TicksOnComboBox.SelectedIndex;
+                commit();
+            };
+            TickLengthComboBox.IsEnabled = TickSideComboBox.IsEnabled = TicksOnComboBox.IsEnabled = Active.RangeMarks.DrawTicks;
             StyleDefaultButton.Click += (s, e) =>
             {
                 // Default colours and lines; the Show choices (Modern / Analog) are kept.
