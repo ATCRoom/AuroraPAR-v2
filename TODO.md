@@ -27,6 +27,8 @@
   - **Manual button**: opens the user manual (online page of the manual, the address changes with the ATCRoom migration; maybe a packaged copy as fallback when offline). Where (decided 13 Oct): **always bottom right, with the other buttons** (modern: with Coordination / Test traffic / Settings; analog: with the MODERN / COORD / SETUP keys).
   - **Shortcuts button**: opens an internal window (no file to download) listing all the keyboard shortcuts and mouse actions (the table of manual section 6, plus Shift / Ctrl combinations, S, C, P, T, L, A, wheel, label drag / right-click...), built from one list in the code so it never gets out of date. Same place (bottom right, next to the Manual button); maybe also on key **F1** or **?**.
 
+- **Next update — track smoothing during data pauses (13 Oct):** today the estimate moves on for **2 s** after the last position, then stops (user saw tracks stop, with a gap in the history dots = Aurora sent nothing for a few seconds). Change `TrackFilter.MaxPredictSeconds` to about **6 s** (as a coasting track), then stop; when the position arrives, the forward-only correction slows the track if it went too far. Update manual. Also: user saw little difference between Light and Strong with regular data → the *Auto* idea may not be needed; decide after more tests.
+
 ## Done, to be tested
 
 Last updates, newest first. When an item works in the test, delete it.
