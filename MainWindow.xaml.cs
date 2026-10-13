@@ -120,13 +120,11 @@ namespace AuroraPAR
         private readonly Radar radar = new();
         private readonly ViewOptions viewOptions = new();
         private readonly TrackFilter trackFilter = new();
-        /// <summary>Key S: track smoothing switched on / off for this session (not saved), to compare.</summary>
-        private bool smoothingToggled;
+        /// <summary>Key S: track smoothing chosen for this session (not saved), to compare; null: the profile's.</summary>
+        private TrackSmoothing? sessionSmoothing;
 
-        /// <summary>Track smoothing in use: the one of the profile, or the opposite after key S.</summary>
-        private TrackSmoothing Smoothing => !smoothingToggled
-            ? settings.Active.TrackSmoothing
-            : settings.Active.TrackSmoothing == TrackSmoothing.Off ? TrackSmoothing.Light : TrackSmoothing.Off;
+        /// <summary>Track smoothing in use: the one of the profile, or the one chosen with key S.</summary>
+        private TrackSmoothing Smoothing => sessionSmoothing ?? settings.Active.TrackSmoothing;
         /// <summary>Virtual aircraft for tests (key T), merged with the traffic of Aurora.</summary>
         private readonly TestTraffic testTraffic = new();
         private TestTrafficWindow? testTrafficWindow;
@@ -1068,7 +1066,7 @@ namespace AuroraPAR
                 return;
             }
             // Key S was for the profile in use: the next one starts with its own smoothing.
-            smoothingToggled = false;
+            sessionSmoothing = null;
             int index = profiles.IndexOf(settings.Active);
             Profile next = profiles[((index + direction) % profiles.Count + profiles.Count) % profiles.Count];
             settings.ActiveProfile = next.Name;
@@ -1236,16 +1234,19 @@ namespace AuroraPAR
         }
 
         /// <summary>
-        /// Key S: track smoothing on / off for this session (to compare with the raw positions); the profile setting
-        /// is not changed and comes back at the next start.
+        /// Key S: track smoothing Off → Light → Strong → Off... for this session (to compare); the profile setting
+        /// is not changed and comes back at the next start or profile switch.
         /// </summary>
         private void ToggleSmoothing()
         {
-            smoothingToggled = !smoothingToggled;
-            TrackSmoothing smoothing = Smoothing;
-            ShowBanner(viewOptions.Analog
-                ? $"TRACK SMOOTHING {(smoothing == TrackSmoothing.Off ? "OFF" : "ON")} (MODERN DISPLAY ONLY)"
-                : smoothing == TrackSmoothing.Off ? "TRACK SMOOTHING OFF" : $"TRACK SMOOTHING {smoothing.ToString().ToUpperInvariant()}");
+            sessionSmoothing = Smoothing switch
+            {
+                TrackSmoothing.Off => TrackSmoothing.Light,
+                TrackSmoothing.Light => TrackSmoothing.Strong,
+                _ => TrackSmoothing.Off
+            };
+            string text = $"TRACK SMOOTHING {Smoothing.ToString().ToUpperInvariant()}";
+            ShowBanner(viewOptions.Analog ? text + " (MODERN DISPLAY ONLY)" : text);
             Redraw();
         }
 
