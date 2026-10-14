@@ -313,9 +313,9 @@ namespace AuroraPAR
             written.Margin = new Thickness(8, 0, 0, 4);
             AddCell(grid, written, 1, MarkIntervals.All.Length + 1);
 
-            DistanceUnit unit = Active.DistanceUnit;
-            double perNM = DistanceUnits.PerNM(unit);
-            List<string> textChoices = ["none", .. MarkIntervals.All.Select(i => "every " + MarkIntervals.Name(i, unit))];
+            DistanceUnit distanceUnit = Active.DistanceUnit;
+            double perNM = DistanceUnits.PerNM(distanceUnit);
+            List<string> textChoices = ["none", .. MarkIntervals.All.Select(i => "every " + MarkIntervals.Name(i, distanceUnit))];
             int r = 2;
             foreach (RangeMarkRow row in Active.RangeMarks.Rows.OrderByDescending(x => x.Range))
             {
@@ -324,7 +324,7 @@ namespace AuroraPAR
                 {
                     // The ranges are in NM; in km also the value in km.
                     Text = row.Range.ToString("0.#", CultureInfo.InvariantCulture) + " NM"
-                        + (unit == DistanceUnit.Kilometres ? $" ({(row.Range * perNM).ToString("0", CultureInfo.InvariantCulture)} km)" : ""),
+                        + (distanceUnit == DistanceUnit.Kilometres ? $" ({(row.Range * perNM).ToString("0", CultureInfo.InvariantCulture)} km)" : ""),
                     VerticalAlignment = VerticalAlignment.Center,
                     FontWeight = FontWeights.SemiBold
                 }, r, 0);
@@ -362,7 +362,7 @@ namespace AuroraPAR
                 };
                 CheckBox unit = new()
                 {
-                    Content = DistanceUnits.Name(unit),
+                    Content = DistanceUnits.Name(distanceUnit),
                     IsChecked = row.ShowUnit,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 0, 0, 0),

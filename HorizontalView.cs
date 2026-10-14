@@ -214,8 +214,8 @@ namespace AuroraPAR
             foreach (bool isRight in new[] { false, true })
             {
                 double sign = isRight ? 1 : -1;
-                bool right = isRight;
-                double Offset(double s) => sign * Radar.ApproachHalfWidth(s, right);
+                bool onRight = isRight;
+                double Offset(double s) => sign * Radar.ApproachHalfWidth(s, onRight);
                 AddLateralLine(0, limitSplit, Offset, StyleElement.ApproachLimits, limitDash);
                 AddLateralLine(limitSplit, limitsEnd, Offset, StyleElement.ApproachLimits);
             }
