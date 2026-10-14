@@ -431,7 +431,7 @@ The window has the **profile** bar at the top (everything below belongs to that 
 
 A profile holds all the display options, so that different controllers or different radar types can have their own set-up.
 
-**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
+**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2000** (modern, in the colours of the UK PAR 2000: only range ticks, also on the glide path, lower approach limit only, azimuth safety limits, CRS selector, labels at 45°), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
 
 - Select the active profile from the list; **Rename**, **Duplicate**, **Delete**.
 - **Export...** saves the profile as a `.json` file to share with other controllers; **Import...** loads one.
