@@ -261,6 +261,22 @@ namespace AuroraPAR
             };
             DhTextBox.LostFocus += (s, e) => ApplyDecisionHeightText();
             DhTextBox.Text = FormatHeight(runway.MDH);
+            CourseUpButton.Click += (s, e) => StepCourse(1);
+            CourseDownButton.Click += (s, e) => StepCourse(-1);
+            CourseTextBox.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    ApplyCourseText();
+                    FocusHelper.ReleaseKeyboard(this);
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    UpdateCourseSelector();
+                    FocusHelper.ReleaseKeyboard(this);
+                }
+            };
+            CourseTextBox.LostFocus += (s, e) => ApplyCourseText();
             GlidePathTextBox.PreviewKeyDown += (s, e) =>
             {
                 if (e.Key == Key.Enter)
@@ -450,7 +466,7 @@ namespace AuroraPAR
         {
             Profile profile = settings.Active;
             string ranges = string.Join(",", Ranges.Values);
-            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.BrightnessControl}|{profile.RainClutter}";
+            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.ShowCourseSelector}|{profile.BrightnessControl}|{profile.RainClutter}";
             if (layout == analogControlsLayout) return;
             analogControlsLayout = layout;
             KnobPanel.Children.Clear();
@@ -542,6 +558,15 @@ namespace AuroraPAR
             else
             {
                 KnobPanel.Children.Add(dhKnob);
+            }
+            if (profile.ShowCourseSelector)
+            {
+                AddKeyGroup("CRS",
+                [
+                    ("−", "Final course 1° less, for this session (Alt+←).", () => StepCourse(-1), null),
+                    ("RWY", "Final course of the runway (Alt+Home).", ResetCourse, () => !runway.CourseChanged),
+                    ("+", "Final course 1° more, for this session (Alt+→).", () => StepCourse(1), null)
+                ], repeat: true);
             }
             if (profile.BrightnessControl == AnalogControl.Keys)
             {
@@ -1336,6 +1361,7 @@ namespace AuroraPAR
             AptPanel.Visibility = analog ? Visibility.Visible : Visibility.Collapsed;
             IcaoPanel.Visibility = modern;
             DhPanel.Visibility = analog || !settings.Active.ShowDhSelector ? Visibility.Collapsed : Visibility.Visible;
+            CoursePanel.Visibility = analog || !settings.Active.ShowCourseSelector ? Visibility.Collapsed : Visibility.Visible;
             ApplyKeyPanels(analog);
             aptEntry.Icao = runway.ICAO;
             DistanceComboBox.Visibility = modern;
@@ -1681,8 +1707,12 @@ namespace AuroraPAR
                 Runway r = (wantedGlideSlope is double gp ? approaches.FirstOrDefault(a => Math.Abs(a.GlideSlope - gp) < 0.005) : null) ?? first;
                 selectedApproach = r;
                 runway = r;
-                // The decision height changed on the fly is not kept: back to the runway file value.
+                // The decision height and the course changed on the fly are not kept: back to the runway file values.
                 runway.MDH = runway.DefaultMDH;
+                previous.ResetHeading();
+                sessionCourse = null;
+                runway.ResetHeading();
+                UpdateCourseSelector();
                 // New runway, new antenna: back to neutral.
                 radar.Neutral();
                 DhTextBox.Text = FormatHeight(runway.MDH);
@@ -1859,7 +1889,9 @@ namespace AuroraPAR
             double mdh = runway.MDH;
             double distance = runway.Distance;
             selectedApproach = approach;
+            runway.ResetHeading();
             runway = approach;
+            ApplySessionCourse();
             runway.MDH = keepDecisionHeight ? mdh : runway.DefaultMDH;
             runway.Distance = distance;
             DhTextBox.Text = FormatHeight(runway.MDH);
@@ -1880,6 +1912,7 @@ namespace AuroraPAR
             copy.MDH = runway.MDH;
             copy.Distance = runway.Distance;
             runway = copy;
+            ApplySessionCourse();
             profileView.SetRunway(runway, keepTracks: true);
             horizontalView.SetRunway(runway, keepTracks: true);
             UpdateGlidePathSelector();
@@ -1954,6 +1987,73 @@ namespace AuroraPAR
             }
             if (viewOptions.Analog) UpdateKnobs();
             UpdateAnalogButtons();
+        }
+
+        /// <summary>CRS selector: true heading chosen for this session (null: the runway file).</summary>
+        private double? sessionCourse;
+
+        /// <summary>Magnetic variation used for the final course of the runway in use.</summary>
+        private double CourseVariation => runway.MagneticVariation ?? settings.Active.MagneticVariation;
+
+        /// <summary>Puts the course of the session (or the file heading) on the runway in use.</summary>
+        private void ApplySessionCourse()
+        {
+            if (sessionCourse is double heading) runway.SetSessionHeading(heading);
+            else runway.ResetHeading();
+            UpdateCourseSelector();
+        }
+
+        /// <summary>
+        /// CRS selector: sets the magnetic final course for this session (the published one goes back to the exact
+        /// heading of the runway file).
+        /// </summary>
+        private void SetCourse(int magneticCourse)
+        {
+            int course = ((magneticCourse - 1) % 360 + 360) % 360 + 1;
+            int published = MagneticVariation.FinalCourse(runway.DefaultHeading, CourseVariation);
+            sessionCourse = course == published ? null : course + CourseVariation;
+            ApplySessionCourse();
+            InvalidateViews();
+            UpdateAnalogKeys();
+        }
+
+        private void StepCourse(int degrees) => SetCourse(runway.FinalCourse(settings.Active.MagneticVariation) + degrees);
+
+        private void ResetCourse()
+        {
+            sessionCourse = null;
+            ApplySessionCourse();
+            InvalidateViews();
+            UpdateAnalogKeys();
+        }
+
+        private void ApplyCourseText()
+        {
+            string text = CourseTextBox.Text.Trim().TrimEnd('°').Trim();
+            if (int.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int course)
+                && course >= 0 && course <= 360)
+            {
+                if (course != runway.FinalCourse(settings.Active.MagneticVariation)) SetCourse(course);
+                else UpdateCourseSelector();
+                return;
+            }
+            UpdateCourseSelector();
+        }
+
+        /// <summary>Course in use in the CRS box, orange when it is not the one of the runway file.</summary>
+        private void UpdateCourseSelector()
+        {
+            CourseTextBox.Text = runway.FinalCourse(settings.Active.MagneticVariation).ToString("000", System.Globalization.CultureInfo.InvariantCulture);
+            if (runway.CourseChanged)
+            {
+                CourseTextBox.Foreground = Brushes.DarkOrange;
+                CourseTextBox.FontWeight = FontWeights.Bold;
+            }
+            else
+            {
+                CourseTextBox.ClearValue(Control.ForegroundProperty);
+                CourseTextBox.ClearValue(Control.FontWeightProperty);
+            }
         }
 
         private const double DecisionHeightStep = 10;
@@ -2079,6 +2179,14 @@ namespace AuroraPAR
             if (modifiers == ModifierKeys.Shift && e.Key is Key.Up or Key.Down or Key.Home)
             {
                 SetDecisionHeight(e.Key == Key.Up ? runway.MDH + DecisionHeightStep : e.Key == Key.Down ? runway.MDH - DecisionHeightStep : runway.DefaultMDH);
+                e.Handled = true;
+                return;
+            }
+            // Alt + ← / → / Home: CRS selector (Alt makes WPF report the key as Key.System).
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (modifiers == ModifierKeys.Alt && key is Key.Left or Key.Right or Key.Home)
+            {
+                if (key == Key.Home) ResetCourse(); else StepCourse(key == Key.Right ? 1 : -1);
                 e.Handled = true;
                 return;
             }
@@ -2466,7 +2574,11 @@ namespace AuroraPAR
             string missedApproach = runway.MissedApproachPointText();
             // Texts changed only when different, so an open tooltip is not disturbed by the refresh.
             SetText(infoText, $"RWY {runway.BaseDesignator}");
-            SetText(courseText, $"CRS {course}");
+            SetText(courseText, runway.CourseChanged ? $"CRS {course} SELECTED" : $"CRS {course}");
+            Brush courseBrush = runway.CourseChanged ? Brushes.Orange : Brushes.White;
+            if (courseText.Foreground != courseBrush) courseText.Foreground = courseBrush;
+            FontWeight courseWeight = runway.CourseChanged ? FontWeights.Bold : FontWeights.Normal;
+            if (courseText.FontWeight != courseWeight) courseText.FontWeight = courseWeight;
             bool unpublished = runway.IsUnpublished;
             SetText(glidePathText, unpublished ? $"GP {glidePath}° UNPUBLISHED APPROACH" : $"GP {glidePath}°");
             SetText(missedApproachText, $"MAPt DIST {missedApproach}{(missedApproach == "----" ? "" : " NM")}");
@@ -2478,6 +2590,8 @@ namespace AuroraPAR
                 if (block.FontWeight != weight) block.FontWeight = weight;
             }
             SetText(infoText2, $"{(qfe ? "QFE" : "QNH")} {pressure}\n{minimum}");
+            // CRS box: follows the course in use (e.g. a new magnetic variation), not while it is being typed in.
+            if (!CourseTextBox.IsKeyboardFocusWithin && CourseTextBox.Text != course) UpdateCourseSelector();
             if (viewOptions.Analog)
             {
                 consolePanel.Update(new ConsoleData(

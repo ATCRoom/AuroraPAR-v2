@@ -180,6 +180,12 @@
                                   ToolTip="Decision height selector on the right panel, in both displays. Off by default: the DH of the runway is used."/>
                     </StackPanel>
                     <TextBlock Text="Off: the DH of the runway is used; Shift+arrows change it anyway." Style="{StaticResource Note}" Margin="200,4,0,0" Tag="Advanced"/>
+                    <StackPanel Style="{StaticResource Line}" Tag="Advanced">
+                        <TextBlock Text="CRS selector" Style="{StaticResource Label}"/>
+                        <CheckBox Name="ShowCourseCheck" Content="Show (field with − / +, or keys − RWY +)" VerticalAlignment="Center"
+                                  ToolTip="Free final course selector on the right panel, in both displays: the course can be changed on the fly for the session (e.g. a ship). Off by default."/>
+                    </StackPanel>
+                    <TextBlock Text="The centreline turns around the threshold; back to the runway course when the runway changes. Alt+← / → / Home work anyway." Style="{StaticResource Note}" Margin="200,4,0,0" Tag="Advanced"/>
                     <TextBlock Text="DH LINES" Style="{StaticResource SubHeader}"/>
                     <StackPanel Style="{StaticResource Line}"
                                 ToolTip="Decision height lines of the elevation view, drawn from the point where the glide path reaches the DH. Colour, line style and width: Colours and lines.">

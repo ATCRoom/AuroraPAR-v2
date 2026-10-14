@@ -18,6 +18,8 @@ namespace AuroraPAR
     {
         /// <summary>Approach limits, angles from the ideal glide path (above/below) and centreline (left/right) at the touchdown point.</summary>
         public double ApproachAbove { get; set; } = 0.5;
+        /// <summary>False: no upper approach limit (see <see cref="Profile.UpperApproachLimit"/>).</summary>
+        public bool UpperApproachLimit { get; set; } = true;
         public double ApproachBelow { get; set; } = 0.5;
         public double ApproachLeft { get; set; } = 1.5;
         public double ApproachRight { get; set; } = 1.5;
@@ -113,6 +115,7 @@ namespace AuroraPAR
         {
             profile.MigrateScanModel();
             ApproachAbove = profile.ApproachAbove;
+            UpperApproachLimit = profile.UpperApproachLimit;
             ApproachBelow = profile.ApproachBelow;
             ApproachLeft = profile.ApproachLeft;
             ApproachRight = profile.ApproachRight;
@@ -284,14 +287,15 @@ namespace AuroraPAR
         }
 
         /// <summary>
-        /// True when the aircraft is inside the vertical approach limits (angles from the touchdown point).
+        /// True when the aircraft is inside the vertical approach limits (angles from the touchdown point); without the
+        /// upper limit, anywhere above the lower one.
         /// </summary>
         public bool IsWithinGlidePathLimits(Aircraft aircraft, Runway runway)
         {
             double s = aircraft.DistanceFromTouchdown(runway);
             double height = aircraft.Altitude - runway.Elevation;
             return height > runway.GlidePathHeight(s, -ApproachBelow)
-                && height < runway.GlidePathHeight(s, ApproachAbove);
+                && (!UpperApproachLimit || height < runway.GlidePathHeight(s, ApproachAbove));
         }
 
         /// <summary>

@@ -125,6 +125,8 @@ namespace AuroraPAR
                 double value = DhDropLengths[DhDropLengthComboBox.SelectedIndex];
                 SetProfileValue(p => p.DhDropLength == value, p => p.DhDropLength = value);
             };
+            ShowCourseCheck.Checked += (s, e) => SetProfileValue(p => p.ShowCourseSelector, p => p.ShowCourseSelector = true);
+            ShowCourseCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowCourseSelector, p => p.ShowCourseSelector = false);
             ShowDhCheck.Checked += (s, e) => SetProfileValue(p => p.ShowDhSelector, p => p.ShowDhSelector = true);
             RainClutterCheck.Checked += (s, e) => SetProfileValue(p => p.RainClutter, p => p.RainClutter = true);
             RainClutterCheck.Unchecked += (s, e) => SetProfileValue(p => !p.RainClutter, p => p.RainClutter = false);
@@ -297,6 +299,7 @@ namespace AuroraPAR
                 AnalogRadio.IsChecked = Active.DisplayMode == DisplayMode.Analog;
                 LockModeCheck.IsChecked = Active.LockDisplayMode;
                 ShowDhCheck.IsChecked = Active.ShowDhSelector;
+                ShowCourseCheck.IsChecked = Active.ShowCourseSelector;
                 RainClutterCheck.IsChecked = Active.RainClutter;
                 DhSideComboBox.SelectedIndex = (int)Active.DhLineSide;
                 DhLengthComboBox.SelectedIndex = Array.FindIndex(DhLengths, l => Math.Abs(l - Active.DhLineLength) < 0.01);
@@ -798,6 +801,8 @@ namespace AuroraPAR
             builderGrid = RadarGrid;
             builderAdvanced = false;
             AddHeader("Approach limits (track green inside, red outside)");
+            AddCheckRow("Upper approach limit (off: lower limit only, as on some PARs: above the glide path the track stays green, however high)",
+                p => p.UpperApproachLimit, (p, v) => p.UpperApproachLimit = v);
             AddNumberField("Above the glide path", p => p.ApproachAbove, (p, v) => p.ApproachAbove = v, 0.1, 5);
             AddNumberField("Below the glide path", p => p.ApproachBelow, (p, v) => p.ApproachBelow = v, 0.1, 5);
             AddNumberField("Left of the centreline", p => p.ApproachLeft, (p, v) => p.ApproachLeft = v, 0.1, 10);

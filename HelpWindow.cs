@@ -28,11 +28,13 @@ namespace AuroraPAR
                 ("← / →", "Azimuth tilt left / right"),
                 ("Home", "Antenna back to neutral")
             ]),
-            ("Decision height and brightness", [
+            ("Decision height, brightness and course", [
                 ("Shift+↑ / Shift+↓", "Decision height 10 ft higher / lower"),
                 ("Shift+Home", "Decision height of the runway"),
                 ("Ctrl+↑ / Ctrl+↓", "Brightness up / down"),
-                ("Ctrl+Home", "Brightness 100%")
+                ("Ctrl+Home", "Brightness 100%"),
+                ("Alt+← / Alt+→", "Final course 1° less / more, this session (CRS selector)"),
+                ("Alt+Home", "Final course of the runway")
             ]),
             ("Display", [
                 ("A", "Modern / analog display (unless locked in the profile)"),

@@ -300,6 +300,15 @@
                         <TextBox Name="DhTextBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     </DockPanel>
                 </StackPanel>
+                <StackPanel Name="CoursePanel" Margin="0,10,0,0" Visibility="Collapsed"
+                            ToolTip="Final course for this session only (e.g. a ship): − / + one degree, or type the course and press Enter. Not saved, back to the runway value when the runway changes (Alt+Home). Keys Alt+← / Alt+→.">
+                    <TextBlock Name="CourseLabel" Text="CRS (°)" Margin="2,0,0,2"/>
+                    <DockPanel Height="26">
+                        <Button Name="CourseDownButton" Content="−" Width="26" DockPanel.Dock="Left"/>
+                        <Button Name="CourseUpButton" Content="+" Width="26" DockPanel.Dock="Right"/>
+                        <TextBox Name="CourseTextBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
                 <StackPanel Name="BrightnessPanel" Margin="0,10,0,0"
                             ToolTip="Brightness of the radar picture, 10% to 150% (above 100% the colours are boosted, for dim monitors). Also with the mouse wheel over it.">
                     <TextBlock Text="BRT" Margin="2,0,0,2"/>

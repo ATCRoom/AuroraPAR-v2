@@ -115,7 +115,7 @@ The antenna always stays at the same place: zooming in enlarges the approach, it
 
 
 - **Horizon line** (ground at the threshold elevation) and the runway.
-- **Glide path** (yellow) from the touchdown point at the runway's glide slope angle, with its **approach limits** above and below (default ±0.5°).
+- **Glide path** (yellow) from the touchdown point at the runway's glide slope angle, with its **approach limits** above and below (default ±0.5°). Some PARs have **only the lower limit**: untick *Settings → Radar → Upper approach limit*; the upper line is then not drawn and above the glide path the track stays green, however high, until it goes below the lower limit.
 - **Decision height**: a red horizontal line at the DH and a dashed vertical line, both drawn **from the point where the glide path reaches the DH**. Both can be customised: colour, line style and width of each (*Settings → Colours and lines*: *Decision height line* and *Decision height drop line*, which can also be hidden); the horizontal line goes to the **left, right or both sides** of the point on the screen (or *none*: no line), with a length of 0.25–5 NM on each side or **to the edge of the view** (with *both*: a line across the whole screen, as on some scopes) (*Settings → Approach and DH → Horizontal line*); the vertical line goes **down, up or both** (or *none*), as long as the DH (down to the ground, the default) or 50–1000 ft (*Settings → Approach and DH → Vertical line*); and an optional **symbol** on the DH point, with the colour of the *Decision height mark* (*Settings → Approach and DH → DH point symbol*, none by default). In the azimuth view (from above) the DH line crosses the centreline at the same distance, always on both sides: it has its own style (*Decision height line (azimuth view)*), a length on each side of the centreline (up to the scan limits, the default, or 50–1000 m: *Settings → Approach and DH → Line in the azimuth view*) and an optional symbol on the centreline (*Settings → Approach and DH → DH point symbol (azimuth view)*, with the colour of the *Decision height mark*).
 - **Glide path near the runway** (*Settings → Approach and DH*, advanced, only when the glide path is drawn solid): the last part of the glide path, approach limits and centreline, down to the touchdown point, is **solid** (the default), **dashed from the DH** (from the point where the glide path reaches the DH) or **dashed from the threshold** (as in the versions before 11 Oct), with a *dashed* or *dotted* line. A line drawn dashed in *Colours and lines* stays dashed down to the runway.
 - **Altitude scale** (optional) on the runway side: altitudes with QNH, heights with QFE, in feet or metres.
@@ -238,6 +238,7 @@ A label with no fields shows only the track symbol.
 | T | Test traffic window (virtual aircraft, see below) |
 | C | Linear / log distance scale (LIN / LOG keys; saved in the profile, see 10.5) |
 | F1 | List of all the keys and mouse actions (also the **Keys** button) |
+| Alt+← / Alt+→ | Final course 1° less / more for this session (CRS selector); Alt+Home = course of the runway |
 | S | Track smoothing Off → Light → Strong → Off… for this session, to compare (modern display; the setting of the profile is not changed and comes back at the next start or profile switch) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
@@ -269,6 +270,8 @@ The tilt moves the **beam** inside the scan limits; the glide path, centreline a
 The DH of each runway comes from `runways.par`. During the session it can be changed **on the fly** with **−** / **+** (10 ft steps) or by typing a value in the box. It is not saved: it goes back to the file value when the runway is selected again.
 
 The DH selector (box with **−** / **+** in the modern display, knob or keys in the analog one) is an advanced function and is **hidden by default**: tick *Settings → Approach and DH → DH selector* (visible with *Show advanced*) to show it (per profile; existing profiles start with it hidden). Hidden, the runway value is used, and **Shift+↑ / ↓ / Home** still change it.
+
+**Free CRS selector** (optional, e.g. for a ship): *Settings → Approach and DH → CRS selector* (advanced, off by default). Modern display: box **CRS (°)** with **−** / **+** (1°) under the DH box; type a course and press **Enter** (Esc: back to the one in use). Analog: keys **− RWY +** in a CRS group. Keys **Alt+← / Alt+→** (1°) and **Alt+Home** (course of the runway) work also with the selector hidden. The course is changed **for this session only**: the extended centreline, approach limits, lateral offsets and the test traffic follow it, turning around the **threshold**; it goes back to the runway course when the runway is chosen again (another published glide path angle of the same runway keeps it). A course that is not the one of `runways.par` is shown **orange** (*CRS xxx SELECTED* on the information line). The position stays that of `runways.par` (a moving ship is not followed).
 
 The name shown (DA/DH, OCA/OCH, MDA/MDH) is chosen in *Settings → Units and references*.
 

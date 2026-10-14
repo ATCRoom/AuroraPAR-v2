@@ -234,6 +234,11 @@ namespace AuroraPAR
         // Radar equipment (see Radar): angles in degrees.
         /// <summary>Approach limits from the ideal glide path and centreline (green inside, red outside).</summary>
         public double ApproachAbove { get; set; } = 0.5;
+        /// <summary>
+        /// Upper approach limit in use. Off (some PARs have only the lower one): no upper line, and above the glide
+        /// path the track keeps the "inside" colour, however high, until it goes below the lower limit.
+        /// </summary>
+        public bool UpperApproachLimit { get; set; } = true;
         public double ApproachBelow { get; set; } = 0.5;
         public double ApproachLeft { get; set; } = 1.5;
         public double ApproachRight { get; set; } = 1.5;
@@ -282,6 +287,11 @@ namespace AuroraPAR
         public bool LockDisplayMode { get; set; }
         /// <summary>Decision height selector on the right panel (field, knob or keys): an advanced function, off by default (Shift+arrows always work).</summary>
         public bool ShowDhSelector { get; set; }
+        /// <summary>
+        /// Free CRS selector (optional, off by default): the final course can be changed on the fly for the session,
+        /// e.g. on a ship. Modern: box with − / +; analog: keys − RWY +.
+        /// </summary>
+        public bool ShowCourseSelector { get; set; }
         /// <summary>Analog scope: rain clutter (patches and dots in the beam, from the METAR) and the CLUTTER knob. Off by default.</summary>
         public bool RainClutter { get; set; }
         /// <summary>Analog console: the controls of each group as a knob or as keys (the tilt also as a small joystick).</summary>

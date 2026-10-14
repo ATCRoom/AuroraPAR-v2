@@ -151,7 +151,7 @@ namespace AuroraPAR
             // Glide path and its approach limits, all starting at the touchdown point.
             AddGlidePathLine(0, StyleElement.GlidePath);
             AddGlidePathLine(-Radar.ApproachBelow, StyleElement.ApproachLimits);
-            AddGlidePathLine(Radar.ApproachAbove, StyleElement.ApproachLimits);
+            if (Radar.UpperApproachLimit) AddGlidePathLine(Radar.ApproachAbove, StyleElement.ApproachLimits);
             // Decision height: horizontal line from the touchdown point to 3 NM (or the end of the display),
             // and a dashed vertical line from its intercept with the glide path down to the runway axis.
             double displayEnd = Runway.TouchdownNM + range;

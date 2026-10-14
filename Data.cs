@@ -67,6 +67,22 @@ namespace AuroraPAR
         /// Heading in deg.
         /// </summary>
         public double Heading { get; set; } = 0;
+        private double? defaultHeading;
+        /// <summary>
+        /// Heading of the runway file. <see cref="Heading"/> can be changed on the fly with the CRS selector (never
+        /// saved): the centreline then turns around the threshold.
+        /// </summary>
+        public double DefaultHeading { get => defaultHeading ?? Heading; set => defaultHeading = value; }
+        /// <summary>True when the heading in use is not the one of the runway file (CRS selector).</summary>
+        public bool CourseChanged => Math.Abs(Heading - DefaultHeading) > 1e-6;
+        /// <summary>CRS selector: heading for this session (true, degrees).</summary>
+        public void SetSessionHeading(double trueHeading)
+        {
+            defaultHeading ??= Heading;
+            Heading = (trueHeading % 360 + 360) % 360;
+        }
+        /// <summary>Back to the heading of the runway file.</summary>
+        public void ResetHeading() => Heading = DefaultHeading;
         /// <summary>
         /// Elevation in ft.
         /// </summary>
@@ -449,6 +465,7 @@ namespace AuroraPAR
                     ICAO = linedata[0],
                     Designator = linedata[1],
                     Heading = heading,
+                    DefaultHeading = heading,
                     Elevation = elevation,
                     Latitude = latitude,
                     Longitude = longitude,
@@ -531,7 +548,7 @@ namespace AuroraPAR
                 return r.SourceText;
             }
             string line = string.Join(";",
-                r.ICAO, r.Designator, Format(r.Heading), Format(r.Elevation),
+                r.ICAO, r.Designator, Format(r.DefaultHeading), Format(r.Elevation),
                 CoordinateParser.Format(r.Latitude), CoordinateParser.Format(r.Longitude),
                 Format(r.LengthM), Format(r.WidthM), Format(r.GlideSlope), Format(r.TCH),
                 Format(r.DefaultMDH), Format(r.DefaultDistance));
