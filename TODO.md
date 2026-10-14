@@ -25,6 +25,10 @@
 
 - **Track smoothing Auto?** User saw little difference between Light and Strong with regular data → the *Auto* idea may not be needed; decide after more tests.
 
+- **Asked 14 Oct, to do:**
+  - **Upper approach limit optional** (some PARs have only the lower one): per profile, *Approach limits: upper and lower / lower only*. Lower only: the upper line is not drawn and the track keeps the "inside" colour above the glide path, however high, until it goes below the lower limit (or outside the lateral limits). Lateral limits unchanged.
+  - **Free CRS selector** (optional, off by default, like the DH selector; useful on ships): change the final course on the fly, for the session only (back to the runway value when the runway is chosen again). Modern: box with − / + (1° steps, type a value); analog: knob or keys − RWY +; keys maybe Alt+← / → and Alt+Home. Rotates the centreline, approach limits and lateral offsets around the touchdown point. Limit: the touchdown point stays at its coordinates (a moving ship is not followed). Shown in the CRS readout (orange when not the published value, as the unpublished GP).
+
 ## Done, to be tested
 
 Last updates, newest first. When an item works in the test, delete it.
