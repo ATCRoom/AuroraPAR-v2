@@ -257,6 +257,8 @@ namespace AuroraPAR
         GlidePath,
         Centerline,
         ApproachLimits,
+        /// <summary>Safety limits, outside the approach limits (optional, added later: off by default).</summary>
+        SafetyLimits,
         ScanLimits,
         /// <summary>Edges of the antenna beam (moved by the tilt inside the scan limits).</summary>
         AntennaBeam,
@@ -340,6 +342,7 @@ namespace AuroraPAR
             StyleElement.GlidePath => "Glide path",
             StyleElement.Centerline => "Centreline",
             StyleElement.ApproachLimits => "Approach limits",
+            StyleElement.SafetyLimits => "Safety limits",
             StyleElement.ScanLimits => "Scan limits",
             StyleElement.AntennaBeam => "Antenna beam",
             StyleElement.Antenna => "Antenna",
@@ -374,6 +377,7 @@ namespace AuroraPAR
             StyleElement.GlidePath => new() { Color = "#FFFF00", Width = 2 },
             StyleElement.Centerline => new() { Color = "#FFFF00", Width = 2 },
             StyleElement.ApproachLimits => new() { Color = "#FF0000", Width = 1 },
+            StyleElement.SafetyLimits => new() { Color = "#FF8C00", Width = 1, Dash = LineDash.Dashed },
             StyleElement.ScanLimits => new() { Color = "#5F9EA0", Width = 3 },
             StyleElement.AntennaBeam => new() { Color = "#40E0D0", Width = 2 },
             StyleElement.Antenna => new() { Color = "#5F9EA0" },

@@ -109,6 +109,29 @@ namespace AuroraPAR
             AddLine(X(split), Y(split, Runway.GlidePathHeight(split, angleOffset)), X(end), Y(end, Runway.GlidePathHeight(end, angleOffset)), element);
         }
 
+        /// <summary>
+        /// Safety limit line (glide path angle + <paramref name="angleOffset"/>, from the touchdown point), only the part
+        /// inside the scan limits (angles from the antenna <paramref name="scanUp"/>, <paramref name="scanDown"/>).
+        /// </summary>
+        private void AddSafetyLine(double angleOffset, double scanUp, double scanDown)
+        {
+            double end = Runway.TouchdownNM + Runway.Distance;
+            double fromEnd = Runway.LengthNM - Runway.TouchdownNM;
+            bool Inside(double s)
+            {
+                double fromAntenna = fromEnd + s - AntennaNM;
+                if (fromAntenna <= 0) return false;
+                double height = Runway.GlidePathHeight(s, angleOffset);
+                return height <= Radar.ScanHeight(fromAntenna, scanUp) && height >= Radar.ScanHeight(fromAntenna, scanDown);
+            }
+            if (VisiblePart(0, end, Inside) is not { } part) return;
+            double a = part.From, b = part.To;
+            (double split, LineDash dash) = FinalSegmentOf(StyleElement.SafetyLimits);
+            if (split > a) AddLine(X(a), Y(a, Runway.GlidePathHeight(a, angleOffset)), X(Math.Min(split, b)), Y(Math.Min(split, b), Runway.GlidePathHeight(Math.Min(split, b), angleOffset)), StyleElement.SafetyLimits, dash: dash);
+            double start = Math.Max(a, split);
+            if (start < b) AddLine(X(start), Y(start, Runway.GlidePathHeight(start, angleOffset)), X(b), Y(b, Runway.GlidePathHeight(b, angleOffset)), StyleElement.SafetyLimits);
+        }
+
         protected override void DrawStatic()
         {
             double length = Runway.LengthNM;
@@ -152,6 +175,11 @@ namespace AuroraPAR
             AddGlidePathLine(0, StyleElement.GlidePath);
             AddGlidePathLine(-Radar.ApproachBelow, StyleElement.ApproachLimits);
             if (Radar.UpperApproachLimit) AddGlidePathLine(Radar.ApproachAbove, StyleElement.ApproachLimits);
+            if (Radar.SafetyLimitsElevation)
+            {
+                AddSafetyLine(Radar.SafetyAbove, upper, lower);
+                AddSafetyLine(-Radar.SafetyBelow, upper, lower);
+            }
             // Decision height: horizontal line from the touchdown point to 3 NM (or the end of the display),
             // and a dashed vertical line from its intercept with the glide path down to the runway axis.
             double displayEnd = Runway.TouchdownNM + range;

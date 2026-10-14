@@ -243,6 +243,16 @@ namespace AuroraPAR
         public double ApproachLeft { get; set; } = 1.5;
         public double ApproachRight { get; set; } = 1.5;
         /// <summary>
+        /// Safety limits (optional, off by default): lines outside the approach limits, from the touchdown point,
+        /// in each view; only drawn (the track colour follows the approach limits), cut at the scan limits.
+        /// </summary>
+        public bool SafetyLimitsElevation { get; set; }
+        public bool SafetyLimitsAzimuth { get; set; }
+        public double SafetyAbove { get; set; } = 2;
+        public double SafetyBelow { get; set; } = 2;
+        public double SafetyLeft { get; set; } = 5;
+        public double SafetyRight { get; set; } = 5;
+        /// <summary>
         /// Scan limits from the antenna. Since <see cref="ScanModel"/> 1: the physical limits of the antenna (fixed).
         /// In older profiles (model 0): the limits of the old beam in neutral position, moved by the tilt up to
         /// <see cref="TiltMax"/> (converted by <see cref="MigrateScanModel"/>). The defaults are the old ones, so a

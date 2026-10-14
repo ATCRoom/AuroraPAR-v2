@@ -18,6 +18,13 @@ namespace AuroraPAR
     {
         /// <summary>Approach limits, angles from the ideal glide path (above/below) and centreline (left/right) at the touchdown point.</summary>
         public double ApproachAbove { get; set; } = 0.5;
+        /// <summary>Safety limits (see <see cref="Profile.SafetyLimitsElevation"/>): shown per view, angles from the touchdown.</summary>
+        public bool SafetyLimitsElevation { get; set; }
+        public bool SafetyLimitsAzimuth { get; set; }
+        public double SafetyAbove { get; set; } = 2;
+        public double SafetyBelow { get; set; } = 2;
+        public double SafetyLeft { get; set; } = 5;
+        public double SafetyRight { get; set; } = 5;
         /// <summary>False: no upper approach limit (see <see cref="Profile.UpperApproachLimit"/>).</summary>
         public bool UpperApproachLimit { get; set; } = true;
         public double ApproachBelow { get; set; } = 0.5;
@@ -116,6 +123,12 @@ namespace AuroraPAR
             profile.MigrateScanModel();
             ApproachAbove = profile.ApproachAbove;
             UpperApproachLimit = profile.UpperApproachLimit;
+            SafetyLimitsElevation = profile.SafetyLimitsElevation;
+            SafetyLimitsAzimuth = profile.SafetyLimitsAzimuth;
+            SafetyAbove = profile.SafetyAbove;
+            SafetyBelow = profile.SafetyBelow;
+            SafetyLeft = profile.SafetyLeft;
+            SafetyRight = profile.SafetyRight;
             ApproachBelow = profile.ApproachBelow;
             ApproachLeft = profile.ApproachLeft;
             ApproachRight = profile.ApproachRight;

@@ -117,6 +117,31 @@ namespace AuroraPAR
                 if (limitSplit > 0) AddLine(xTouchdown, cy, xLimitSplit, atSplit, StyleElement.ApproachLimits, dash: limitDash);
                 AddLine(xLimitSplit, atSplit, xEnd, atEnd, StyleElement.ApproachLimits);
             }
+            // Safety limits (optional): outside the approach limits, only the part inside the scan limits.
+            if (Radar.SafetyLimitsAzimuth)
+            {
+                (double safetySplit, LineDash safetyDash) = FinalSegmentOf(StyleElement.SafetyLimits);
+                foreach (bool isRight in new[] { false, true })
+                {
+                    double sign = isRight ? 1 : -1;
+                    double tan = Math.Tan((isRight ? Radar.SafetyRight : Radar.SafetyLeft) * Math.PI / 180);
+                    double Offset(double s) => sign * s * tan;
+                    bool Inside(double s)
+                    {
+                        double fromAntenna = touchdownFromEnd + s - AntennaNM;
+                        if (fromAntenna <= 0) return false;
+                        double offset = Offset(s);
+                        return offset >= Radar.ScanOffset(fromAntenna, left) && offset <= Radar.ScanOffset(fromAntenna, right);
+                    }
+                    if (VisiblePart(0, Runway.TouchdownNM + range, Inside) is not { } part) continue;
+                    double a = part.From, b = part.To;
+                    double Xs(double s) => XAt(touchdownFromEnd + s);
+                    double Ys(double s) => LateralY(touchdownFromEnd + s, Offset(s));
+                    if (safetySplit > a) AddLine(Xs(a), Ys(a), Xs(Math.Min(safetySplit, b)), Ys(Math.Min(safetySplit, b)), StyleElement.SafetyLimits, dash: safetyDash);
+                    double start = Math.Max(a, safetySplit);
+                    if (start < b) AddLine(Xs(start), Ys(start), Xs(b), Ys(b), StyleElement.SafetyLimits);
+                }
+            }
             // Touchdown point.
             if (Options.TouchdownSymbol.Shape == SymbolShape.Line)
             {

@@ -1243,6 +1243,24 @@ namespace AuroraPAR
             return (length, Options.FinalSegmentDash);
         }
 
+        /// <summary>
+        /// Part of a straight line from <paramref name="from"/> to <paramref name="to"/> (NM from the touchdown) where
+        /// <paramref name="inside"/> holds (e.g. inside the scan limits), found by sampling; null if none.
+        /// </summary>
+        protected static (double From, double To)? VisiblePart(double from, double to, Func<double, bool> inside)
+        {
+            const int steps = 400;
+            double? first = null, last = null;
+            for (int i = 0; i <= steps; i++)
+            {
+                double s = from + (to - from) * i / steps;
+                if (!inside(s)) continue;
+                first ??= s;
+                last = s;
+            }
+            return first is double a && last is double b && b > a ? (a, b) : null;
+        }
+
         /// <summary>Points of a line drawn with the compressed scale: segments enough to look smooth.</summary>
         private const int CurveSegments = 48;
 

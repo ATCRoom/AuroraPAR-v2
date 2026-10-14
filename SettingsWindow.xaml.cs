@@ -807,6 +807,13 @@ namespace AuroraPAR
             AddNumberField("Below the glide path", p => p.ApproachBelow, (p, v) => p.ApproachBelow = v, 0.1, 5);
             AddNumberField("Left of the centreline", p => p.ApproachLeft, (p, v) => p.ApproachLeft = v, 0.1, 10);
             AddNumberField("Right of the centreline", p => p.ApproachRight, (p, v) => p.ApproachRight = v, 0.1, 10);
+            AddHeader("Safety limits (optional lines outside the approach limits, cut at the scan limits)");
+            AddCheckRow("Safety limits in the elevation view", p => p.SafetyLimitsElevation, (p, v) => p.SafetyLimitsElevation = v);
+            AddNumberField("Above the glide path", p => p.SafetyAbove, (p, v) => p.SafetyAbove = v, 0.1, 15, (p, v) => v > p.ApproachAbove);
+            AddNumberField("Below the glide path", p => p.SafetyBelow, (p, v) => p.SafetyBelow = v, 0.1, 15, (p, v) => v > p.ApproachBelow);
+            AddCheckRow("Safety limits in the azimuth view", p => p.SafetyLimitsAzimuth, (p, v) => p.SafetyLimitsAzimuth = v);
+            AddNumberField("Left of the centreline", p => p.SafetyLeft, (p, v) => p.SafetyLeft = v, 0.1, 30, (p, v) => v > p.ApproachLeft);
+            AddNumberField("Right of the centreline", p => p.SafetyRight, (p, v) => p.SafetyRight = v, 0.1, 30, (p, v) => v > p.ApproachRight);
             // The rest of the radar is advanced.
             builderAdvanced = true;
             AddHeader("Scan limits from the antenna (physical limits, fixed)");
