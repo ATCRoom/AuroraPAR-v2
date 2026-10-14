@@ -291,7 +291,7 @@ namespace AuroraPAR
             grid.Children.Clear();
             grid.RowDefinitions.Clear();
             grid.ColumnDefinitions.Clear();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
             foreach (MarkInterval _ in MarkIntervals.All)
             {
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
@@ -306,21 +306,25 @@ namespace AuroraPAR
             AddCell(grid, Header("Range"), 1, 0);
             for (int c = 0; c < MarkIntervals.All.Length; c++)
             {
-                AddCell(grid, Header(MarkIntervals.Name(MarkIntervals.All[c])), 1, c + 1);
+                AddCell(grid, Header(MarkIntervals.Name(MarkIntervals.All[c], Active.DistanceUnit)), 1, c + 1);
             }
             TextBlock written = Header("Distance written on");
             written.TextAlignment = TextAlignment.Left;
             written.Margin = new Thickness(8, 0, 0, 4);
             AddCell(grid, written, 1, MarkIntervals.All.Length + 1);
 
-            List<string> textChoices = ["none", .. MarkIntervals.All.Select(i => "every " + MarkIntervals.Name(i))];
+            DistanceUnit unit = Active.DistanceUnit;
+            double perNM = DistanceUnits.PerNM(unit);
+            List<string> textChoices = ["none", .. MarkIntervals.All.Select(i => "every " + MarkIntervals.Name(i, unit))];
             int r = 2;
             foreach (RangeMarkRow row in Active.RangeMarks.Rows.OrderByDescending(x => x.Range))
             {
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(28) });
                 AddCell(grid, new TextBlock
                 {
-                    Text = row.Range.ToString("0.#", CultureInfo.InvariantCulture) + " NM",
+                    // The ranges are in NM; in km also the value in km.
+                    Text = row.Range.ToString("0.#", CultureInfo.InvariantCulture) + " NM"
+                        + (unit == DistanceUnit.Kilometres ? $" ({(row.Range * perNM).ToString("0", CultureInfo.InvariantCulture)} km)" : ""),
                     VerticalAlignment = VerticalAlignment.Center,
                     FontWeight = FontWeights.SemiBold
                 }, r, 0);
@@ -328,7 +332,7 @@ namespace AuroraPAR
                 {
                     MarkInterval interval = MarkIntervals.All[c];
                     // Marks larger than the range would never be drawn.
-                    bool possible = MarkIntervals.Nm(interval) <= row.Range + 1e-6;
+                    bool possible = MarkIntervals.Nm(interval) <= row.Range * perNM + 1e-6;
                     CheckBox check = new()
                     {
                         IsChecked = row.Lines.Contains(interval),
@@ -358,7 +362,7 @@ namespace AuroraPAR
                 };
                 CheckBox unit = new()
                 {
-                    Content = "NM",
+                    Content = DistanceUnits.Name(unit),
                     IsChecked = row.ShowUnit,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 0, 0, 0),

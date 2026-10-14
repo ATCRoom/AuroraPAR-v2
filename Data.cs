@@ -403,9 +403,14 @@ namespace AuroraPAR
         public static implicit operator double(Distance d) => d.distance;
         public static implicit operator Distance(int distance) => new Distance(distance);
         public static implicit operator Distance(double distance) => new Distance(distance);
+        /// <summary>The range list writes the ranges in km (rounded), as the distance unit of the profile.</summary>
+        public static bool Kilometres { get; set; }
+
         public override string ToString()
         {
-            return $"{distance} nm";
+            return Kilometres
+                ? $"{(distance * DistanceUnits.KilometresPerNM).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} km"
+                : $"{distance} nm";
         }
     }
 

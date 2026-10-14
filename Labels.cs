@@ -346,17 +346,26 @@ namespace AuroraPAR
         private static string Length(double feet, bool metres) =>
             metres ? $"{Number(feet * MetresPerFoot, "0")} m" : $"{Number(feet, "0")} ft";
 
+        /// <summary>Compact length (PAR-E): no space, unit in capitals, e.g. 23M or 75FT.</summary>
+        private static string CompactLength(double feet, bool metres) =>
+            metres ? $"{Number(feet * MetresPerFoot, "0")}M" : $"{Number(feet, "0")}FT";
+
         /// <summary>
         /// Text of a field for an aircraft. Heights, deviations and vertical speed in feet (ft, ft/min) or metres (m, m/s).
         /// </summary>
-        public static string Format(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options)
+        public static string Format(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options) =>
+            options.CompactLabels ? FormatCompact(field, aircraft, runway, options) : FormatNormal(field, aircraft, runway, options);
+
+        private static string FormatNormal(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options)
         {
             switch (field)
             {
                 case LabelField.Callsign:
                     return aircraft.Callsign;
                 case LabelField.DistanceFromTouchdown:
-                    return $"{Number(aircraft.DistanceFromTouchdown(runway), "0.0")} NM";
+                    return options.DistanceUnit == DistanceUnit.Kilometres
+                        ? $"{Number(aircraft.DistanceFromTouchdown(runway) * DistanceUnits.KilometresPerNM, "0.00")} km"
+                        : $"{Number(aircraft.DistanceFromTouchdown(runway), "0.0")} NM";
                 case LabelField.Altitude:
                     return options.Qfe
                         ? $"H {Length(aircraft.Altitude - runway.Elevation, options.ScaleInMetres)}"
@@ -384,6 +393,47 @@ namespace AuroraPAR
                     return options.Identities.Get(aircraft.Callsign);
                 default:
                     return "";
+            }
+        }
+
+        /// <summary>
+        /// Compact text, as on the PAR-E: D:4.45KM, A3M / B2M (above / below the glide path), R23M / L5M, ID:56,
+        /// A600M (altitude) or H600M (height); the other fields as usual.
+        /// </summary>
+        private static string FormatCompact(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options)
+        {
+            bool metres = options.ScaleInMetres;
+            switch (field)
+            {
+                case LabelField.DistanceFromTouchdown:
+                    {
+                        double nm = aircraft.DistanceFromTouchdown(runway);
+                        return options.DistanceUnit == DistanceUnit.Kilometres
+                            ? $"D:{Number(nm * DistanceUnits.KilometresPerNM, "0.00")}KM"
+                            : $"D:{Number(nm, "0.00")}NM";
+                    }
+                case LabelField.Altitude:
+                    return options.Qfe
+                        ? $"H{CompactLength(aircraft.Altitude - runway.Elevation, metres)}"
+                        : $"A{CompactLength(aircraft.Altitude, metres)}";
+                case LabelField.GlidePathDeviation:
+                    {
+                        double deviation = aircraft.Altitude - runway.Elevation - runway.GlidePathHeight(aircraft.DistanceFromTouchdown(runway));
+                        return $"{(deviation >= 0 ? "A" : "B")}{CompactLength(Math.Abs(deviation), metres)}";
+                    }
+                case LabelField.CenterlineDeviation:
+                    {
+                        double feet = aircraft.LateralOffset(runway) * Runway.FeetPerNM;
+                        return $"{(feet >= 0 ? "R" : "L")}{CompactLength(Math.Abs(feet), metres)}";
+                    }
+                case LabelField.TrackId:
+                    {
+                        string id = options.Identities.Get(aircraft.Callsign);
+                        return id.Length == 0 ? "" : "ID:" + id;
+                    }
+                default:
+                    // The other fields are the same as the normal text.
+                    return FormatNormal(field, aircraft, runway, options);
             }
         }
     }

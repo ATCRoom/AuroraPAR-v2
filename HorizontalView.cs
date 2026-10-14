@@ -14,7 +14,12 @@ namespace AuroraPAR
     {
         protected override bool FlipVertically => true;
 
-        private double CenterY => Canvas.ActualHeight / 2;
+        /// <summary>
+        /// Logical y of the axis: the extended centreline (heights scale), or the direction of the antenna, parallel to
+        /// the centreline (angular scale; not in the middle when the scan limits left and right differ).
+        /// </summary>
+        private double CenterY => Angular ? angularAxis : Canvas.ActualHeight / 2;
+        private double angularAxis;
 
         /// <summary>
         /// Distance of the antenna from the far end of the runway, in NM.
@@ -30,6 +35,9 @@ namespace AuroraPAR
             double end = Runway.Distance + Runway.LengthNM;
             double half = Radar.ScanOffset(end - AntennaNM, Radar.ReferenceScanHalfWidth) * ShrinkAt(end);
             yscale = (Canvas.ActualHeight - 50) / (2 * half);
+            // Angular scale: the scan limits at the edges of the view (right of the approach upwards).
+            PixelsPerDegree = Math.Max(1, Canvas.ActualHeight - 24) / Math.Max(1, Radar.ScanLeft + Radar.ScanRight);
+            angularAxis = 12 + Radar.ScanRight * PixelsPerDegree;
         }
 
         /// <summary>
@@ -37,6 +45,8 @@ namespace AuroraPAR
         /// </summary>
         private double LateralY(double fromRunwayEndNM, double offsetNM)
         {
+            // Angular scale: the azimuth seen from the antenna (which may stand beside the runway).
+            if (Angular) return CenterY - AngleFromAntenna(fromRunwayEndNM, offsetNM - Radar.AntennaOffsetNM) * PixelsPerDegree;
             return CenterY - offsetNM * ShrinkAt(fromRunwayEndNM) * yscale;
         }
 
@@ -45,7 +55,9 @@ namespace AuroraPAR
         /// </summary>
         private double ScanY(double fromRunwayEndNM, double angle)
         {
-            return LateralY(fromRunwayEndNM, Radar.ScanOffset(Math.Max(0, fromRunwayEndNM - AntennaNM), angle));
+            if (Angular) return CenterY - angle * PixelsPerDegree;
+            // From the antenna, beside the runway when it is there.
+            return LateralY(fromRunwayEndNM, Radar.AntennaOffsetNM + Radar.ScanOffset(Math.Max(0, fromRunwayEndNM - AntennaNM), angle));
         }
 
         /// <summary>
@@ -54,9 +66,11 @@ namespace AuroraPAR
         /// </summary>
         private void AddScanLine(double angle, double toFromRunwayEndNM, StyleElement element)
         {
-            if (!Compressed)
+            // Straight with the linear distances, slightly curved with the compressed ones, horizontal with the
+            // angular scale.
+            if (!Compressed || Angular)
             {
-                AddLine(AntennaNM * xscale, CenterY, toFromRunwayEndNM * xscale, ScanY(toFromRunwayEndNM, angle), element);
+                AddLine(XAt(AntennaNM), ScanY(AntennaNM, angle), XAt(toFromRunwayEndNM), ScanY(toFromRunwayEndNM, angle), element);
                 return;
             }
             double from = AntennaNM;
@@ -156,16 +170,24 @@ namespace AuroraPAR
             double right = Radar.ScanRightEdge;
             double beamLeft = Radar.AzimuthLeftEdge;
             double beamRight = Radar.AzimuthRightEdge;
-            // Runway and threshold (a line across the runway, or a symbol).
-            AddLine(0, cy, XAt(length), cy, StyleElement.Runway);
-            if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
+            // Runway and threshold (a line across the runway, or a symbol). With the angular scale and the antenna
+            // beside the runway the runway is seen as a curve, from the antenna (behind it nothing is seen).
+            if (Angular && Radar.AntennaOffsetNM != 0)
             {
-                double halfWidth = Runway.WidthNM * ShrinkAt(length) * yscale;
-                AddLine(XAt(length), cy - halfWidth, XAt(length), cy + halfWidth, StyleElement.Runway);
+                double runwayFrom = AntennaNM + 0.001;
+                if (runwayFrom < length) AddCurve(t => { double r = SampleFromEnd(runwayFrom, length, t); return new Point(XAt(r), LateralY(r, 0)); }, StyleElement.Runway, segments: AngularCurveSegments);
             }
             else
             {
-                if (!Options.Theme.IsHidden(StyleElement.Runway)) AddSymbol(Options.ThresholdSymbol, XAt(length), cy, Brush(StyleElement.Runway));
+                AddLine(0, cy, XAt(length), cy, StyleElement.Runway);
+            }
+            if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
+            {
+                AddLine(XAt(length), LateralY(length, -Runway.WidthNM), XAt(length), LateralY(length, Runway.WidthNM), StyleElement.Runway);
+            }
+            else
+            {
+                if (!Options.Theme.IsHidden(StyleElement.Runway)) AddSymbol(Options.ThresholdSymbol, XAt(length), LateralY(length, 0), Brush(StyleElement.Runway));
             }
             // Scan limits and beam edges, from the antenna.
             AddScanLine(left, end, StyleElement.ScanLimits);
@@ -175,29 +197,32 @@ namespace AuroraPAR
                 AddScanLine(beamLeft, end, StyleElement.AntennaBeam);
                 AddScanLine(beamRight, end, StyleElement.AntennaBeam);
             }
-            AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), cy, Brush(StyleElement.Antenna));
+            AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), ScanY(AntennaNM, 0), Brush(StyleElement.Antenna));
             // Extended centreline and its approach limits, all starting at the touchdown point: the last part (from
-            // the threshold or the DH) dashed, the rest in their own style (straight with both scales).
+            // the threshold or the DH) dashed, the rest in their own style (straight with both distance scales, curves
+            // with the angular scale).
             double touchdownFromEnd = length - Runway.TouchdownNM;
             double xTouchdown = XAt(touchdownFromEnd);
-            double xEnd = XAt(end);
+            double displayEnd = Runway.TouchdownNM + range;
             (double centreSplit, LineDash centreDash) = FinalSegmentOf(StyleElement.Centerline);
-            double xCentreSplit = XAt(touchdownFromEnd + centreSplit);
-            if (centreSplit > 0) AddLine(xTouchdown, cy, xCentreSplit, cy, StyleElement.Centerline, dash: centreDash);
-            AddLine(xCentreSplit, cy, xEnd, cy, StyleElement.Centerline);
+            AddLateralLine(0, Math.Min(centreSplit, displayEnd), _ => 0, StyleElement.Centerline, centreDash);
+            AddLateralLine(Math.Min(centreSplit, displayEnd), displayEnd, _ => 0, StyleElement.Centerline);
             (double limitSplit, LineDash limitDash) = FinalSegmentOf(StyleElement.ApproachLimits);
-            double xLimitSplit = XAt(touchdownFromEnd + limitSplit);
+            // The approach limits may end before the end of the range (as on the PAR-E, at 10 km).
+            double limitsEnd = Options.ApproachLimitsTo > 0 ? Math.Min(displayEnd, Options.ApproachLimitsTo) : displayEnd;
+            limitSplit = Math.Min(limitSplit, limitsEnd);
             foreach (bool isRight in new[] { false, true })
             {
                 double sign = isRight ? 1 : -1;
-                double atSplit = LateralY(touchdownFromEnd + limitSplit, sign * Radar.ApproachHalfWidth(limitSplit, isRight));
-                double atEnd = LateralY(end, sign * Radar.ApproachHalfWidth(Runway.TouchdownNM + range, isRight));
-                if (limitSplit > 0) AddLine(xTouchdown, cy, xLimitSplit, atSplit, StyleElement.ApproachLimits, dash: limitDash);
-                AddLine(xLimitSplit, atSplit, xEnd, atEnd, StyleElement.ApproachLimits);
+                bool right = isRight;
+                double Offset(double s) => sign * Radar.ApproachHalfWidth(s, right);
+                AddLateralLine(0, limitSplit, Offset, StyleElement.ApproachLimits, limitDash);
+                AddLateralLine(limitSplit, limitsEnd, Offset, StyleElement.ApproachLimits);
             }
             if (Options.ShowLateralScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale))
             {
-                if (Compressed) DrawCompressedLateralScale(end, left, right);
+                if (Angular) DrawAngleScale(CenterY, -Radar.ScanLeft, Radar.ScanRight, signed: false);
+                else if (Compressed) DrawCompressedLateralScale(end, left, right);
                 else DrawLateralScale();
             }
             // Safety limits (optional): outside the approach limits, only the part inside the scan limits.
@@ -213,27 +238,27 @@ namespace AuroraPAR
                     {
                         double fromAntenna = touchdownFromEnd + s - AntennaNM;
                         if (fromAntenna <= 0) return false;
-                        double offset = Offset(s);
+                        // Seen from the antenna (beside the runway when it is there).
+                        double offset = Offset(s) - Radar.AntennaOffsetNM;
                         return offset >= Radar.ScanOffset(fromAntenna, left) && offset <= Radar.ScanOffset(fromAntenna, right);
                     }
                     if (VisiblePart(0, Runway.TouchdownNM + range, Inside) is not { } part) continue;
                     double a = part.From, b = part.To;
-                    double Xs(double s) => XAt(touchdownFromEnd + s);
-                    double Ys(double s) => LateralY(touchdownFromEnd + s, Offset(s));
-                    if (safetySplit > a) AddLine(Xs(a), Ys(a), Xs(Math.Min(safetySplit, b)), Ys(Math.Min(safetySplit, b)), StyleElement.SafetyLimits, dash: safetyDash);
+                    if (safetySplit > a) AddLateralLine(a, Math.Min(safetySplit, b), Offset, StyleElement.SafetyLimits, safetyDash);
                     double start = Math.Max(a, safetySplit);
-                    if (start < b) AddLine(Xs(start), Ys(start), Xs(b), Ys(b), StyleElement.SafetyLimits);
+                    if (start < b) AddLateralLine(start, b, Offset, StyleElement.SafetyLimits);
                 }
             }
-            // Touchdown point.
+            // Touchdown point (on the centreline, a curve with the angular scale and the antenna beside the runway).
+            double yTouchdown = LateralY(touchdownFromEnd, 0);
             if (Options.TouchdownSymbol.Shape == SymbolShape.Line)
             {
                 double half = Options.TouchdownSymbol.Size * 2 / 3;
-                AddLine(xTouchdown, cy - half, xTouchdown, cy + half, StyleElement.Touchdown);
+                AddLine(xTouchdown, yTouchdown - half, xTouchdown, yTouchdown + half, StyleElement.Touchdown);
             }
             else
             {
-                if (!Options.Theme.IsHidden(StyleElement.Touchdown)) AddSymbol(Options.TouchdownSymbol, xTouchdown, cy, Brush(StyleElement.Touchdown));
+                if (!Options.Theme.IsHidden(StyleElement.Touchdown)) AddSymbol(Options.TouchdownSymbol, xTouchdown, yTouchdown, Brush(StyleElement.Touchdown));
             }
             // Distance where the glide path reaches the decision height: vertical line between the scan limits.
             double interceptNM = length - Runway.TouchdownNM + Runway.MissedApproachPointNM;
@@ -242,13 +267,20 @@ namespace AuroraPAR
                 // Both sides of the centreline: up to the scan limits, or a length in metres (never beyond the limits).
                 double yLeft = ScanY(interceptNM, left), yRight = ScanY(interceptNM, right);
                 double low = Math.Min(yLeft, yRight), high = Math.Max(yLeft, yRight);
-                double reach = Options.DhAzimuthLength > 0 ? Options.DhAzimuthLength / 1852 * ShrinkAt(interceptNM) * yscale : double.MaxValue;
-                AddLine(XAt(interceptNM), Math.Max(low, cy - reach), XAt(interceptNM), Math.Min(high, cy + reach), StyleElement.DecisionHeightAzimuth);
-                AddSymbol(Options.DhAzimuthSymbol, XAt(interceptNM), cy, Brush(StyleElement.DecisionHeightMark));
+                double centre = LateralY(interceptNM, 0);
+                if (Options.DhAzimuthLength > 0)
+                {
+                    double lengthNM = Options.DhAzimuthLength / 1852;
+                    double a = LateralY(interceptNM, -lengthNM), b = LateralY(interceptNM, lengthNM);
+                    low = Math.Max(low, Math.Min(a, b));
+                    high = Math.Min(high, Math.Max(a, b));
+                }
+                if (low < high) AddLine(XAt(interceptNM), low, XAt(interceptNM), high, StyleElement.DecisionHeightAzimuth);
+                AddSymbol(Options.DhAzimuthSymbol, XAt(interceptNM), centre, Brush(StyleElement.DecisionHeightMark));
             }
             // Range marks, measured from the touchdown point, between the scan limits.
             List<DistanceReminder> reminders = VisibleReminders();
-            foreach ((double distance, StyleElement element, bool text) in Options.RangeMarks.Marks(range))
+            foreach ((double distance, StyleElement element, bool text, bool isShort) in Options.RangeMarks.Marks(range, Options.DistanceUnit))
             {
                 if (HasReminderLine(reminders, distance)) continue;
                 double markNM = distance - Runway.TouchdownNM + length;
@@ -256,6 +288,16 @@ namespace AuroraPAR
                 double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
                 if (tickUp + tickDown > 0) AddLine(XAt(markNM), cy + tickDown, XAt(markNM), cy - tickUp, element);
                 if (!Options.RangeMarks.DrawLines) continue;
+                if (isShort)
+                {
+                    // Short line (beyond the full lines), centred on the centreline, shorter towards the end.
+                    double low = Math.Min(ScanY(markNM, left), ScanY(markNM, right)), high = Math.Max(ScanY(markNM, left), ScanY(markNM, right));
+                    double centre = LateralY(markNM, 0);
+                    double half = (high - low) * ShortMarkFraction(distance) / 2;
+                    double y1 = Math.Max(low, centre - half), y2 = Math.Min(high, centre + half);
+                    if (y1 < y2) AddLine(XAt(markNM), y1, XAt(markNM), y2, element);
+                    continue;
+                }
                 AddLine(XAt(markNM), ScanY(markNM, left), XAt(markNM), ScanY(markNM, right), element);
                 // Thicker where the antenna beam looks.
                 if (Radar.BeamEnabled)
@@ -300,7 +342,28 @@ namespace AuroraPAR
 
         protected override double AxisY => CenterY;
 
-        protected override Point SweepOrigin() => new(XAt(AntennaNM), CenterY);
+        protected override Point SweepOrigin() => new(XAt(AntennaNM), ScanY(AntennaNM, 0));
+
+        /// <summary>
+        /// Line at a lateral offset (NM, positive right) varying along the approach, between <paramref name="a"/> and
+        /// <paramref name="b"/> NM from the touchdown: straight (the offsets of the centreline and of the limits grow
+        /// linearly from the touchdown point), or a curve with the angular scale.
+        /// </summary>
+        private void AddLateralLine(double a, double b, Func<double, double> offset, StyleElement element, LineDash? dash = null)
+        {
+            if (b <= a) return;
+            double touchdownFromEnd = Runway.LengthNM - Runway.TouchdownNM;
+            if (Angular)
+            {
+                AddCurve(t =>
+                {
+                    double s = SampleFromEnd(touchdownFromEnd + a, touchdownFromEnd + b, t) - touchdownFromEnd;
+                    return new Point(XAt(touchdownFromEnd + s), LateralY(touchdownFromEnd + s, offset(s)));
+                }, element, dash: dash, segments: AngularCurveSegments);
+                return;
+            }
+            AddLine(XAt(touchdownFromEnd + a), LateralY(touchdownFromEnd + a, offset(a)), XAt(touchdownFromEnd + b), LateralY(touchdownFromEnd + b, offset(b)), element, dash: dash);
+        }
 
         protected override Point SweepEnd(double position)
         {

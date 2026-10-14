@@ -111,7 +111,7 @@ namespace AuroraPAR
                 LineDash value = FinalDashComboBox.SelectedIndex == 0 ? LineDash.Dashed : LineDash.Dotted;
                 SetProfileValue(p => p.FinalSegmentDash == value, p => p.FinalSegmentDash = value);
             };
-            DhDropSideComboBox.ItemsSource = new[] { "down", "up", "both", "none" };
+            DhDropSideComboBox.ItemsSource = new[] { "down", "up", "both", "none", "full height" };
             DhDropSideComboBox.SelectionChanged += (s, e) =>
             {
                 if (refreshing || DhDropSideComboBox.SelectedIndex < 0) return;
@@ -238,6 +238,15 @@ namespace AuroraPAR
             };
             AltitudeLinesCheck.Checked += (s, e) => SetProfileValue(p => p.ShowAltitudeLines, p => p.ShowAltitudeLines = true);
             AltitudeLinesCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowAltitudeLines, p => p.ShowAltitudeLines = false);
+            DistanceNmRadio.Checked += (s, e) => SetProfileValue(p => p.DistanceUnit == DistanceUnit.NauticalMiles, p => p.DistanceUnit = DistanceUnit.NauticalMiles);
+            DistanceKmRadio.Checked += (s, e) => SetProfileValue(p => p.DistanceUnit == DistanceUnit.Kilometres, p => p.DistanceUnit = DistanceUnit.Kilometres);
+            CompactLabelsCheck.Checked += (s, e) => SetProfileValue(p => p.CompactLabels, p => p.CompactLabels = true);
+            CompactLabelsCheck.Unchecked += (s, e) => SetProfileValue(p => !p.CompactLabels, p => p.CompactLabels = false);
+            FixedHeightsBox.LostFocus += (s, e) => ApplyFixedHeights();
+            FixedHeightsBox.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter) ApplyFixedHeights();
+            };
             ScaleFeetRadio.Checked += (s, e) => SetProfileValue(p => p.AltitudeScaleUnit == LengthUnit.Feet, p => p.AltitudeScaleUnit = LengthUnit.Feet);
             ScaleMetresRadio.Checked += (s, e) => SetProfileValue(p => p.AltitudeScaleUnit == LengthUnit.Metres, p => p.AltitudeScaleUnit = LengthUnit.Metres);
             FileLocationText.Text = $"Settings file{(SettingsStore.IsPortable ? " (portable mode)" : "")}: {SettingsStore.FilePath}";
@@ -293,11 +302,14 @@ namespace AuroraPAR
 
         /// <summary>Range marks, colours and reminders (the parts of a <see cref="DisplayStylePanel"/>), for this profile.</summary>
         private Profile? styleProfile;
+        /// <summary>Distance unit of the range marks table shown (it is rebuilt when the unit changes).</summary>
+        private DistanceUnit styleUnit;
 
         private void HostStyleParts()
         {
-            if (ReferenceEquals(styleProfile, Active)) return;
+            if (ReferenceEquals(styleProfile, Active) && styleUnit == Active.DistanceUnit) return;
             styleProfile = Active;
+            styleUnit = Active.DistanceUnit;
             (UIElement rangeMarks, UIElement colours, UIElement reminders) = new DisplayStylePanel(settings, Commit).TakeParts();
             RangeMarksHost.Content = rangeMarks;
             ColoursHost.Content = colours;
@@ -373,6 +385,17 @@ namespace AuroraPAR
                 AltitudeLinesCheck.IsChecked = Active.ShowAltitudeLines;
                 AltitudeLinesInComboBox.SelectedIndex = (int)Active.AltitudeLinesIn;
                 AltitudeLinesInComboBox.IsEnabled = Active.ShowAltitudeLines;
+                DistanceNmRadio.IsChecked = Active.DistanceUnit == DistanceUnit.NauticalMiles;
+                DistanceKmRadio.IsChecked = Active.DistanceUnit == DistanceUnit.Kilometres;
+                CompactLabelsCheck.IsChecked = Active.CompactLabels;
+                bool metres = Active.AltitudeScaleUnit == LengthUnit.Metres;
+                FixedHeightsUnit.Text = metres ? "m" : "ft";
+                if (!FixedHeightsBox.IsKeyboardFocused)
+                {
+                    FixedHeightsBox.Text = string.Join(", ", Active.FixedHeightLines.Select(h => FormatNumber(Math.Round(metres ? h * 0.3048 : h))));
+                }
+                FixedHeightsNote.Text = "e.g. 600 or 300, 600";
+                FixedHeightsNote.Foreground = Brushes.Gray;
                 ScaleFeetRadio.IsChecked = Active.AltitudeScaleUnit == LengthUnit.Feet;
                 ScaleMetresRadio.IsChecked = Active.AltitudeScaleUnit == LengthUnit.Metres;
                 HistoryCheck.IsChecked = Active.HistoryEnabled;
@@ -589,6 +612,34 @@ namespace AuroraPAR
             {
                 RefreshControls();
             }
+        }
+
+        /// <summary>Fixed height lines from the text (values in the unit of the heights, separated by commas or spaces).</summary>
+        private void ApplyFixedHeights()
+        {
+            if (refreshing) return;
+            bool metres = Active.AltitudeScaleUnit == LengthUnit.Metres;
+            List<double> heights = [];
+            foreach (string part in FixedHeightsBox.Text.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!double.TryParse(part.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || value <= 0
+                    || (metres ? value * 3.28084 : value) > 60000)
+                {
+                    FixedHeightsNote.Text = "not valid: e.g. 600 or 300, 600";
+                    FixedHeightsNote.Foreground = Brushes.DarkRed;
+                    return;
+                }
+                heights.Add(metres ? value / 0.3048 : value);
+            }
+            if (heights.Count > Profile.MaxFixedHeightLines)
+            {
+                FixedHeightsNote.Text = $"at most {Profile.MaxFixedHeightLines} lines";
+                FixedHeightsNote.Foreground = Brushes.DarkRed;
+                return;
+            }
+            Active.FixedHeightLines = heights;
+            Active.Normalize();
+            Commit();
         }
 
         private void ApplyHistoryInterval()
@@ -833,6 +884,17 @@ namespace AuroraPAR
             AddNumberField("Below the glide path", p => p.ApproachBelow, (p, v) => p.ApproachBelow = v, 0.1, 5);
             AddNumberField("Left of the centreline", p => p.ApproachLeft, (p, v) => p.ApproachLeft = v, 0.1, 10);
             AddNumberField("Right of the centreline", p => p.ApproachRight, (p, v) => p.ApproachRight = v, 0.1, 10);
+            AddNumberField("Approach limit lines end at (from the touchdown; 0 = the whole range)",
+                p => p.ApproachLimitsTo * DistanceUnits.PerNM(p.DistanceUnit), (p, v) => p.ApproachLimitsTo = v / DistanceUnits.PerNM(p.DistanceUnit),
+                0, 100, unitOf: p => DistanceUnits.Name(p.DistanceUnit));
+            AddHeader("Antenna position and vertical scale of the views");
+            AddChoiceRow("Vertical scale", ["Heights and distances (ft / m)", "Angles from the antenna (°), as on the PAR-E"],
+                p => (int)p.VerticalScale, (p, i) => p.VerticalScale = (VerticalScale)i,
+                "Heights: the classic picture, glide path and centreline straight. Angles: the vertical axis is the angle seen from the antenna (elevation, azimuth), as on the PAR-E: the glide path, the limits and a centreline seen from an antenna beside the runway become curves, a direction from the antenna is a horizontal line. Works with LIN and LOG distances.");
+            AddChoiceRow("Antenna position", ["On the runway centreline", "Left of the runway (seen landing)", "Right of the runway (seen landing)"],
+                p => (int)p.AntennaSide, (p, i) => p.AntennaSide = (AntennaSide)i,
+                "Where the antenna stands, at half the runway length. Beside the runway its azimuth is measured from its own position (parallel to the centreline): the azimuth scan and, with the angular scale, the centreline show it.");
+            AddNumberField("Antenna distance from the centreline (beside the runway)", p => p.AntennaOffsetMetres, (p, v) => p.AntennaOffsetMetres = v, 10, 2000, unitText: "m");
             AddHeader("Safety limits (optional lines outside the approach limits, cut at the scan limits)");
             AddCheckRow("Safety limits in the elevation view", p => p.SafetyLimitsElevation, (p, v) => p.SafetyLimitsElevation = v);
             AddNumberField("Above the glide path", p => p.SafetyAbove, (p, v) => p.SafetyAbove = v, 0.1, 15, (p, v) => v > p.ApproachAbove);
@@ -882,6 +944,15 @@ namespace AuroraPAR
             Grid.SetRow(swap, row);
             Grid.SetColumnSpan(swap, 3);
             Place(swap);
+            // Range marks beyond a distance (Range and scale).
+            builderGrid = RangeExtraGrid;
+            builderAdvanced = false;
+            AddNumberField("Lines across the view up to (from the touchdown; 0 = all); beyond: short lines, distance written only on the largest marks",
+                p => p.RangeMarks.FullLinesTo * DistanceUnits.PerNM(p.DistanceUnit), (p, v) => p.RangeMarks.FullLinesTo = v / DistanceUnits.PerNM(p.DistanceUnit),
+                0, 100, unitOf: p => DistanceUnits.Name(p.DistanceUnit));
+            AddCheckRow("Distance written in the colour of its mark (e.g. 5 km magenta, 1 km cyan as on the PAR-E)",
+                p => p.RangeMarks.TextInMarkColour, (p, v) => p.RangeMarks.TextInMarkColour = v);
+            builderAdvanced = true;
             // Coasting tracks: in Tracks and labels (advanced).
             builderGrid = CoastGrid;
             AddNumberField("Coasting tracks (modern display): seconds shown out of the beam (0 = none)", p => p.CoastSeconds, (p, v) => p.CoastSeconds = v, 0, Profile.MaxCoastSeconds, unitText: "s");
@@ -929,7 +1000,7 @@ namespace AuroraPAR
         /// an invalid value is refused (the previous one comes back).
         /// </summary>
         private void AddNumberField(string label, Func<Profile, double> get, Action<Profile, double> set, double min, double max,
-                                    Func<Profile, double, bool>? isValid = null, string unitText = "°")
+                                    Func<Profile, double, bool>? isValid = null, string unitText = "°", Func<Profile, string>? unitOf = null)
         {
             int row = builderGrid.RowDefinitions.Count;
             builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -983,7 +1054,34 @@ namespace AuroraPAR
             {
                 if (e.Key == Key.Enter) Apply();
             };
-            refreshers.Add(() => box.Text = FormatNumber(get(Active)));
+            refreshers.Add(() =>
+            {
+                box.Text = FormatNumber(get(Active));
+                if (unitOf != null) unit.Text = unitOf(Active);
+            });
+        }
+
+        /// <summary>A list of choices bound to a profile value (the index of the item).</summary>
+        private void AddChoiceRow(string label, string[] items, Func<Profile, int> get, Action<Profile, int> set, string? toolTip = null)
+        {
+            int row = builderGrid.RowDefinitions.Count;
+            builderGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            TextBlock text = new() { Text = label, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 8, 2) };
+            ComboBox box = new() { ItemsSource = items, Width = 300, Height = 22, Margin = new Thickness(0, 2, 4, 2), ToolTip = toolTip };
+            text.ToolTip = toolTip;
+            Grid.SetRow(text, row);
+            Grid.SetRow(box, row);
+            Grid.SetColumn(box, 1);
+            Grid.SetColumnSpan(box, 2);
+            Place(text);
+            Place(box);
+            box.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || box.SelectedIndex < 0) return;
+                int index = box.SelectedIndex;
+                SetProfileValue(p => get(p) == index, p => set(p, index));
+            };
+            refreshers.Add(() => box.SelectedIndex = get(Active));
         }
 
         private static string FormatNumber(double value)

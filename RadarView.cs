@@ -78,6 +78,19 @@ namespace AuroraPAR
         /// 0 = linear scale.
         /// </summary>
         public double DistanceKnee { get; set; }
+        /// <summary>Unit of the distances written (range marks, labels).</summary>
+        public DistanceUnit DistanceUnit { get; set; } = DistanceUnit.NauticalMiles;
+        /// <summary>Label text without spaces, as on the PAR-E (see <see cref="Profile.CompactLabels"/>).</summary>
+        public bool CompactLabels { get; set; }
+        /// <summary>Approach limit lines up to this distance from the touchdown (NM); 0 = to the end of the range.</summary>
+        public double ApproachLimitsTo { get; set; }
+        /// <summary>Fixed height lines, feet above the threshold (see <see cref="Profile.FixedHeightLines"/>).</summary>
+        public IReadOnlyList<double> FixedHeights { get; set; } = [];
+        /// <summary>
+        /// Vertical axis in angles seen from the antenna (PAR-E), instead of heights and lateral distances: see
+        /// <see cref="RadarView.Angular"/>.
+        /// </summary>
+        public bool Angular { get; set; }
     }
 
     /// <summary>
@@ -393,7 +406,7 @@ namespace AuroraPAR
             Point origin = SweepOrigin();
             // With the compressed scale the beam is drawn along its (slightly curved) image, see Unwarp.
             Point linearOrigin = Unwarp(origin);
-            int segments = Compressed ? SweepSegments : 1;
+            int segments = Compressed && !Angular ? SweepSegments : 1;
             // Width of the beam line as set in Display style; the trail lines (fading) one pixel wider.
             double width = Options.Theme.Width(StyleElement.ScanEffect);
             DoubleCollection? dash = Theme.DashArray(Options.Theme.Dash(StyleElement.ScanEffect));
@@ -408,7 +421,9 @@ namespace AuroraPAR
                     continue;
                 }
                 Point end = SweepEnd(position);
-                PointCollection points = new(segments + 1) { new Point(ToScreenX(origin.X), ToScreenY(origin.Y)) };
+                // Angular scale: a direction from the antenna is a horizontal line at its angle.
+                Point start = Angular ? new Point(origin.X, end.Y) : origin;
+                PointCollection points = new(segments + 1) { new Point(ToScreenX(start.X), ToScreenY(start.Y)) };
                 if (segments > 1)
                 {
                     Vector along = Unwarp(end) - linearOrigin;
@@ -440,7 +455,8 @@ namespace AuroraPAR
         /// <summary>Analog scope: rain clutter inside the antenna beam (see <see cref="ClutterLayer"/>).</summary>
         private void UpdateClutter(double t, ScanEffectSpeed speed)
         {
-            if (!Options.Analog || Options.ClutterStrength <= 0)
+            // The clutter layer draws the beam as straight lines from the antenna: not with the angular scale.
+            if (!Options.Analog || Options.ClutterStrength <= 0 || Angular)
             {
                 clutter.Hide();
                 return;
@@ -513,6 +529,12 @@ namespace AuroraPAR
             // Position across the scan (0..1) of a point, from its direction seen from the antenna.
             double PositionOf(Point point)
             {
+                // Angular scale: the height on the screen is the angle itself.
+                if (Angular)
+                {
+                    Point lowEnd = SweepEnd(0), highEnd = SweepEnd(1);
+                    return Math.Abs(highEnd.Y - lowEnd.Y) > 1 ? (point.Y - lowEnd.Y) / (highEnd.Y - lowEnd.Y) : 0.5;
+                }
                 Point logical = Unwarp(point);
                 double dx = logical.X - origin.X;
                 if (dx > 1 && Math.Abs(high.Y - low.Y) > 1)
@@ -1139,7 +1161,78 @@ namespace AuroraPAR
         /// scale has no scale on the side, its values are on the altitude lines).
         /// </summary>
         // Same for both views (altitude or lateral scale), so that the distances of the two views stay aligned.
-        protected double LeftMargin => (Options.ShowAltitudeScale || Options.ShowLateralScale) && !Compressed ? 70 : 24;
+        // The angular scale has its scale in degrees on the side, also with the compressed distances.
+        protected double LeftMargin => (Options.ShowAltitudeScale || Options.ShowLateralScale) && (!Compressed || Angular) ? 70 : 24;
+
+        // Angular vertical scale (ViewOptions.Angular, as on the PAR-E).
+        //
+        // The vertical axis of each view is the angle seen from the antenna: elevation above the horizon, azimuth
+        // from the direction of the antenna (parallel to the centreline; the antenna may stand beside the runway, see
+        // Radar.AntennaOffsetNM). A direction from the antenna (scan limit, beam, sweep) is then a horizontal line;
+        // the glide path, the approach limits, the centreline seen from an antenna beside the runway and any constant
+        // height are curves (they are drawn as polylines). The distance axis is the same as with the heights
+        // (linear or compressed).
+
+        /// <summary>True with the angular vertical scale.</summary>
+        protected bool Angular => Options.Angular;
+
+        /// <summary>Angular scale: pixels per degree of the vertical axis (set by the views in CalculateScale).</summary>
+        protected double PixelsPerDegree = 1;
+
+        /// <summary>
+        /// Angle (degrees) seen from the antenna of a point at the given distance (NM) from the far end of the runway
+        /// and <paramref name="valueNM"/> (NM) up or to the right of the antenna. A point behind the antenna is taken
+        /// just in front of it (the views do not show that part).
+        /// </summary>
+        protected double AngleFromAntenna(double fromRunwayEndNM, double valueNM)
+        {
+            double d = Math.Max(1e-4, fromRunwayEndNM - Radar.AntennaFromRunwayEnd(Runway));
+            return Math.Atan2(valueNM, d) * 180 / Math.PI;
+        }
+
+        /// <summary>
+        /// Short range mark (beyond <see cref="RangeMarkSettings.FullLinesTo"/>): its length as a part of the height
+        /// of the scan at that distance, from about half just after the full lines to about a sixth at the end of the range.
+        /// </summary>
+        protected double ShortMarkFraction(double distanceFromTouchdownNM)
+        {
+            double fullTo = Options.RangeMarks.FullLinesTo;
+            double span = Math.Max(0.1, Runway.Distance - fullTo);
+            double far = Math.Clamp((distanceFromTouchdownNM - fullTo) / span, 0, 1);
+            return 0.45 - 0.3 * far;
+        }
+
+        /// <summary>
+        /// Distance from the far end of the runway at <paramref name="t"/> (0..1) between <paramref name="from"/> and
+        /// <paramref name="to"/>, evenly spread on the screen (also with the compressed scale), for curves.
+        /// </summary>
+        protected double SampleFromEnd(double from, double to, double t) =>
+            Compressed ? FromRunwayEndOfScale(ScaleNM(from) + (ScaleNM(to) - ScaleNM(from)) * t) : from + (to - from) * t;
+
+        /// <summary>Segments of a curve of the angular scale (the glide path bends a lot near the runway).</summary>
+        protected const int AngularCurveSegments = 160;
+
+        /// <summary>
+        /// Scale in degrees on the side of the view (angular scale), every 1, 2 or 5 degrees as the room allows, from
+        /// <paramref name="from"/> to <paramref name="to"/>; <paramref name="signed"/>: negative values with their sign.
+        /// </summary>
+        protected void DrawAngleScale(double axisY, double from, double to, bool signed)
+        {
+            if (Options.Theme.IsHidden(StyleElement.AltitudeScale) || PixelsPerDegree <= 0) return;
+            double step = PixelsPerDegree >= 25 ? 1 : PixelsPerDegree >= 10 ? 2 : 5;
+            for (double angle = Math.Ceiling(from / step) * step; angle <= to + 1e-6; angle += step)
+            {
+                double y = axisY - angle * PixelsPerDegree;
+                if (y < 8 || y > Canvas.ActualHeight - 8) continue;
+                AddLine(-XShift, y, 8 - XShift, y, StyleElement.AltitudeScale);
+                double shown = signed ? angle : Math.Abs(angle);
+                AddSideText(shown.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "°", y, Brush(StyleElement.AltitudeScale));
+            }
+        }
+
+        /// <summary>Colour of the distance written under a mark: its own, or the colour of the mark (option).</summary>
+        protected Brush RangeTextBrush(StyleElement mark) =>
+            Options.RangeMarks.TextInMarkColour && !Options.Theme.IsAnalog ? Options.Theme.Brush(mark) : Options.Theme.Brush(StyleElement.RangeText);
 
         /// <summary>
         /// Horizontal scale and shift: the antenna at <see cref="LeftMargin"/>, the end of the range 50 px from the
@@ -1302,13 +1395,13 @@ namespace AuroraPAR
         /// Adds a static curve (logical coordinates of the parameter 0..1) with the style of an element, as one
         /// polyline so a dash pattern runs along it.
         /// </summary>
-        protected void AddCurve(Func<double, Point> at, StyleElement element, bool dashed = false)
+        protected void AddCurve(Func<double, Point> at, StyleElement element, bool dashed = false, LineDash? dash = null, int segments = CurveSegments)
         {
             if (Options.Theme.IsHidden(element)) return;
-            PointCollection points = new(CurveSegments + 1);
-            for (int i = 0; i <= CurveSegments; i++)
+            PointCollection points = new(segments + 1);
+            for (int i = 0; i <= segments; i++)
             {
-                Point p = at((double)i / CurveSegments);
+                Point p = at((double)i / segments);
                 points.Add(new Point(ToScreenX(p.X), ToScreenY(p.Y)));
             }
             Polyline line = new()
@@ -1316,7 +1409,7 @@ namespace AuroraPAR
                 Points = points,
                 Stroke = Options.Theme.Brush(element),
                 StrokeThickness = Options.Theme.Width(element),
-                StrokeDashArray = Theme.DashArray(dashed ? LineDash.Dashed : Options.Theme.Dash(element)),
+                StrokeDashArray = Theme.DashArray(dash ?? (dashed ? LineDash.Dashed : Options.Theme.Dash(element))),
                 StrokeLineJoin = PenLineJoin.Round,
                 IsHitTestVisible = false
             };

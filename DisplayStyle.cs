@@ -26,14 +26,14 @@ namespace AuroraPAR
             _ => 0.25
         };
 
-        public static string Name(MarkInterval interval) => interval switch
+        public static string Name(MarkInterval interval, DistanceUnit unit = DistanceUnit.NauticalMiles) => interval switch
         {
-            MarkInterval.Five => "5 NM",
-            MarkInterval.Two => "2 NM",
-            MarkInterval.One => "1 NM",
-            MarkInterval.Half => "½ NM",
-            _ => "¼ NM"
-        };
+            MarkInterval.Five => "5",
+            MarkInterval.Two => "2",
+            MarkInterval.One => "1",
+            MarkInterval.Half => "½",
+            _ => "¼"
+        } + " " + DistanceUnits.Name(unit);
 
         /// <summary>Style element of a type of range mark.</summary>
         public static StyleElement Element(MarkInterval interval) => interval switch
@@ -120,6 +120,14 @@ namespace AuroraPAR
         public double TickBelow(bool withText) => DrawTicks && TickSide != TickSide.Above ? TickLength * (withText ? 1 : 0.6) : 0;
         public List<RangeMarkRow> Rows { get; set; } = [];
         public DistanceTextFormat TextFormat { get; set; } = DistanceTextFormat.Decimal;
+        /// <summary>
+        /// Lines across the whole view up to this distance from the touchdown (NM); beyond it, short lines getting
+        /// shorter towards the end of the range, with the distance written only on the marks of the largest interval
+        /// ticked (as on the PAR-E: every km up to 10 km, then every 5 km). 0: all the lines across the view.
+        /// </summary>
+        public double FullLinesTo { get; set; }
+        /// <summary>The distance is written in the colour of its mark (as on the PAR-E), instead of the range mark text colour.</summary>
+        public bool TextInMarkColour { get; set; }
 
         /// <summary>Size of the distance text, in pixels.</summary>
         public double TextSize { get; set; } = DefaultTextSize;
@@ -166,6 +174,7 @@ namespace AuroraPAR
             if (!Enum.IsDefined(TicksOn)) TicksOn = TickPlace.Horizon;
             TickLength = TickLength <= 0 ? 10 : Math.Clamp(Math.Round(TickLength), MinTickLength, MaxTickLength);
             TextSize = TextSize <= 0 ? DefaultTextSize : Math.Clamp(Math.Round(TextSize), MinTextSize, MaxTextSize);
+            FullLinesTo = double.IsFinite(FullLinesTo) && FullLinesTo > 0 ? Math.Min(FullLinesTo, 100) : 0;
             List<RangeMarkRow> rows = [];
             foreach (double range in Ranges.All)
             {
@@ -184,26 +193,33 @@ namespace AuroraPAR
         }
 
         /// <summary>
-        /// Marks to draw at a range: distance from touchdown, style element and whether the distance is written.
-        /// Each ticked type draws its lines (every multiple of its interval) with its own style; where ticked types
-        /// overlap (e.g. 1 NM is also a ½ and a ¼ mile) one line is drawn, with the style of the largest one.
+        /// Marks to draw at a range (NM): distance from touchdown (NM), style element, whether the distance is written,
+        /// and whether the line is a short one (beyond <see cref="FullLinesTo"/>). The intervals are counted in the
+        /// distance unit (5 = 5 NM or 5 km). Each ticked type draws its lines (every multiple of its interval) with its
+        /// own style; where ticked types overlap (e.g. 1 NM is also a ½ and a ¼ mile) one line is drawn, with the style
+        /// of the largest one.
         /// </summary>
-        public IEnumerable<(double Distance, StyleElement Element, bool Text)> Marks(double range)
+        public IEnumerable<(double Distance, StyleElement Element, bool Text, bool Short)> Marks(double range, DistanceUnit unit = DistanceUnit.NauticalMiles)
         {
             RangeMarkRow row = For(range);
             List<MarkInterval> selected = row.Lines.ToList();
             if (selected.Count == 0) yield break;
             // Only the ticked types count: a line takes the style of the largest ticked type it belongs to.
             List<MarkInterval> types = selected.OrderByDescending(MarkIntervals.Nm).ToList();
+            double perNM = DistanceUnits.PerNM(unit);
             const double finest = 0.25;
-            int count = (int)Math.Floor(range / finest + 1e-6);
+            int count = (int)Math.Floor(range * perNM / finest + 1e-6);
             for (int k = 1; k <= count; k++)
             {
                 double distance = Math.Round(k * finest, 3);
                 if (!selected.Any(i => IsMultiple(distance, MarkIntervals.Nm(i)))) continue;
                 MarkInterval type = types.FirstOrDefault(i => IsMultiple(distance, MarkIntervals.Nm(i)), MarkInterval.Quarter);
                 bool text = row.Text is MarkInterval t && IsMultiple(distance, MarkIntervals.Nm(t));
-                yield return (distance, MarkIntervals.Element(type), text);
+                double nm = distance / perNM;
+                bool isShort = FullLinesTo > 0 && nm > FullLinesTo + 1e-6;
+                // Beyond the full lines only the marks of the largest interval keep their text.
+                if (isShort) text = text && type == types[0];
+                yield return (nm, MarkIntervals.Element(type), text, isShort);
             }
         }
 
@@ -214,9 +230,11 @@ namespace AuroraPAR
         }
 
         /// <summary>Distance written under a range mark, in the chosen format (1.25NM or 1 1/4NM).</summary>
-        public string Label(double distance, double range)
+        public string Label(double distance, double range, DistanceUnit distanceUnit = DistanceUnit.NauticalMiles)
         {
-            string unit = For(range).ShowUnit ? "NM" : "";
+            string unit = For(range).ShowUnit ? DistanceUnits.Suffix(distanceUnit) : "";
+            // In the unit shown, rounded to the quarter (the marks are at quarters of the unit).
+            distance = Math.Round(distance * DistanceUnits.PerNM(distanceUnit) * 4) / 4;
             // Quarters only: any other value (not possible with the marks offered) is written as a decimal.
             if (TextFormat == DistanceTextFormat.Fractions && Math.Abs(distance * 4 - Math.Round(distance * 4)) < 1e-6)
             {
@@ -271,6 +289,8 @@ namespace AuroraPAR
         AltitudeScale,
         /// <summary>Horizontal lines every 1000 (optional).</summary>
         AltitudeLines,
+        /// <summary>Fixed height lines, e.g. FH600M (optional, added later).</summary>
+        FixedHeight,
         /// <summary>Beam line of the antenna scan effect (added later: older profiles get the default, 1 px).</summary>
         ScanEffect,
         Background,
@@ -333,11 +353,11 @@ namespace AuroraPAR
 
         public static string Name(StyleElement element) => element switch
         {
-            StyleElement.MarkFive => "Range marks 5 NM",
-            StyleElement.MarkTwo => "Range marks 2 NM",
-            StyleElement.MarkOne => "Range marks 1 NM",
-            StyleElement.MarkHalf => "Range marks ½ NM",
-            StyleElement.MarkQuarter => "Range marks ¼ NM",
+            StyleElement.MarkFive => "Range marks every 5 (NM or km)",
+            StyleElement.MarkTwo => "Range marks every 2",
+            StyleElement.MarkOne => "Range marks every 1",
+            StyleElement.MarkHalf => "Range marks every ½",
+            StyleElement.MarkQuarter => "Range marks every ¼",
             StyleElement.RangeText => "Range mark text",
             StyleElement.GlidePath => "Glide path",
             StyleElement.Centerline => "Centreline",
@@ -358,6 +378,7 @@ namespace AuroraPAR
             StyleElement.Touchdown => "Touchdown point",
             StyleElement.AltitudeScale => "Altitude scale",
             StyleElement.AltitudeLines => "Altitude lines (every 1000)",
+            StyleElement.FixedHeight => "Fixed height lines (FH)",
             StyleElement.ScanEffect => "Antenna scan effect (beam line)",
             StyleElement.Background => "Background",
             StyleElement.PlotInside => "Plots inside limits (history)",
@@ -393,6 +414,7 @@ namespace AuroraPAR
             StyleElement.Touchdown => new() { Color = "#FFFF00", Width = 2 },
             StyleElement.AltitudeScale => new() { Color = "#808080", Width = 1 },
             StyleElement.AltitudeLines => new() { Color = "#008000", Dash = LineDash.Dotted, Width = 1 },
+            StyleElement.FixedHeight => new() { Color = "#FF8C00", Width = 2 },
             StyleElement.ScanEffect => new() { Color = "#70F0E0", Width = 1 },
             StyleElement.Background => new() { Color = "#000000" },
             StyleElement.PlotInside => new() { Color = "#008000" },

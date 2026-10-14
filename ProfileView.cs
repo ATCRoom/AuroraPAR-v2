@@ -36,6 +36,8 @@ namespace AuroraPAR
             double textRoom = Options.RangeMarks.TextSize + 10 + (Options.RangeTextBelowHorizon ? Options.RangeMarks.TickBelow(true) : 0);
             bottomBand = Math.Max(textRoom, markers + Options.RangeMarks.TickBelow(true));
             yscale = (H - 30) / top;
+            // Angular scale: the upper scan limit at the top of the view (its own angle, not the reference one).
+            PixelsPerDegree = Math.Max(1, H - 12) / Math.Max(1, Radar.ScanUp);
         }
 
         /// <summary>
@@ -66,6 +68,8 @@ namespace AuroraPAR
         /// <summary>Logical y of a height in ft at the given distance (NM) from the far end of the runway.</summary>
         private double YEnd(double fromRunwayEndNM, double heightFt)
         {
+            // Angular scale: the elevation angle seen from the antenna.
+            if (Angular) return H - AngleFromAntenna(fromRunwayEndNM, heightFt / Runway.FeetPerNM) * PixelsPerDegree;
             return H - heightFt * ShrinkAt(fromRunwayEndNM) * yscale;
         }
 
@@ -74,6 +78,7 @@ namespace AuroraPAR
         /// </summary>
         private double ScanY(double fromRunwayEndNM, double angle)
         {
+            if (Angular) return H - angle * PixelsPerDegree;
             return YEnd(fromRunwayEndNM, Radar.ScanHeight(Math.Max(0, fromRunwayEndNM - AntennaNM), angle));
         }
 
@@ -83,6 +88,12 @@ namespace AuroraPAR
         /// </summary>
         private void AddScanLine(double angle, double toFromRunwayEndNM, StyleElement element)
         {
+            // Angular scale: a direction from the antenna is a horizontal line.
+            if (Angular)
+            {
+                AddLine(XAt(AntennaNM), ScanY(AntennaNM, angle), XAt(toFromRunwayEndNM), ScanY(toFromRunwayEndNM, angle), element);
+                return;
+            }
             if (!Compressed)
             {
                 AddLine(AntennaNM * xscale, H, toFromRunwayEndNM * xscale, ScanY(toFromRunwayEndNM, angle), element);
@@ -100,13 +111,35 @@ namespace AuroraPAR
         /// Draws a line starting at the touchdown point with angle GlideSlope + angleOffset: its last part (from the
         /// threshold or the DH, see <see cref="RadarView.FinalSegmentOf"/>) dashed, the rest in its own style.
         /// </summary>
-        private void AddGlidePathLine(double angleOffset, StyleElement element)
+        private void AddGlidePathLine(double angleOffset, StyleElement element, double maxDistance = double.MaxValue)
         {
             (double split, LineDash dash) = FinalSegmentOf(element);
-            double end = Runway.TouchdownNM + Runway.Distance;
-            // Straight with both scales (a line from the touchdown point, see RadarView.ShrinkAt).
-            if (split > 0) AddLine(X(0), Y(0), X(split), Y(split, Runway.GlidePathHeight(split, angleOffset)), element, dash: dash);
-            AddLine(X(split), Y(split, Runway.GlidePathHeight(split, angleOffset)), X(end), Y(end, Runway.GlidePathHeight(end, angleOffset)), element);
+            double end = Math.Min(Runway.TouchdownNM + Runway.Distance, maxDistance);
+            split = Math.Min(split, end);
+            // Straight with both distance scales (a line from the touchdown point, see RadarView.ShrinkAt); a curve
+            // with the angular scale.
+            if (split > 0) AddGlideSegment(0, split, angleOffset, element, dash);
+            AddGlideSegment(split, end, angleOffset, element);
+        }
+
+        /// <summary>
+        /// Part of a line from the touchdown point (glide path angle + <paramref name="angleOffset"/>) between
+        /// <paramref name="a"/> and <paramref name="b"/> NM from the touchdown: straight, or a curve with the angular scale.
+        /// </summary>
+        private void AddGlideSegment(double a, double b, double angleOffset, StyleElement element, LineDash? dash = null)
+        {
+            if (b <= a) return;
+            if (Angular)
+            {
+                double fromEnd = Runway.LengthNM - Runway.TouchdownNM;
+                AddCurve(t =>
+                {
+                    double s = SampleFromEnd(fromEnd + a, fromEnd + b, t) - fromEnd;
+                    return new Point(X(s), Y(s, Runway.GlidePathHeight(s, angleOffset)));
+                }, element, dash: dash, segments: AngularCurveSegments);
+                return;
+            }
+            AddLine(X(a), Y(a, Runway.GlidePathHeight(a, angleOffset)), X(b), Y(b, Runway.GlidePathHeight(b, angleOffset)), element, dash: dash);
         }
 
         /// <summary>
@@ -127,9 +160,9 @@ namespace AuroraPAR
             if (VisiblePart(0, end, Inside) is not { } part) return;
             double a = part.From, b = part.To;
             (double split, LineDash dash) = FinalSegmentOf(StyleElement.SafetyLimits);
-            if (split > a) AddLine(X(a), Y(a, Runway.GlidePathHeight(a, angleOffset)), X(Math.Min(split, b)), Y(Math.Min(split, b), Runway.GlidePathHeight(Math.Min(split, b), angleOffset)), StyleElement.SafetyLimits, dash: dash);
+            if (split > a) AddGlideSegment(a, Math.Min(split, b), angleOffset, StyleElement.SafetyLimits, dash);
             double start = Math.Max(a, split);
-            if (start < b) AddLine(X(start), Y(start, Runway.GlidePathHeight(start, angleOffset)), X(b), Y(b, Runway.GlidePathHeight(b, angleOffset)), StyleElement.SafetyLimits);
+            if (start < b) AddGlideSegment(start, b, angleOffset, StyleElement.SafetyLimits);
         }
 
         protected override void DrawStatic()
@@ -142,7 +175,9 @@ namespace AuroraPAR
             double lower = Radar.ScanDown;
             double beamUpper = Radar.ElevationUpper;
             double beamLower = Radar.ElevationLower;
-            if (Options.ShowAltitudeLines || (Compressed && Options.ShowAltitudeScale)) DrawAltitudeLines(end, upper, lower);
+            // Angular scale: no altitude lines (a scale in degrees on the side, and the fixed height lines).
+            if (!Angular && (Options.ShowAltitudeLines || (Compressed && Options.ShowAltitudeScale))) DrawAltitudeLines(end, upper, lower);
+            DrawFixedHeights(end, upper);
             // Ground beyond the threshold.
             AddLine(XAt(length), H, XAt(end), H, StyleElement.Ground);
             // Runway.
@@ -173,8 +208,10 @@ namespace AuroraPAR
             AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), H - Options.AntennaSymbol.Size / 2, Brush(StyleElement.Antenna));
             // Glide path and its approach limits, all starting at the touchdown point.
             AddGlidePathLine(0, StyleElement.GlidePath);
-            AddGlidePathLine(-Radar.ApproachBelow, StyleElement.ApproachLimits);
-            if (Radar.UpperApproachLimit) AddGlidePathLine(Radar.ApproachAbove, StyleElement.ApproachLimits);
+            // The approach limits may end before the end of the range (as on the PAR-E, at 10 km).
+            double limitsTo = Options.ApproachLimitsTo > 0 ? Options.ApproachLimitsTo : double.MaxValue;
+            AddGlidePathLine(-Radar.ApproachBelow, StyleElement.ApproachLimits, limitsTo);
+            if (Radar.UpperApproachLimit) AddGlidePathLine(Radar.ApproachAbove, StyleElement.ApproachLimits, limitsTo);
             if (Radar.SafetyLimitsElevation)
             {
                 AddSafetyLine(Radar.SafetyAbove, upper, lower);
@@ -199,15 +236,23 @@ namespace AuroraPAR
                 double to = towardsRunway ? intercept : toEdge ? edgeHigh : Math.Min(displayEnd, intercept + Options.DhLineLength);
                 if (Options.DhLineSide != DhHorizontalSide.None)
                 {
-                    // Constant height: straight with the linear scale, a slight curve with the compressed one.
-                    if (Compressed) AddCurve(t => { double d = from + (to - from) * t; return new Point(X(d), Y(d, Runway.MDH)); }, StyleElement.DecisionHeight);
+                    // Constant height: straight with the linear scale, a slight curve with the compressed one, a curve
+                    // going down with the distance with the angular one.
+                    if (Angular)
+                    {
+                        double fromEnd = Runway.LengthNM - Runway.TouchdownNM;
+                        AddCurve(t => { double d = SampleFromEnd(fromEnd + from, fromEnd + to, t) - fromEnd; return new Point(X(d), Y(d, Runway.MDH)); }, StyleElement.DecisionHeight, segments: AngularCurveSegments);
+                    }
+                    else if (Compressed) AddCurve(t => { double d = from + (to - from) * t; return new Point(X(d), Y(d, Runway.MDH)); }, StyleElement.DecisionHeight);
                     else AddLine(X(from), Y(Runway.MDH), X(to), Y(Runway.MDH), StyleElement.DecisionHeight);
                 }
                 // Vertical line: down, up or both; by default as long as the DH (down to the ground).
                 double drop = Options.DhDropLength > 0 ? Options.DhDropLength : Runway.MDH;
                 double down = Options.DhDropSide is DhVerticalSide.Down or DhVerticalSide.Both ? Math.Min(drop, Runway.MDH) : 0;
                 double up = Options.DhDropSide is DhVerticalSide.Up or DhVerticalSide.Both ? drop : 0;
-                if (Options.DhDropSide != DhVerticalSide.None) AddLine(X(intercept), Y(intercept, Runway.MDH - down), X(intercept), Y(intercept, Runway.MDH + up), StyleElement.DecisionHeightDrop);
+                // Full height: from the ground to the top of the view, as a distance mark.
+                if (Options.DhDropSide == DhVerticalSide.FullHeight) AddLine(X(intercept), H, X(intercept), 0, StyleElement.DecisionHeightDrop);
+                else if (Options.DhDropSide != DhVerticalSide.None) AddLine(X(intercept), Y(intercept, Runway.MDH - down), X(intercept), Y(intercept, Runway.MDH + up), StyleElement.DecisionHeightDrop);
                 AddSymbol(Options.DhSymbol, X(intercept), Y(intercept, Runway.MDH), Brush(StyleElement.DecisionHeightMark));
             }
             // Touchdown point: origin of the range marks and of the glide path.
@@ -223,16 +268,16 @@ namespace AuroraPAR
             List<DistanceReminder> reminders = VisibleReminders();
             // The horizon line is the base: distance text above it and reminder markers below, or the opposite.
             bool textBelow = Options.RangeTextBelowHorizon;
-            List<(double Distance, StyleElement Element, bool Text)> marks = [.. Options.RangeMarks.Marks(range)];
+            List<(double Distance, StyleElement Element, bool Text, bool Short)> marks = [.. Options.RangeMarks.Marks(range, Options.DistanceUnit)];
             // Compressed scale: the far marks are so close that their texts would touch: from the far end towards the
             // runway, a text that would touch the one kept is left out (the line stays).
             HashSet<double> shownTexts = [];
             List<(double Left, double Right)> kept = [];
-            foreach ((double distance, StyleElement element, bool text) in Enumerable.Reverse(marks))
+            foreach ((double distance, StyleElement element, bool text, bool _) in Enumerable.Reverse(marks))
             {
                 if (!text) continue;
                 if (!Compressed) { shownTexts.Add(distance); continue; }
-                TextBlock rangeMeasure = new() { Text = Options.RangeMarks.Label(distance, range), FontSize = Options.RangeMarks.TextSize };
+                TextBlock rangeMeasure = new() { Text = Options.RangeMarks.Label(distance, range, Options.DistanceUnit), FontSize = Options.RangeMarks.TextSize };
                 rangeMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 double textLeft = ToScreenX(XAt(length - Runway.TouchdownNM + distance)) - 10;
                 double textRight = textLeft + rangeMeasure.DesiredSize.Width;
@@ -242,11 +287,21 @@ namespace AuroraPAR
                     kept.Add((textLeft, textRight));
                 }
             }
-            foreach ((double distance, StyleElement element, bool text) in marks)
+            foreach ((double distance, StyleElement element, bool text, bool isShort) in marks)
             {
                 double markNM = length - Runway.TouchdownNM + distance;
                 double top = ScanY(markNM, upper);
                 double bottom = lower > 0 ? ScanY(markNM, lower) : H;
+                if (isShort && Options.RangeMarks.DrawLines && top < bottom && !HasReminderLine(reminders, distance))
+                {
+                    // Short line (beyond the full lines), centred on the glide path, shorter towards the end.
+                    double centre = Y(distance, Runway.GlidePathHeight(distance, 0));
+                    double half = (bottom - top) * ShortMarkFraction(distance) / 2;
+                    double y1 = Math.Max(top, centre - half), y2 = Math.Min(bottom, centre + half);
+                    if (y1 < y2) AddLine(XAt(markNM), y2, XAt(markNM), y1, element);
+                    // The lines below are only for the full marks; ticks and text as usual.
+                    top = bottom;
+                }
                 // A reminder line at the same distance replaces the range mark (the text stays).
                 // Ticks on the distance axis (the horizon line): the marks with text are longer.
                 double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
@@ -274,7 +329,7 @@ namespace AuroraPAR
                 if (text && shownTexts.Contains(distance))
                 {
                     double axisDown = Options.RangeMarks.TicksOnHorizon ? tickDown : 0, axisUp = Options.RangeMarks.TicksOnHorizon ? tickUp : 0;
-                    AddText(Options.RangeMarks.Label(distance, range), XAt(markNM), textBelow ? H + 2 + axisDown : H - 1 - axisUp, -10, Brush(StyleElement.RangeText), aboveAnchor: !textBelow);
+                    AddText(Options.RangeMarks.Label(distance, range, Options.DistanceUnit), XAt(markNM), textBelow ? H + 2 + axisDown : H - 1 - axisUp, -10, RangeTextBrush(element), aboveAnchor: !textBelow);
                 }
             }
             // Distance reminders: line between the scan limits and/or marker on the other side of the horizon from the text.
@@ -297,10 +352,47 @@ namespace AuroraPAR
             }
             // With the compressed scale heights depend on the distance: no scale on the side, the values are written
             // on the altitude lines instead (see DrawAltitudeLines).
-            if (Options.ShowAltitudeScale && !Compressed)
+            if (Options.ShowAltitudeScale && Angular)
+            {
+                DrawAngleScale(H, Math.Ceiling(Radar.ScanDown), Radar.ScanUp, signed: true);
+            }
+            else if (Options.ShowAltitudeScale && !Compressed)
             {
                 DrawAltitudeScale();
             }
+        }
+
+        /// <summary>
+        /// Fixed height lines (option, e.g. FH600M on the PAR-E): from where the height comes into the scan (upper scan
+        /// limit) to the end of the range; straight with the linear heights, a curve going down with the distance with
+        /// the compressed or the angular scale. The name is written where the line starts.
+        /// </summary>
+        private void DrawFixedHeights(double end, double upper)
+        {
+            if (Options.FixedHeights.Count == 0 || Options.Theme.IsHidden(StyleElement.FixedHeight)) return;
+            double tanUpper = Math.Tan(upper * Math.PI / 180);
+            if (tanUpper <= 0) return;
+            foreach (double heightFt in Options.FixedHeights)
+            {
+                double from = AntennaNM + heightFt / Runway.FeetPerNM / tanUpper;
+                if (from >= end) continue;
+                if (!Compressed && !Angular) AddLine(XAt(from), Y(heightFt), XAt(end), Y(heightFt), StyleElement.FixedHeight);
+                else AddCurve(t => { double r = SampleFromEnd(from, end, t); return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.FixedHeight, segments: AngularCurveSegments);
+                double value = Options.ScaleInMetres ? heightFt * 0.3048 : heightFt;
+                string text = "FH" + Math.Round(value).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + (Options.ScaleInMetres ? "M" : "FT");
+                double y = YEnd(from, heightFt);
+                double width = MeasureWidth(new TextBlock { Text = text, FontSize = Options.RangeMarks.TextSize });
+                // Towards the far end, above the line (below it when there is no room at the top of the view).
+                double dx = RunwayOnRight ? -4 - width : 4;
+                bool above = y - 2 - Options.RangeMarks.TextSize * 1.4 > 0;
+                AddText(text, XAt(from), above ? y - 2 : y + 2, dx, Brush(StyleElement.FixedHeight), aboveAnchor: above);
+            }
+        }
+
+        private static double MeasureWidth(TextBlock text)
+        {
+            text.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            return text.DesiredSize.Width;
         }
 
         /// <summary>

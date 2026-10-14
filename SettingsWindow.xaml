@@ -161,6 +161,13 @@
                     </StackPanel>
                     <TextBlock Text="LIN / LOG: keys next to the range on the main window, or key C. Within the knee the scale is almost linear; a smaller knee compresses more." Style="{StaticResource Note}" Margin="200,4,0,0"/>
                     <TextBlock Text="RANGE MARKS" Style="{StaticResource SubHeader}"/>
+                    <Grid Name="RangeExtraGrid" HorizontalAlignment="Left" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="320"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
                     <ContentControl Name="RangeMarksHost" Focusable="False"/>
                 </StackPanel>
             </ScrollViewer>
@@ -213,6 +220,13 @@
                             <ComboBox Name="FinalDashComboBox" Width="90" Margin="6,0,0,0"/>
                         </StackPanel>
                     </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Margin="0,10,0,0"
+                                ToolTip="Lines at a fixed height above the threshold, written e.g. FH600M where they start (as on the PAR-E). Up to 5 values, separated by commas, in the unit of the heights (Units). Empty: none. Colour and line: Colours and lines → Fixed height lines.">
+                        <TextBlock Text="Fixed height lines (side view)" Style="{StaticResource Label}"/>
+                        <TextBox Name="FixedHeightsBox" Width="160" Height="22" VerticalContentAlignment="Center"/>
+                        <TextBlock Name="FixedHeightsUnit" Text="ft" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <TextBlock Name="FixedHeightsNote" Text="e.g. 600 or 300, 600" Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
                     <Grid Name="DhSymbolGrid" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200"/>
@@ -257,6 +271,9 @@
                         <Button Name="EditLabelsButton" Content="Edit labels..." Padding="12,0" Height="26"
                                 ToolTip="Fields, rows, frame and colours of the labels of both views, and the track ID."/>
                     </StackPanel>
+                    <CheckBox Name="CompactLabelsCheck" Margin="200,6,0,0"
+                              Content="Compact text, as on the PAR-E (D:4.45KM, A3M / B2M, R23M / L5M, ID:56)"
+                              ToolTip="Label text without spaces and with the unit in capitals; deviation from the glide path as A (above) or B (below). Off: the normal text (6.2 NM, U 50 ft, R 75 ft)."/>
                     <StackPanel Style="{StaticResource Line}" Margin="0,6,0,0"
                                 ToolTip="Where a label starts (modern display): at 45° from the track, with a leader line (Colours and lines → Label leader line), or next to the track as before. A label dragged by hand stays where it is put; double click brings it back here.">
                         <TextBlock Text="Label position" Style="{StaticResource Label}"/>
@@ -308,6 +325,12 @@
                                    ToolTip="Altitude scale and labels."/>
                         <RadioButton Name="ScaleFeetRadio" GroupName="ScaleUnit" Content="ft, ft/min" Margin="0,0,16,0" VerticalAlignment="Center"/>
                         <RadioButton Name="ScaleMetresRadio" GroupName="ScaleUnit" Content="m, m/s" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Line}"
+                                ToolTip="Range marks, labels, range list and MAPt distance. The ranges stay the same (e.g. 20 NM = 37 km); the range marks are counted in the unit chosen (every 1 km, every 5 km...).">
+                        <TextBlock Text="Distances" Style="{StaticResource Label}"/>
+                        <RadioButton Name="DistanceNmRadio" GroupName="DistanceUnit" Content="NM" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="DistanceKmRadio" GroupName="DistanceUnit" Content="km" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Style="{StaticResource Line}">
                         <TextBlock Text="Altitude scale" Style="{StaticResource Label}"/>

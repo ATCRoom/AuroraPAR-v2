@@ -825,7 +825,10 @@ namespace AuroraPAR
         private void ApplyRanges(Profile profile)
         {
             double[] values = Ranges.Of(profile.DisplayRanges);
-            if (distances.Select(d => (double)d).SequenceEqual(values)) return;
+            // The range list writes the ranges in the distance unit of the profile (they stay in NM inside).
+            bool unitChanged = Distance.Kilometres != (profile.DistanceUnit == DistanceUnit.Kilometres);
+            Distance.Kilometres = profile.DistanceUnit == DistanceUnit.Kilometres;
+            if (!unitChanged && distances.Select(d => (double)d).SequenceEqual(values)) return;
             double current = DistanceComboBox.SelectedItem is Distance selected ? selected : runway.Distance;
             Ranges.Values = values;
             distances = values.Select(v => (Distance)v).ToArray();
@@ -2321,6 +2324,11 @@ namespace AuroraPAR
             viewOptions.Reminders = r => settings.RemindersFor(runways.Where(x => x.RunwayKey == r.RunwayKey).Select(x => x.ToString()).Append(r.ToString()));
             viewOptions.RangeTextBelowHorizon = profile.RangeTextBelowHorizon;
             viewOptions.DistanceKnee = profile.CompressedScale ? profile.CompressionKnee : 0;
+            viewOptions.DistanceUnit = profile.DistanceUnit;
+            viewOptions.CompactLabels = profile.CompactLabels;
+            viewOptions.ApproachLimitsTo = profile.ApproachLimitsTo;
+            viewOptions.FixedHeights = profile.FixedHeightLines.ToArray();
+            viewOptions.Angular = profile.VerticalScale == VerticalScale.Angles;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
             LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";
@@ -2363,7 +2371,7 @@ namespace AuroraPAR
             horizontalView.SetRunwayOnRight(right);
             // Information area in the top corner on the runway side, away from the far end of the scan limits.
             // Leave room for the altitude scale, drawn on the same side.
-            double margin = viewOptions.ShowAltitudeScale && viewOptions.DistanceKnee <= 0 ? 75 : 4;
+            double margin = viewOptions.ShowAltitudeScale && (viewOptions.DistanceKnee <= 0 || viewOptions.Angular) ? 75 : 4;
             ApplyDisplayMode(analog);
             if (right)
             {
@@ -2592,7 +2600,12 @@ namespace AuroraPAR
             if (courseText.FontWeight != courseWeight) courseText.FontWeight = courseWeight;
             bool unpublished = runway.IsUnpublished;
             SetText(glidePathText, unpublished ? $"GP {glidePath}° UNPUBLISHED APPROACH" : $"GP {glidePath}°");
-            SetText(missedApproachText, $"MAPt DIST {missedApproach}{(missedApproach == "----" ? "" : " NM")}");
+            // In the distance unit of the profile (km: from the same value in NM).
+            if (profile.DistanceUnit == DistanceUnit.Kilometres && missedApproach != "----")
+            {
+                missedApproach = (runway.MissedApproachPointNM * DistanceUnits.KilometresPerNM).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            }
+            SetText(missedApproachText, $"MAPt DIST {missedApproach}{(missedApproach == "----" ? "" : " " + DistanceUnits.Name(profile.DistanceUnit))}");
             Brush highlight = unpublished ? Brushes.Orange : Brushes.White;
             FontWeight weight = unpublished ? FontWeights.Bold : FontWeights.Normal;
             foreach (TextBlock block in new[] { glidePathText, missedApproachText })

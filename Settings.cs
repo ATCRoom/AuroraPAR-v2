@@ -66,6 +66,46 @@ namespace AuroraPAR
         Metres
     }
 
+    /// <summary>Unit of the distances shown (range marks, labels, range list): the ranges themselves stay in NM inside.</summary>
+    internal enum DistanceUnit
+    {
+        NauticalMiles,
+        Kilometres
+    }
+
+    /// <summary>
+    /// Vertical axis of the two views: heights and lateral distances (the classic picture, straight glide path), or
+    /// angles seen from the antenna, as on the PAR-E (the glide path and the centreline become curves).
+    /// </summary>
+    internal enum VerticalScale
+    {
+        Heights,
+        Angles
+    }
+
+    /// <summary>Where the antenna stands: on the runway centreline (as before), or beside the runway, as seen landing.</summary>
+    internal enum AntennaSide
+    {
+        OnCentreline,
+        Left,
+        Right
+    }
+
+    /// <summary>Distance units: conversion from NM (the unit used inside) and names.</summary>
+    internal static class DistanceUnits
+    {
+        public const double KilometresPerNM = 1.852;
+
+        /// <summary>Units of the given kind in one NM.</summary>
+        public static double PerNM(DistanceUnit unit) => unit == DistanceUnit.Kilometres ? KilometresPerNM : 1;
+
+        /// <summary>Unit as written after a number in the views: NM or KM.</summary>
+        public static string Suffix(DistanceUnit unit) => unit == DistanceUnit.Kilometres ? "KM" : "NM";
+
+        /// <summary>Unit as written in the settings: NM or km.</summary>
+        public static string Name(DistanceUnit unit) => unit == DistanceUnit.Kilometres ? "km" : "NM";
+    }
+
     /// <summary>
     /// Pressure conversions and formatting.
     /// </summary>
@@ -212,8 +252,8 @@ namespace AuroraPAR
 
     internal enum AltitudeLinesScale { LogOnly, LinOnly, Both }
 
-    /// <summary>Where the vertical DH line goes from that point.</summary>
-    internal enum DhVerticalSide { Down, Up, Both, None }
+    /// <summary>Where the vertical DH line goes from that point (FullHeight: across the whole view, from the ground to the top).</summary>
+    internal enum DhVerticalSide { Down, Up, Both, None, FullHeight }
 
     internal class Profile
     {
@@ -331,7 +371,7 @@ namespace AuroraPAR
         /// <summary>Text of the key/button back to the preferred range: the range in NM or the text chosen.</summary>
         [System.Text.Json.Serialization.JsonIgnore]
         public string PreferredRangeText => RangeDefaultMiles
-            ? PreferredRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "NM"
+            ? (PreferredRange * DistanceUnits.PerNM(DistanceUnit)).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + DistanceUnits.Suffix(DistanceUnit)
             : RangeDefaultKey;
         public AnalogTiltControl TiltControl { get; set; } = AnalogTiltControl.Knobs;
         public AnalogControl DhControl { get; set; } = AnalogControl.Knob;
@@ -392,6 +432,22 @@ namespace AuroraPAR
         /// Unit of heights: altitude scale and labels (altitude, deviations in ft or m, vertical speed in ft/min or m/s).
         /// </summary>
         public LengthUnit AltitudeScaleUnit { get; set; } = LengthUnit.Feet;
+        /// <summary>Unit of the distances shown: range marks, labels, range list, MAPt distance (NM by default).</summary>
+        public DistanceUnit DistanceUnit { get; set; } = DistanceUnit.NauticalMiles;
+        /// <summary>Vertical axis of the views: heights (default) or angles from the antenna (PAR-E).</summary>
+        public VerticalScale VerticalScale { get; set; } = VerticalScale.Heights;
+        /// <summary>Antenna on the centreline (default) or beside the runway, at <see cref="AntennaOffsetMetres"/>.</summary>
+        public AntennaSide AntennaSide { get; set; } = AntennaSide.OnCentreline;
+        /// <summary>Distance of the antenna from the runway centreline when beside the runway (mean of four real PARs: 140 m).</summary>
+        public double AntennaOffsetMetres { get; set; } = DefaultAntennaOffset;
+        public const double DefaultAntennaOffset = 140;
+        /// <summary>The approach limit lines end at this distance from the touchdown (NM); 0: up to the end of the range.</summary>
+        public double ApproachLimitsTo { get; set; }
+        /// <summary>Fixed height lines (feet above the threshold), each written as e.g. FH600M; none by default.</summary>
+        public List<double> FixedHeightLines { get; set; } = [];
+        public const int MaxFixedHeightLines = 5;
+        /// <summary>Label text without spaces, as on the PAR-E: D:4.45KM, A3M (above the glide path), R23M, ID:56.</summary>
+        public bool CompactLabels { get; set; }
 
         // Tracks and labels.
         public LabelLayout ElevationLabel { get; set; } = LabelLayout.DefaultElevation();
@@ -502,6 +558,13 @@ namespace AuroraPAR
             if (!Enum.IsDefined(Readouts)) Readouts = ReadoutStyle.Segments;
             if (!Enum.IsDefined(KeyStyle)) KeyStyle = AnalogKeyStyle.Console;
             if (!Enum.IsDefined(AltitudeLinesIn)) AltitudeLinesIn = AltitudeLinesScale.LogOnly;
+            if (!Enum.IsDefined(DistanceUnit)) DistanceUnit = DistanceUnit.NauticalMiles;
+            if (!Enum.IsDefined(VerticalScale)) VerticalScale = VerticalScale.Heights;
+            if (!Enum.IsDefined(AntennaSide)) AntennaSide = AntennaSide.OnCentreline;
+            AntennaOffsetMetres = double.IsFinite(AntennaOffsetMetres) ? Math.Clamp(AntennaOffsetMetres, 10, 2000) : DefaultAntennaOffset;
+            ApproachLimitsTo = double.IsFinite(ApproachLimitsTo) && ApproachLimitsTo > 0 ? Math.Min(ApproachLimitsTo, 100) : 0;
+            FixedHeightLines = (FixedHeightLines ?? []).Where(h => double.IsFinite(h) && h > 0 && h <= 60000)
+                .Select(h => Math.Round(h, 2)).Distinct().Order().Take(MaxFixedHeightLines).ToList();
             RangeDefaultKey = (RangeDefaultKey ?? "").Trim().ToUpperInvariant();
             if (RangeDefaultKey.Length > MaxRangeKeyText) RangeDefaultKey = RangeDefaultKey[..MaxRangeKeyText];
             if (RangeDefaultKey.Length == 0) RangeDefaultKey = "DEF";

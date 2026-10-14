@@ -12,7 +12,8 @@ namespace AuroraPAR
     ///
     /// Angles are in degrees. Lateral angles are signed: positive to the right of the approach course,
     /// as seen by the pilot flying the approach (same sign as <see cref="Aircraft.LateralOffset"/>).
-    /// The antenna is on the runway centreline, at half the runway length.
+    /// The antenna is at half the runway length, on the runway centreline or beside the runway
+    /// (<see cref="AntennaOffsetNM"/>); its azimuth zero is parallel to the centreline.
     /// </summary>
     internal class Radar
     {
@@ -64,6 +65,13 @@ namespace AuroraPAR
         public const double ReferenceScanHalfWidth = 10;
 
         public double TiltStep { get; set; } = 2;
+
+        /// <summary>
+        /// Lateral position of the antenna from the runway centreline, NM, positive to the right of the approach (as
+        /// seen landing); 0 = on the centreline. Its azimuth angles are measured from its own position, parallel to
+        /// the centreline.
+        /// </summary>
+        public double AntennaOffsetNM { get; set; }
 
         /// <summary>Current elevation tilt (from the neutral position of the beam), positive up.</summary>
         public double TiltElevation { get; private set; }
@@ -144,6 +152,13 @@ namespace AuroraPAR
             BeamEnabled = profile.BeamEnabled;
             NeutralFollowsGlidePath = profile.BeamElevationNeutralAuto;
             TiltStep = profile.TiltStep;
+            double offset = profile.AntennaOffsetMetres / 1852;
+            AntennaOffsetNM = profile.AntennaSide switch
+            {
+                AntennaSide.Left => -offset,
+                AntennaSide.Right => offset,
+                _ => 0
+            };
             ClampTilt();
         }
 
@@ -274,14 +289,14 @@ namespace AuroraPAR
         /// Azimuth and elevation of the aircraft from the antenna (degrees); false when it is behind the antenna or
         /// beyond the displayed range.
         /// </summary>
-        private static bool Angles(Aircraft aircraft, Runway runway, out double azimuth, out double elevation)
+        private bool Angles(Aircraft aircraft, Runway runway, out double azimuth, out double elevation)
         {
             azimuth = elevation = 0;
             double fromRunwayEnd = runway.LengthNM + aircraft.AlongTrackDistance(runway);
             if (fromRunwayEnd > runway.LengthNM + runway.Distance) return false;
             double fromAntenna = fromRunwayEnd - AntennaFromRunwayEnd(runway);
             if (fromAntenna <= 0) return false;
-            azimuth = Math.Atan2(aircraft.LateralOffset(runway), fromAntenna) * 180 / Math.PI;
+            azimuth = Math.Atan2(aircraft.LateralOffset(runway) - AntennaOffsetNM, fromAntenna) * 180 / Math.PI;
             double height = aircraft.Altitude - runway.Elevation;
             elevation = Math.Atan2(height / Runway.FeetPerNM, fromAntenna) * 180 / Math.PI;
             return true;
