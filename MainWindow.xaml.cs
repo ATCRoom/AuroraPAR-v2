@@ -1710,6 +1710,9 @@ namespace AuroraPAR
                 // The decision height and the course changed on the fly are not kept: back to the runway file values.
                 runway.MDH = runway.DefaultMDH;
                 previous.ResetHeading();
+                // No runway of the file keeps a course of the session (also the published approach behind an
+                // unpublished angle).
+                foreach (Runway fileRunway in runways) fileRunway.ResetHeading();
                 sessionCourse = null;
                 runway.ResetHeading();
                 UpdateCourseSelector();
@@ -1888,6 +1891,7 @@ namespace AuroraPAR
             if (approach == runway) { UpdateGlidePathSelector(); return; }
             double mdh = runway.MDH;
             double distance = runway.Distance;
+            selectedApproach?.ResetHeading();
             selectedApproach = approach;
             runway.ResetHeading();
             runway = approach;
