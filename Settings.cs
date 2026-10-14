@@ -470,6 +470,13 @@ namespace AuroraPAR
             DisplayRanges = [.. Ranges.Of(DisplayRanges)];
             if (!Enum.IsDefined(TiltControl)) TiltControl = AnalogTiltControl.Knobs;
             if (!Enum.IsDefined(DhControl)) DhControl = AnalogControl.Knob;
+            // Safety limits: always wider than the approach limits (also after these are widened), within sane angles.
+            static double Wider(double safety, double approach, double max) =>
+                Math.Clamp(double.IsNaN(safety) ? max : safety, Math.Min(approach + 0.1, max), max);
+            SafetyAbove = Wider(SafetyAbove, ApproachAbove, 15);
+            SafetyBelow = Wider(SafetyBelow, ApproachBelow, 15);
+            SafetyLeft = Wider(SafetyLeft, ApproachLeft, 30);
+            SafetyRight = Wider(SafetyRight, ApproachRight, 30);
             if (!Enum.IsDefined(BrightnessControl)) BrightnessControl = AnalogControl.Knob;
             if (!Enum.IsDefined(Readouts)) Readouts = ReadoutStyle.Segments;
             if (!Enum.IsDefined(KeyStyle)) KeyStyle = AnalogKeyStyle.Console;

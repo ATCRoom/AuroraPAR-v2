@@ -125,10 +125,11 @@ namespace AuroraPAR
             UpperApproachLimit = profile.UpperApproachLimit;
             SafetyLimitsElevation = profile.SafetyLimitsElevation;
             SafetyLimitsAzimuth = profile.SafetyLimitsAzimuth;
-            SafetyAbove = profile.SafetyAbove;
-            SafetyBelow = profile.SafetyBelow;
-            SafetyLeft = profile.SafetyLeft;
-            SafetyRight = profile.SafetyRight;
+            // Never inside the approach limits (e.g. these widened after the safety limits were set).
+            SafetyAbove = Math.Max(profile.SafetyAbove, profile.ApproachAbove);
+            SafetyBelow = Math.Max(profile.SafetyBelow, profile.ApproachBelow);
+            SafetyLeft = Math.Max(profile.SafetyLeft, profile.ApproachLeft);
+            SafetyRight = Math.Max(profile.SafetyRight, profile.ApproachRight);
             ApproachBelow = profile.ApproachBelow;
             ApproachLeft = profile.ApproachLeft;
             ApproachRight = profile.ApproachRight;

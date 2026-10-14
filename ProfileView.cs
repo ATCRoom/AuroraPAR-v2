@@ -122,7 +122,7 @@ namespace AuroraPAR
                 double fromAntenna = fromEnd + s - AntennaNM;
                 if (fromAntenna <= 0) return false;
                 double height = Runway.GlidePathHeight(s, angleOffset);
-                return height <= Radar.ScanHeight(fromAntenna, scanUp) && height >= Radar.ScanHeight(fromAntenna, scanDown);
+                return height >= 0 && height <= Radar.ScanHeight(fromAntenna, scanUp) && height >= Radar.ScanHeight(fromAntenna, scanDown);
             }
             if (VisiblePart(0, end, Inside) is not { } part) return;
             double a = part.From, b = part.To;

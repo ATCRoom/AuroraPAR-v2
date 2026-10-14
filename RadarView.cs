@@ -1258,7 +1258,20 @@ namespace AuroraPAR
                 first ??= s;
                 last = s;
             }
-            return first is double a && last is double b && b > a ? (a, b) : null;
+            if (first is not double a || last is not double b || b <= a) return null;
+            // Ends refined between the last sample outside and the first inside, so the line reaches the scan lines.
+            double step = (to - from) / steps;
+            double Edge(double inPoint, double outPoint)
+            {
+                if (outPoint < Math.Min(from, to) || outPoint > Math.Max(from, to)) return inPoint;
+                for (int i = 0; i < 24; i++)
+                {
+                    double middle = (inPoint + outPoint) / 2;
+                    if (inside(middle)) inPoint = middle; else outPoint = middle;
+                }
+                return inPoint;
+            }
+            return (Edge(a, a - step), Edge(b, b + step));
         }
 
         /// <summary>Points of a line drawn with the compressed scale: segments enough to look smooth.</summary>
