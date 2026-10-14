@@ -16,6 +16,9 @@ namespace AuroraPAR
         public int Version { get; set; }
         /// <summary>True: heights above the threshold (QFE); false: altitudes (QNH).</summary>
         public bool Qfe { get; set; }
+        /// <summary>Where the labels start, and how far (see <see cref="Profile.LabelPlacement"/>).</summary>
+        public LabelPlacement LabelPlacement { get; set; } = LabelPlacement.UpRight;
+        public double LabelOffsetDistance { get; set; } = Profile.DefaultLabelOffset;
         public bool ShowAltitudeScale { get; set; } = true;
         /// <summary>Horizontal lines every 1000 in the vertical view.</summary>
         public bool ShowAltitudeLines { get; set; }
@@ -873,16 +876,31 @@ namespace AuroraPAR
         /// <summary>
         /// Places the label (default position, or where it was dragged) and its leader line.
         /// </summary>
+        /// <summary>
+        /// Top left corner of a label not moved by hand: next to the track, or at 45° (the nearest corner of the label
+        /// at the chosen distance from the track, in the chosen direction).
+        /// </summary>
+        private Point DefaultLabelPlace(Point track, Size size)
+        {
+            double d = Options.LabelOffsetDistance * Math.Sqrt(0.5);
+            return Options.LabelPlacement switch
+            {
+                LabelPlacement.UpRight => new Point(track.X + d, track.Y - d - size.Height),
+                LabelPlacement.UpLeft => new Point(track.X - d - size.Width, track.Y - d - size.Height),
+                LabelPlacement.DownRight => new Point(track.X + d, track.Y + d),
+                LabelPlacement.DownLeft => new Point(track.X - d - size.Width, track.Y + d),
+                _ => new Point(track.X + LabelDistance, track.Y - LabelDistance - size.Height)
+            };
+        }
+
         private void PositionLabel(Track track)
         {
             track.Label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             Size size = track.Label.DesiredSize;
-            Point topLeft = track.Moved
-                ? track.Position + track.Offset
-                : new Point(track.Position.X + LabelDistance, track.Position.Y - LabelDistance - size.Height);
+            Point topLeft = track.Moved ? track.Position + track.Offset : DefaultLabelPlace(track.Position, size);
             Canvas.SetLeft(track.Label, topLeft.X);
             Canvas.SetTop(track.Label, topLeft.Y);
-            if (track.Moved)
+            if (track.Moved || Options.LabelPlacement != LabelPlacement.NextToTrack)
             {
                 // Leader line from the track to the nearest point of the label.
                 double x = Math.Clamp(track.Position.X, topLeft.X, topLeft.X + size.Width);

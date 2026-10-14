@@ -125,6 +125,29 @@ namespace AuroraPAR
                 double value = DhDropLengths[DhDropLengthComboBox.SelectedIndex];
                 SetProfileValue(p => p.DhDropLength == value, p => p.DhDropLength = value);
             };
+            LabelPlacementComboBox.ItemsSource = new[] { "45° up right (line)", "45° up left (line)", "45° down right (line)", "45° down left (line)", "Next to the track" };
+            LabelPlacementComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || LabelPlacementComboBox.SelectedIndex < 0) return;
+                LabelPlacement value = (LabelPlacement)LabelPlacementComboBox.SelectedIndex;
+                SetProfileValue(p => p.LabelPlacement == value, p => p.LabelPlacement = value);
+                LabelOffsetComboBox.IsEnabled = value != LabelPlacement.NextToTrack;
+            };
+            List<double> labelOffsets = [15, 20, 25, 30, 40, 50, 60, 80, 100, 120];
+            LabelOffsetComboBox.ItemsSource = labelOffsets.Select(px => $"{px} px").ToList();
+            LabelOffsetComboBox.SelectionChanged += (s, e) =>
+            {
+                if (refreshing || LabelOffsetComboBox.SelectedIndex < 0) return;
+                double value = labelOffsets[LabelOffsetComboBox.SelectedIndex];
+                SetProfileValue(p => p.LabelOffsetDistance == value, p => p.LabelOffsetDistance = value);
+            };
+            refreshers.Add(() =>
+            {
+                LabelPlacementComboBox.SelectedIndex = (int)Active.LabelPlacement;
+                int nearest = labelOffsets.Select((px, i) => (Math.Abs(px - Active.LabelOffsetDistance), i)).Min().i;
+                LabelOffsetComboBox.SelectedIndex = nearest;
+                LabelOffsetComboBox.IsEnabled = Active.LabelPlacement != LabelPlacement.NextToTrack;
+            });
             ShowCourseCheck.Checked += (s, e) => SetProfileValue(p => p.ShowCourseSelector, p => p.ShowCourseSelector = true);
             ShowCourseCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowCourseSelector, p => p.ShowCourseSelector = false);
             ShowDhCheck.Checked += (s, e) => SetProfileValue(p => p.ShowDhSelector, p => p.ShowDhSelector = true);

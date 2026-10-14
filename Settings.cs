@@ -200,6 +200,16 @@ namespace AuroraPAR
     internal enum FinalSegment { Solid, FromDh, FromThreshold }
 
     /// <summary>In which distance scale the horizontal altitude lines are drawn.</summary>
+    /// <summary>Where a label starts (modern display): next to the track, or at 45° with a leader line.</summary>
+    internal enum LabelPlacement
+    {
+        UpRight,
+        UpLeft,
+        DownRight,
+        DownLeft,
+        NextToTrack
+    }
+
     internal enum AltitudeLinesScale { LogOnly, LinOnly, Both }
 
     /// <summary>Where the vertical DH line goes from that point.</summary>
@@ -239,6 +249,13 @@ namespace AuroraPAR
         /// path the track keeps the "inside" colour, however high, until it goes below the lower limit.
         /// </summary>
         public bool UpperApproachLimit { get; set; } = true;
+        /// <summary>Where the labels start: at 45° (up right by default) with a leader line, or next to the track.</summary>
+        public LabelPlacement LabelPlacement { get; set; } = LabelPlacement.UpRight;
+        /// <summary>Distance (px) from the track to the nearest corner of the label, along the 45° line.</summary>
+        public double LabelOffsetDistance { get; set; } = DefaultLabelOffset;
+        public const double DefaultLabelOffset = 40;
+        public const double MinLabelOffset = 15;
+        public const double MaxLabelOffset = 120;
         public double ApproachBelow { get; set; } = 0.5;
         public double ApproachLeft { get; set; } = 1.5;
         public double ApproachRight { get; set; } = 1.5;
@@ -470,6 +487,8 @@ namespace AuroraPAR
             DisplayRanges = [.. Ranges.Of(DisplayRanges)];
             if (!Enum.IsDefined(TiltControl)) TiltControl = AnalogTiltControl.Knobs;
             if (!Enum.IsDefined(DhControl)) DhControl = AnalogControl.Knob;
+            if (!Enum.IsDefined(LabelPlacement)) LabelPlacement = LabelPlacement.UpRight;
+            LabelOffsetDistance = double.IsNaN(LabelOffsetDistance) ? DefaultLabelOffset : Math.Clamp(Math.Round(LabelOffsetDistance), MinLabelOffset, MaxLabelOffset);
             // Safety limits: always wider than the approach limits (also after these are widened), within sane angles.
             static double Wider(double safety, double approach, double max) =>
                 Math.Clamp(double.IsNaN(safety) ? max : safety, Math.Min(approach + 0.1, max), max);

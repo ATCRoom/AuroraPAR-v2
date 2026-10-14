@@ -257,6 +257,13 @@
                         <Button Name="EditLabelsButton" Content="Edit labels..." Padding="12,0" Height="26"
                                 ToolTip="Fields, rows, frame and colours of the labels of both views, and the track ID."/>
                     </StackPanel>
+                    <StackPanel Style="{StaticResource Line}" Margin="0,6,0,0"
+                                ToolTip="Where a label starts (modern display): at 45° from the track, with a leader line (Colours and lines → Label leader line), or next to the track as before. A label dragged by hand stays where it is put; double click brings it back here.">
+                        <TextBlock Text="Label position" Style="{StaticResource Label}"/>
+                        <ComboBox Name="LabelPlacementComboBox" Width="170" Height="22" VerticalAlignment="Center"/>
+                        <TextBlock Text="Distance:" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                        <ComboBox Name="LabelOffsetComboBox" Width="70" Height="22" VerticalAlignment="Center"/>
+                    </StackPanel>
                     <TextBlock Text="SYMBOLS" Style="{StaticResource SubHeader}"/>
                     <Grid Name="SymbolGrid">
                         <Grid.ColumnDefinitions>

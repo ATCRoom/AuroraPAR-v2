@@ -2324,6 +2324,8 @@ namespace AuroraPAR
             // The old scopes had no altitude scale.
             viewOptions.ShowAltitudeScale = profile.ShowAltitudeScale && !analog;
             viewOptions.ShowAltitudeLines = profile.AltitudeLinesNow;
+            viewOptions.LabelPlacement = profile.LabelPlacement;
+            viewOptions.LabelOffsetDistance = profile.LabelOffsetDistance;
             viewOptions.ScaleInMetres = profile.AltitudeScaleUnit == LengthUnit.Metres;
             viewOptions.HistoryEnabled = profile.HistoryEnabled;
             viewOptions.HistoryDots = profile.HistoryDots;
