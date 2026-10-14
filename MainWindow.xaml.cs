@@ -1274,9 +1274,12 @@ namespace AuroraPAR
             shortcutsWindow.Closed += (s, e) =>
             {
                 shortcutsWindow = null;
+                if (viewOptions.Analog) KeysButton.Tag = "Unlit";
                 FocusHelper.ReleaseKeyboard(this);
             };
             shortcutsWindow.Show();
+            // Analog: the KEYS key is lit while its window is open (as COORD and TEST).
+            if (viewOptions.Analog) KeysButton.Tag = "Lit";
         }
 
         private void ToggleDisplayMode()
@@ -1422,7 +1425,7 @@ namespace AuroraPAR
                 (TestButton, "Test traffic (T)", "TEST", "Test traffic: aircraft to practise with (key T).", 26),
                 (SettingsButton, "Settings...", "SETUP", "Settings.", 30),
                 (ManualButton, "Manual", "MANUAL", "Open the user manual (in the browser).", 24),
-                (KeysButton, "Keys (F1)", "KEYS", "List of the keyboard and mouse shortcuts (F1).", 24)
+                (KeysButton, "Keys", "KEYS", "List of the keyboard and mouse shortcuts (F1).", 24)
             ];
             foreach ((Button button, string modern, string analogText, string tip, int height) in buttons)
             {
@@ -1454,6 +1457,7 @@ namespace AuroraPAR
             // Lamp: the coordination key is lit while its panel is open. The mode key is a plain command.
             CoordinationButton.Tag = analog ? (coordinationWindow != null ? "Lit" : "Unlit") : null;
             TestButton.Tag = analog ? (testTrafficWindow != null ? "Lit" : "Unlit") : null;
+            KeysButton.Tag = analog ? (shortcutsWindow != null ? "Lit" : "Unlit") : null;
             // Display mode locked in the profile: no mode button (analog: a blank key keeps the place of the others).
             bool locked = settings.Active.LockDisplayMode;
             ModeButton.Visibility = locked && !analog ? Visibility.Collapsed : Visibility.Visible;
@@ -2061,6 +2065,13 @@ namespace AuroraPAR
         /// </summary>
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // F1 (list of the keys) works everywhere, also while typing.
+            if (e.Key == Key.F1)
+            {
+                OpenShortcuts();
+                e.Handled = true;
+                return;
+            }
             if (Keyboard.FocusedElement is TextBox or AptEntry) return;
             // Shift + arrows / Home: decision height; Ctrl + arrows / Home: brightness; Page up / down / End: range.
             // (Same actions as the keys and knobs of the analog console, with the window in front.)
@@ -2093,7 +2104,6 @@ namespace AuroraPAR
                 case Key.T: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
-                case Key.F1: OpenShortcuts(); break;
                 default: return;
             }
             e.Handled = true;

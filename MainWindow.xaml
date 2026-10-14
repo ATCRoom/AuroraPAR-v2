@@ -345,9 +345,9 @@
                     <!-- Help: the user manual (online) and the list of keys (also F1). -->
                     <Button Name="ManualButton" Content="Manual" Margin="0,4,0,0" Height="24" Width="48"
                             ToolTip="Open the user manual (in the browser)."/>
-                    <Button Name="KeysButton" Content="Keys (F1)" Margin="2,4,0,0" Height="24" Width="48"
+                    <Button Name="KeysButton" Content="Keys" Margin="2,4,0,0" Height="24" Width="48"
                             ToolTip="List of the keyboard and mouse shortcuts (F1)."/>
-                    <!-- Spare key, no longer used (the analog console has four keys: mode, coordination, test, setup). -->
+                    <!-- Spare key, no longer used (the analog console has six keys: mode, coordination, test, setup, manual, keys). -->
                     <Button Name="SpareKey" Visibility="Collapsed" IsTabStop="False"/>
                 </WrapPanel>
                 </Border>

@@ -68,7 +68,7 @@ The QNH is taken from the METAR of the airport in Aurora and refreshed every min
 | **2** | Elevation view ([4.2](#42-elevation-view-top)) |
 | **3** | Azimuth view ([4.3](#43-azimuth-view-bottom)) |
 
-**Right column, from the top (4–11).** The selectors "on the fly" are at the top; **Hide labels** (a quick switch of the display) comes after them, a little apart from the antenna tilt; the buttons Analog, Coordination, Test traffic (T), Settings..., **Manual** and **Keys (F1)** are fixed at the bottom edge of the window, apart from them. In the analog mode the buttons are square keys like those of a real console (big capital letters; the whole key lights up in warm white when active: the runway and approach in use, COORD and TEST while their windows are open) and the text fields are readout windows. The bottom keys are **MODERN** (back to the modern display), **COORD**, **TEST** (test traffic, as the key T), **SETUP** (Settings), **MANUAL** and **KEYS**:
+**Right column, from the top (4–11).** The selectors "on the fly" are at the top; **Hide labels** (a quick switch of the display) comes after them, a little apart from the antenna tilt; the buttons Analog, Coordination, Test traffic (T), Settings..., **Manual** and **Keys** (or F1) are fixed at the bottom edge of the window, apart from them. In the analog mode the buttons are square keys like those of a real console (big capital letters; the whole key lights up in warm white when active: the runway and approach in use, COORD and TEST while their windows are open) and the text fields are readout windows. The bottom keys are **MODERN** (back to the modern display), **COORD**, **TEST** (test traffic, as the key T), **SETUP** (Settings), **MANUAL** and **KEYS**:
 
 | | Control | Use |
 |---|---|---|
@@ -81,7 +81,7 @@ The QNH is taken from the METAR of the airport in Aurora and refreshed every min
 | **9** | **Hide labels (L)** | Hides / shows all labels. |
 | **10** | **Analog (A)** | Switches to the analog scope ([section 9](#9-analog-mode)). |
 | **11** | **Settings...** | Profiles and options ([section 10](#10-settings-and-profiles)). |
-| | **Manual** / **Keys (F1)** | **Manual** opens this user manual in the browser; **Keys** (or **F1**) opens the list of all the keyboard and mouse shortcuts (Esc or F1 closes it). |
+| | **Manual** / **Keys** | **Manual** opens this user manual in the browser; **Keys** (or **F1**, also while typing) opens the list of all the keyboard and mouse shortcuts (Esc or F1 closes it; the analog KEYS key is lit while it is open). |
 
 The window remembers its size and position, the runway and the range for the next start. If the column is too short for all the controls (small window), it shrinks to fit.
 
