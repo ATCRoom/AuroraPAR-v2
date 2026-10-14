@@ -67,6 +67,69 @@ namespace AuroraPAR
             }, element);
         }
 
+        private static readonly double[] LateralSteps = [500, 1000, 2000, 2500, 5000, 10000, 20000];
+
+        /// <summary>
+        /// Lateral scale (LIN): feet from the centreline on the side of the view, 0 at the centreline and the same
+        /// values on both sides (no sign), at a round step (three or four values a side).
+        /// </summary>
+        private void DrawLateralScale()
+        {
+            double halfFt = CenterY / yscale * Runway.FeetPerNM;
+            double step = LateralSteps.FirstOrDefault(s => s >= halfFt / 3.5, LateralSteps[^1]);
+            for (double value = 0; value <= halfFt; value += step)
+            {
+                foreach (int sign in value == 0 ? new[] { 1 } : new[] { 1, -1 })
+                {
+                    double y = CenterY - sign * value / Runway.FeetPerNM * yscale;
+                    if (y < 10 || y > Canvas.ActualHeight - 10) continue;
+                    AddLine(-XShift, y, 8 - XShift, y, StyleElement.AltitudeScale);
+                    AddSideText($"{value:0} ft", y, Brush(StyleElement.AltitudeScale));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Lateral scale (LOG): offsets shrink with the distance, so a constant offset is a curve getting closer to the
+        /// centreline towards the far end. Each value is such a curve (style of the altitude lines) from the scan
+        /// limit, with the value written where it starts, outside the scan limits.
+        /// </summary>
+        private void DrawCompressedLateralScale(double end, double scanLeft, double scanRight)
+        {
+            double halfFt = CenterY / yscale * Runway.FeetPerNM;
+            double step = LateralSteps.FirstOrDefault(s => s >= halfFt / 3.5, LateralSteps[^1]);
+            foreach (bool isRight in new[] { true, false })
+            {
+                double tan = Math.Tan(Math.Abs(isRight ? scanRight : scanLeft) * Math.PI / 180);
+                if (tan <= 0) continue;
+                double sign = isRight ? 1 : -1;
+                for (double value = step; value <= 30000; value += step)
+                {
+                    double offsetNM = value / Runway.FeetPerNM;
+                    double from = AntennaNM + offsetNM / tan;
+                    if (from >= end) break;
+                    AddCurve(t =>
+                    {
+                        double r = from + (end - from) * t;
+                        return new Point(XAt(r), LateralY(r, sign * offsetNM));
+                    }, StyleElement.AltitudeLines);
+                    // Outside the scan limits: above the upper line, below the lower one (on the screen, which is
+                    // mirrored with the runway on the right), on the runway side of the point.
+                    string text = $"{value:0} ft";
+                    bool screenUp = isRight != RunwayOnRight;
+                    double dx = RunwayOnRight ? 4 : -4 - TextWidth(text);
+                    AddText(text, XAt(from), LateralY(from, sign * offsetNM), dx, Brush(StyleElement.AltitudeScale), aboveAnchor: screenUp);
+                }
+            }
+        }
+
+        private double TextWidth(string text)
+        {
+            TextBlock measure = new() { Text = text, FontSize = Options.RangeMarks.TextSize };
+            measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            return measure.DesiredSize.Width;
+        }
+
         protected override void DrawStatic()
         {
             double length = Runway.LengthNM;
@@ -116,6 +179,11 @@ namespace AuroraPAR
                 double atEnd = LateralY(end, sign * Radar.ApproachHalfWidth(Runway.TouchdownNM + range, isRight));
                 if (limitSplit > 0) AddLine(xTouchdown, cy, xLimitSplit, atSplit, StyleElement.ApproachLimits, dash: limitDash);
                 AddLine(xLimitSplit, atSplit, xEnd, atEnd, StyleElement.ApproachLimits);
+            }
+            if (Options.ShowLateralScale && !Options.Theme.IsHidden(StyleElement.AltitudeScale))
+            {
+                if (Compressed) DrawCompressedLateralScale(end, left, right);
+                else DrawLateralScale();
             }
             // Safety limits (optional): outside the approach limits, only the part inside the scan limits.
             if (Radar.SafetyLimitsAzimuth)

@@ -225,6 +225,8 @@ namespace AuroraPAR
             DaDhRadio.Checked += (s, e) => SetProfileValue(p => p.MinimaLabel == MinimaLabel.DaDh, p => p.MinimaLabel = MinimaLabel.DaDh);
             OcaOchRadio.Checked += (s, e) => SetProfileValue(p => p.MinimaLabel == MinimaLabel.OcaOch, p => p.MinimaLabel = MinimaLabel.OcaOch);
             MdaMdhRadio.Checked += (s, e) => SetProfileValue(p => p.MinimaLabel == MinimaLabel.MdaMdh, p => p.MinimaLabel = MinimaLabel.MdaMdh);
+            LateralScaleCheck.Checked += (s, e) => SetProfileValue(p => p.ShowLateralScale, p => p.ShowLateralScale = true);
+            LateralScaleCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowLateralScale, p => p.ShowLateralScale = false);
             AltitudeScaleCheck.Checked += (s, e) => SetProfileValue(p => p.ShowAltitudeScale, p => p.ShowAltitudeScale = true);
             AltitudeScaleCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowAltitudeScale, p => p.ShowAltitudeScale = false);
             AltitudeLinesInComboBox.ItemsSource = new[] { "in the LOG scale only", "in the LIN scale only", "in both scales" };
@@ -367,6 +369,7 @@ namespace AuroraPAR
                 OcaOchRadio.IsChecked = Active.MinimaLabel == MinimaLabel.OcaOch;
                 MdaMdhRadio.IsChecked = Active.MinimaLabel == MinimaLabel.MdaMdh;
                 AltitudeScaleCheck.IsChecked = Active.ShowAltitudeScale;
+                LateralScaleCheck.IsChecked = Active.ShowLateralScale;
                 AltitudeLinesCheck.IsChecked = Active.ShowAltitudeLines;
                 AltitudeLinesInComboBox.SelectedIndex = (int)Active.AltitudeLinesIn;
                 AltitudeLinesInComboBox.IsEnabled = Active.ShowAltitudeLines;

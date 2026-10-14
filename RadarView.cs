@@ -20,6 +20,8 @@ namespace AuroraPAR
         public LabelPlacement LabelPlacement { get; set; } = LabelPlacement.UpRight;
         public double LabelOffsetDistance { get; set; } = Profile.DefaultLabelOffset;
         public bool ShowAltitudeScale { get; set; } = true;
+        /// <summary>Lateral scale of the azimuth view (see <see cref="Profile.ShowLateralScale"/>).</summary>
+        public bool ShowLateralScale { get; set; } = true;
         /// <summary>Horizontal lines every 1000 in the vertical view.</summary>
         public bool ShowAltitudeLines { get; set; }
         /// <summary>Heights, deviations and vertical speed in metres (true) or feet (false).</summary>
@@ -1136,7 +1138,8 @@ namespace AuroraPAR
         /// Distance of the antenna from the edge of the view (room for the altitude scale when shown; the compressed
         /// scale has no scale on the side, its values are on the altitude lines).
         /// </summary>
-        protected double LeftMargin => Options.ShowAltitudeScale && !Compressed ? 70 : 24;
+        // Same for both views (altitude or lateral scale), so that the distances of the two views stay aligned.
+        protected double LeftMargin => (Options.ShowAltitudeScale || Options.ShowLateralScale) && !Compressed ? 70 : 24;
 
         /// <summary>
         /// Horizontal scale and shift: the antenna at <see cref="LeftMargin"/>, the end of the range 50 px from the

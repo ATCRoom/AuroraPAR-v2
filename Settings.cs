@@ -362,6 +362,8 @@ namespace AuroraPAR
         public PressureUnit PressureUnit { get; set; } = PressureUnit.HectoPascal;
         public MinimaLabel MinimaLabel { get; set; } = MinimaLabel.DaDh;
         public bool ShowAltitudeScale { get; set; } = true;
+        /// <summary>Lateral scale of the azimuth view (feet from the centreline), as the altitude scale.</summary>
+        public bool ShowLateralScale { get; set; } = true;
         /// <summary>Horizontal lines every 1000 (in the unit of the scale) in the vertical view: on by default (see <see cref="AltitudeLinesIn"/>).</summary>
         public bool ShowAltitudeLines { get; set; } = true;
         /// <summary>The altitude lines are drawn in the log scale only (default), in the linear one only, or in both.</summary>

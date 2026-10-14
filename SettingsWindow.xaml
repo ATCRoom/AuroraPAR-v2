@@ -313,6 +313,11 @@
                         <TextBlock Text="Altitude scale" Style="{StaticResource Label}"/>
                         <CheckBox Name="AltitudeScaleCheck" Content="Show" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <StackPanel Style="{StaticResource Line}"
+                                ToolTip="Azimuth view: distance from the centreline in feet, on the side (LIN) or on curved lines (LOG), as the altitude scale.">
+                        <TextBlock Text="Lateral scale (azimuth)" Style="{StaticResource Label}"/>
+                        <CheckBox Name="LateralScaleCheck" Content="Show" VerticalAlignment="Center"/>
+                    </StackPanel>
                     <StackPanel Style="{StaticResource Line}">
                         <TextBlock Text="Altitude grid" Style="{StaticResource Label}"/>
                         <CheckBox Name="AltitudeLinesCheck" Content="Horizontal lines every 1000" VerticalAlignment="Center"

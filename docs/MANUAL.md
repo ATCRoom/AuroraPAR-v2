@@ -133,6 +133,7 @@ The antenna always stays at the same place: zooming in enlarges the approach, it
 
 
 - **Extended centreline** (yellow) with its **approach limits** left and right (default ±1.5°).
+- **Lateral scale** (*Settings → Display → Lateral scale (azimuth)*, on by default): distance from the centreline in **feet** on the runway side of the view, `0 ft` at the centreline and the same values above and below (no sign), at a round step (three or four values a side). With the log distance scale the offsets shrink with the distance, so each value is a faint curve starting at the scan limit, with the value written there (as the altitude scale in LOG). Colour of the *Altitude scale*; curves in the style of the *Altitude lines*. Metres / km will come with the unit options.
 - A red vertical line at the distance where the glide path reaches the DH.
 - Left/right are always **as seen by the pilot on the approach**. With the runway on the right of the screen the azimuth view is rotated by 180°, so the pilot's right stays on the same side as the direction of flight.
 
