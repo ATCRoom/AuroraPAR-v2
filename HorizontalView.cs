@@ -70,13 +70,28 @@ namespace AuroraPAR
         private static readonly double[] LateralSteps = [500, 1000, 2000, 2500, 5000, 10000, 20000];
 
         /// <summary>
+        /// Step of the lateral scale: three or four values a side, but always at least two (2 + 2), so a range where the
+        /// natural step is more than half the view (15 and 30 NM) takes the next smaller one.
+        /// </summary>
+        private static double LateralStep(double halfFt)
+        {
+            double step = LateralSteps.FirstOrDefault(s => s >= halfFt / 3.5, LateralSteps[^1]);
+            // The second value must be inside the view (a little margin for the edge of the canvas).
+            while (step > LateralSteps[0] && 2 * step > halfFt * 0.95)
+            {
+                step = LateralSteps[Math.Max(0, Array.IndexOf(LateralSteps, step) - 1)];
+            }
+            return step;
+        }
+
+        /// <summary>
         /// Lateral scale (LIN): feet from the centreline on the side of the view, 0 at the centreline and the same
         /// values on both sides (no sign), at a round step (three or four values a side).
         /// </summary>
         private void DrawLateralScale()
         {
             double halfFt = CenterY / yscale * Runway.FeetPerNM;
-            double step = LateralSteps.FirstOrDefault(s => s >= halfFt / 3.5, LateralSteps[^1]);
+            double step = LateralStep(halfFt);
             for (double value = 0; value <= halfFt; value += step)
             {
                 foreach (int sign in value == 0 ? new[] { 1 } : new[] { 1, -1 })
@@ -97,7 +112,7 @@ namespace AuroraPAR
         private void DrawCompressedLateralScale(double end, double scanLeft, double scanRight)
         {
             double halfFt = CenterY / yscale * Runway.FeetPerNM;
-            double step = LateralSteps.FirstOrDefault(s => s >= halfFt / 3.5, LateralSteps[^1]);
+            double step = LateralStep(halfFt);
             foreach (bool isRight in new[] { true, false })
             {
                 double tan = Math.Tan(Math.Abs(isRight ? scanRight : scanLeft) * Math.PI / 180);
