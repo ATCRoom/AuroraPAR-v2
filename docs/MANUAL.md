@@ -24,6 +24,7 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
 9. [Analog mode](#9-analog-mode)
    - [9b. Coordination panel](#9b-coordination-panel)
 10. [Settings and profiles](#10-settings-and-profiles)
+    - [10.6 Angular views and the PAR-E profile](#106-angular-views-and-the-par-e-profile)
 11. [Range marks, colours, reminders](#11-range-marks-colours-reminders)
 12. [Runways and the runway editor](#12-runways-and-the-runway-editor)
     - [12.4 CRSCalculator: runway heading and magnetic variation](#124-crscalculator-runway-heading-and-magnetic-variation)
@@ -433,7 +434,7 @@ The window has the **profile** bar at the top (everything below belongs to that 
 
 A profile holds all the display options, so that different controllers or different radar types can have their own set-up.
 
-**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2000** (modern, in the colours of the UK PAR 2000: only range ticks, also on the glide path, lower approach limit only, azimuth safety limits, CRS selector, labels at 45°), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
+**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2000** (modern, in the colours of the UK PAR 2000: only range ticks, also on the glide path, lower approach limit only, azimuth safety limits, CRS selector, labels at 45°), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns) and **PAR-E** (the ELDIS PAR-E: angular views, antenna beside the runway, distances in km, see [10.6](#106-angular-views-and-the-par-e-profile)). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
 
 - Select the active profile from the list; **Rename**, **Duplicate**, **Delete**.
 - **Export...** saves the profile as a `.json` file to share with other controllers; **Import...** loads one.
@@ -458,6 +459,7 @@ A profile holds all the display options, so that different controllers or differ
 - **History tails**: on/off, number of dots (3–100), one dot every *n* seconds (0.5–10).
 - **Symbols** (shape and size) of the track, history dots, threshold, touchdown point and antenna: circle, filled circle, circle with cross, square, diamond, triangle, inverted triangle, +, ×, capsule, line, none, or **Custom...**: the ✎ key (or choosing Custom in the list) opens the symbol editor: draw on a grid of 15 × 15 cells (click or drag; a drawn cell clears it) or type / correct the vector path (SVG syntax, box of 15 units centred on 0,0 = the position of the aircraft), filled or outline, with a preview at 12, 24 and 48 px. Colour and size stay those of the symbol; the custom symbol is saved in the profile (also in Export). The shapes are for the modern display: on the analog scope the track is the **phosphor echo**, a thin vertical bar as on the real PAR scopes, as tall as the **Track** size (12 px by default; e.g. 30 px for the long echoes of some scopes). *Settings → Colours and lines → Echo length at the far end* (1× to 4×, 1× = off) makes the echo grow with the distance, as the beam widens on the real scopes: the echo is the Track size at the touchdown and up to 2×, 3× or 4× that size at the end of the range; the afterglow follows.
 - **Edit labels...**: label layouts of the two views ([section 5.2](#52-labels)).
+- **Compact text, as on the PAR-E**: the label text without spaces and with the unit in capitals: `D:4.45KM` (distance), `A3M` / `B2M` (above / below the glide path), `R23M` / `L5M`, `ID:56`, `H600M` (height) or `A600M` (altitude). Off: the normal text (`6.2 NM`, `U 50 ft`, `R 75 ft`).
 
 ### 10.4 Radar (angles in degrees)
 
@@ -469,6 +471,8 @@ Set once for your radar type:
 | Scan limits (physical) | up, down (negative = below the horizon), left, right | new profile: 10 / −1 / 15 / 15 |
 | Antenna beam | *Narrow antenna beam moved by the tilt* (on/off); elevation width, azimuth width, elevation centre in neutral (or *automatic: the glide path angle in use*, the default), azimuth centre in neutral (+ right); *Draw the edges of the beam* | new profile: off; when turned on: 7 / 24 / automatic (GP) / 0 |
 | Antenna tilt | step; *Azimuth: swap left and right* ([section 7](#7-antenna-tilt)) | 2 / not ticked |
+| Approach limit lines end at | distance from the touchdown (in the distance unit) where the approach limit lines stop, as on the PAR-E (10 km); 0 = the whole range. The colour of the track still follows the limits everywhere | 0 |
+| Antenna position and vertical scale | *Vertical scale*: heights and distances, or angles from the antenna; *Antenna position*: on the centreline, left or right of the runway (seen landing); *Antenna distance from the centreline* (10–2000 m). See [10.6](#106-angular-views-and-the-par-e-profile) | heights / on the centreline / 140 m |
 
 Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 / −1 / 10 / 10), with the beam off; profiles converted by the first test builds with the beam go back to their old scan limits (or to the defaults above when they cannot be found). The scale of the views does not change with the scan limits or the beam: they move the lines, the rest keeps its size.
 
@@ -479,6 +483,7 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 | Pressure reference (all runways) | QNH (altitudes) or QFE (heights above the threshold) |
 | Pressure unit | hPa or inHg |
 | Name of the minimum | DA/DH, OCA/OCH, MDA/MDH (section *Approach and DH*) |
+| Distances | NM or km: range marks (counted in the unit: every 1 km, every 5 km...), labels, range list and MAPt distance. The ranges stay the same (e.g. 20 NM is shown as 37 km) |
 | Heights, deviations and vertical speed | ft and ft/min, or m and m/s |
 | Altitude scale | shown or not (Modern mode) |
 | Altitude grid | horizontal lines every 1000 (ft or m, as the scale) in the vertical view, inside the scan limits; on by default, **in the LOG scale only** (the menu next to the box: LOG only / LIN only / both: switching between LIN and LOG shows or hides them, without changing profile); colour and style: *Altitude lines* in the display colours |
@@ -493,6 +498,31 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 - the lines from the antenna (scan limits, antenna beam, scan effect) bend slightly near the runway (the antenna is not at the touchdown point);
 - a constant altitude is a curve going down towards the far end: the altitude grid lines bend, and the **altitude scale** is not drawn on the side (it would be right only at the touchdown) but written as values where the altitude lines start, on the upper scan limit; the altitudes above the scan limit at the end of the range have no line, but their value is written at the far edge of the view, so every altitude of the view has its value at any range (up to 10000: nothing is drawn above);
 - deviations from the glide path and the centreline are shown as with the linear scale near the runway, smaller far away (as all the distances there).
+
+### 10.6 Angular views and the PAR-E profile
+
+On some modern PARs (e.g. the **ELDIS PAR-E**) the vertical axis of the two views is not a height or a lateral distance but the **angle seen from the antenna**: elevation above the horizon (top view) and azimuth from the direction of the antenna (bottom view), with the distance axis compressed. *Settings → Radar → Vertical scale: Angles from the antenna* gives this picture (with LIN or LOG distances):
+
+- a direction from the antenna is a **horizontal line**: the scan limits are the top and bottom of the views;
+- the **glide path** rises from the touchdown point and flattens towards its angle (3°); the **approach limits** are curves around it;
+- a **constant height** (DH line, fixed height lines) is a curve going **down** with the distance;
+- with the antenna **beside the runway** (*Antenna position*: left or right, seen landing, 140 m from the centreline by default: the mean of four real PARs), the **centreline** in the azimuth view is a curve closing on the zero line of the antenna: above it with the antenna on the left of the runway, below it with the antenna on the right (runway on the left of the screen). The azimuth of the tracks is measured from the antenna too. The antenna stays at half the runway length;
+- the altitude and lateral scales become a **scale in degrees** on the side; the altitude grid is not drawn (the fixed height lines are);
+- the scan effect is a horizontal line moving up and down; the rain clutter of the analog scope is not drawn.
+
+Options made for this picture (they work with the other scales too):
+
+| Option | Where | |
+|---|---|---|
+| Distances in km | *Units* | range marks every 1 / 5 km, `D:4.45KM` |
+| Lines across the view up to *n* | *Range and scale*, above the range marks table | beyond this distance the range marks are **short lines**, shorter towards the end of the range, and the distance is written only on the largest marks (PAR-E: a line every km, across the view up to 10 km, then short; text every km up to 10 km, then every 5 km) |
+| Distance written in the colour of its mark | *Range and scale* | e.g. 5 km magenta, 1 km cyan |
+| Approach limit lines end at | *Radar* | PAR-E: 10 km |
+| Fixed height lines | *Approach and DH* | up to 5 heights, in the unit of the heights (e.g. `600`): an orange line written `FH600M` where it comes into the scan (colour: *Colours and lines → Fixed height lines*) |
+| DH vertical line *full height* | *Approach and DH* | the DH as a line across the whole view, from the ground to the top |
+| Compact label text | *Tracks and labels* | `ID:56 A3M` / `D:4.45KM R23M` |
+
+**The PAR-E profile** (in the `Profiles` folder; *Import...* if you already have settings) puts it all together, from the screenshots of the real display: black background, distance lines every km in cyan and every 5 km in magenta (across the view up to 10 km), km, angles up to 14° and ±15°, antenna 140 m on the left of the runway, glide path white, blue approach limits up to 10 km, `FH600M` in orange, the DH and the threshold in grey, yellow capsule tracks with green plots, compact labels (ID, deviation from the glide path, distance, deviation from the centreline), heights in metres (QFE), ranges 5 to 20 NM (9–37 km). Not reproduced: the plan view window of the real display and the label strip under the elevation view (here the labels follow the tracks).
 
 ---
 

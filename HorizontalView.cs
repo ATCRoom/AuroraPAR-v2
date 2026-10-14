@@ -135,7 +135,10 @@ namespace AuroraPAR
                 for (double value = step; value <= 30000; value += step)
                 {
                     double offsetNM = value / Runway.FeetPerNM;
-                    double from = AntennaNM + offsetNM / tan;
+                    // Where the offset comes into the scan, seen from the antenna (beside the runway when it is there).
+                    double fromAntenna = (offsetNM - sign * Radar.AntennaOffsetNM) / tan;
+                    if (fromAntenna <= 0) continue;
+                    double from = AntennaNM + fromAntenna;
                     if (from >= end) break;
                     AddCurve(t =>
                     {
@@ -286,7 +289,9 @@ namespace AuroraPAR
                 double markNM = distance - Runway.TouchdownNM + length;
                 // Ticks on the distance axis (the centreline): the marks with text are longer.
                 double tickUp = Options.RangeMarks.TickAbove(text), tickDown = Options.RangeMarks.TickBelow(text);
-                if (tickUp + tickDown > 0) AddLine(XAt(markNM), cy + tickDown, XAt(markNM), cy - tickUp, element);
+                // On the centreline (a curve with the angular scale and the antenna beside the runway).
+                double tickY = LateralY(markNM, 0);
+                if (tickUp + tickDown > 0) AddLine(XAt(markNM), tickY + tickDown, XAt(markNM), tickY - tickUp, element);
                 if (!Options.RangeMarks.DrawLines) continue;
                 if (isShort)
                 {

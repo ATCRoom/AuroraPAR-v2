@@ -392,7 +392,7 @@ namespace AuroraPAR
                 FixedHeightsUnit.Text = metres ? "m" : "ft";
                 if (!FixedHeightsBox.IsKeyboardFocused)
                 {
-                    FixedHeightsBox.Text = string.Join(", ", Active.FixedHeightLines.Select(h => FormatNumber(Math.Round(metres ? h * 0.3048 : h))));
+                    FixedHeightsBox.Text = FixedHeightsText(Active);
                 }
                 FixedHeightsNote.Text = "e.g. 600 or 300, 600";
                 FixedHeightsNote.Foreground = Brushes.Gray;
@@ -614,11 +614,20 @@ namespace AuroraPAR
             }
         }
 
+        /// <summary>Text of the fixed height lines, in the unit of the heights, rounded.</summary>
+        private static string FixedHeightsText(Profile profile)
+        {
+            bool metres = profile.AltitudeScaleUnit == LengthUnit.Metres;
+            return string.Join(", ", profile.FixedHeightLines.Select(h => FormatNumber(Math.Round(metres ? h * 0.3048 : h))));
+        }
+
         /// <summary>Fixed height lines from the text (values in the unit of the heights, separated by commas or spaces).</summary>
         private void ApplyFixedHeights()
         {
             if (refreshing) return;
             bool metres = Active.AltitudeScaleUnit == LengthUnit.Metres;
+            // Unchanged text: nothing to do (the values shown are rounded in the unit).
+            if (FixedHeightsBox.Text.Trim() == FixedHeightsText(Active)) return;
             List<double> heights = [];
             foreach (string part in FixedHeightsBox.Text.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries))
             {
@@ -1036,6 +1045,8 @@ namespace AuroraPAR
             void Apply()
             {
                 if (refreshing) return;
+                // Unchanged text (e.g. focus passing through): nothing to do, so a rounded value is not saved back.
+                if (box.Text.Trim() == FormatNumber(get(Active))) return;
                 if (double.TryParse(box.Text.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                     && value >= min && value <= max && (isValid == null || isValid(Active, value)))
                 {

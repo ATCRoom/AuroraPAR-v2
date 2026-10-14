@@ -177,7 +177,7 @@ namespace AuroraPAR
             double beamLower = Radar.ElevationLower;
             // Angular scale: no altitude lines (a scale in degrees on the side, and the fixed height lines).
             if (!Angular && (Options.ShowAltitudeLines || (Compressed && Options.ShowAltitudeScale))) DrawAltitudeLines(end, upper, lower);
-            DrawFixedHeights(end, upper);
+            DrawFixedHeights(end, upper, lower);
             // Ground beyond the threshold.
             AddLine(XAt(length), H, XAt(end), H, StyleElement.Ground);
             // Runway.
@@ -354,7 +354,8 @@ namespace AuroraPAR
             // on the altitude lines instead (see DrawAltitudeLines).
             if (Options.ShowAltitudeScale && Angular)
             {
-                DrawAngleScale(H, Math.Ceiling(Radar.ScanDown), Radar.ScanUp, signed: true);
+                // From the horizon up (below it is the band of the distance texts).
+                DrawAngleScale(H, Math.Max(0, Math.Ceiling(Radar.ScanDown)), Radar.ScanUp, signed: true);
             }
             else if (Options.ShowAltitudeScale && !Compressed)
             {
@@ -367,23 +368,30 @@ namespace AuroraPAR
         /// limit) to the end of the range; straight with the linear heights, a curve going down with the distance with
         /// the compressed or the angular scale. The name is written where the line starts.
         /// </summary>
-        private void DrawFixedHeights(double end, double upper)
+        private void DrawFixedHeights(double end, double upper, double lower)
         {
             if (Options.FixedHeights.Count == 0 || Options.Theme.IsHidden(StyleElement.FixedHeight)) return;
             double tanUpper = Math.Tan(upper * Math.PI / 180);
             if (tanUpper <= 0) return;
             foreach (double heightFt in Options.FixedHeights)
             {
-                double from = AntennaNM + heightFt / Runway.FeetPerNM / tanUpper;
-                if (from >= end) continue;
-                if (!Compressed && !Angular) AddLine(XAt(from), Y(heightFt), XAt(end), Y(heightFt), StyleElement.FixedHeight);
-                else AddCurve(t => { double r = SampleFromEnd(from, end, t); return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.FixedHeight, segments: AngularCurveSegments);
+                double heightNM = heightFt / Runway.FeetPerNM;
+                double from = AntennaNM + heightNM / tanUpper;
+                // Out of the scan below the lower limit when it is above the horizon (as the altitude lines).
+                double to = lower > 0 ? Math.Min(end, AntennaNM + heightNM / Math.Tan(lower * Math.PI / 180)) : end;
+                if (from >= to) continue;
+                if (!Compressed && !Angular) AddLine(XAt(from), Y(heightFt), XAt(to), Y(heightFt), StyleElement.FixedHeight);
+                else AddCurve(t => { double r = SampleFromEnd(from, to, t); return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.FixedHeight, segments: AngularCurveSegments);
                 double value = Options.ScaleInMetres ? heightFt * 0.3048 : heightFt;
                 string text = "FH" + Math.Round(value).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + (Options.ScaleInMetres ? "M" : "FT");
                 double y = YEnd(from, heightFt);
                 double width = MeasureWidth(new TextBlock { Text = text, FontSize = Options.RangeMarks.TextSize });
                 // Towards the far end, above the line (below it when there is no room at the top of the view).
                 double dx = RunwayOnRight ? -4 - width : 4;
+                // Inside the view (a line starting above the top or near the far edge).
+                y = Math.Clamp(y, 2, H - 2);
+                double left = ToScreenX(XAt(from)) + dx;
+                dx += Math.Clamp(left, 2, Math.Max(2, Canvas.ActualWidth - width - 2)) - left;
                 bool above = y - 2 - Options.RangeMarks.TextSize * 1.4 > 0;
                 AddText(text, XAt(from), above ? y - 2 : y + 2, dx, Brush(StyleElement.FixedHeight), aboveAnchor: above);
             }
