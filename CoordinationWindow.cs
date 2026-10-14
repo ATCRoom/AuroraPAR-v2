@@ -66,6 +66,12 @@ namespace AuroraPAR
             {
             }
             Content = BuildContent();
+            PreviewKeyDown += (s, e) =>
+            {
+                // Not while typing in a box (airport, code, name).
+                if (Keyboard.Modifiers != ModifierKeys.None || Keyboard.FocusedElement is TextBox or ComboBox) return;
+                if (HandleKey(e.Key)) e.Handled = true;
+            };
             link.StateReceived += s => Dispatcher.BeginInvoke(() => Received(s));
             link.PresenceChanged += (side, online) => Dispatcher.BeginInvoke(() =>
             {
@@ -495,6 +501,23 @@ namespace AuroraPAR
             status.Foreground = new SolidColorBrush(Color.FromRgb(0xD8, 0xD8, 0xD0));
             status.FontWeight = FontWeights.Normal;
             UpdateStatus();
+        }
+
+        /// <summary>
+        /// Keyboard shortcut of the lights: 1–5 press the lights, 0 is Reset (also the numeric keypad). Returns true if the
+        /// key was one of these. Used by this window and by the radar window, so the lights work from either.
+        /// </summary>
+        public bool HandleKey(Key key)
+        {
+            int number = key switch
+            {
+                >= Key.D0 and <= Key.D9 => key - Key.D0,
+                >= Key.NumPad0 and <= Key.NumPad9 => key - Key.NumPad0,
+                _ => -1
+            };
+            if (number < 0 || number > CoordinationSettings.Lights) return false;
+            if (number == 0) ResetLights(); else Press(number - 1);
+            return true;
         }
 
         private void Press(int light)

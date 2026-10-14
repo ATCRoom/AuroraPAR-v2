@@ -240,6 +240,7 @@ A label with no fields shows only the track symbol.
 | P / Shift+P | Next / previous profile (its name is shown for 2 s; runway and traffic stay, the antenna goes back to neutral) |
 | T | Test traffic window (virtual aircraft, see below) |
 | C | Linear / log distance scale (LIN / LOG keys; saved in the profile, see 10.5) |
+| 1 – 5 / 0 | Coordination panel (must be open, see 9b): press lights 1–5 / Reset (0); also the numeric keypad |
 | F1 | List of all the keys and mouse actions (also the **Keys** button) |
 | Alt+← / Alt+→ | Final course 1° less / more for this session (CRS selector); Alt+Home = course of the runway |
 | S | Track smoothing Off → Light → Strong → Off… for this session, to compare (modern display; the setting of the profile is not changed and comes back at the next start or profile switch) |
@@ -381,6 +382,7 @@ The **Coordination** button opens a small panel for **voiceless coordination** b
 |---|---|
 | Lights 1–5 | Square lit buttons on a black plate, as the light panel of the FIAR PAR console (default blue, white, yellow, red, green, as on the real panel). No text on the lights: each unit gives them its own meaning, e.g. *12 NM*, *8 NM*, *landing clearance requested / given*, *not authorised*. |
 | Light 6 | **Reset** (default black, set apart from the others): switches all the lights off on both panels. |
+| Keyboard | Keys **1–5** press the lights, **0** is Reset (also the numeric keypad), from the panel and from the radar window (while the panel is open). Not while typing in a box of the Options. |
 
 **How it works — the same rule for every light:**
 

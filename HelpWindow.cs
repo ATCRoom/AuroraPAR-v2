@@ -51,6 +51,7 @@ namespace AuroraPAR
             ]),
             ("Windows", [
                 ("T", "Test traffic"),
+                ("1 – 5 / 0", "Coordination panel (must be open): press lights 1–5 / Reset"),
                 ("F1", "This list of keys"),
                 ("Esc / Enter in a text box", "Cancel / confirm what is typed")
             ]),
