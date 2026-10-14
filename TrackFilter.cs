@@ -23,7 +23,7 @@ namespace AuroraPAR
     internal sealed class TrackFilter
     {
         /// <summary>The estimate is not moved on longer than this without a new position (data stopped).</summary>
-        private const double MaxPredictSeconds = 2;
+        private const double MaxPredictSeconds = 6;
         /// <summary>Beyond this difference (NM, ft) the estimate jumps to the real position (new or teleported aircraft).</summary>
         private const double ResetDistanceNM = 1;
         private const double ResetAltitudeFt = 1500;

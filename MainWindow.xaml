@@ -342,6 +342,11 @@
                             ToolTip="Test traffic: aircraft to practise with (key T)."/>
                     <Border Name="SystemSeparator" Height="1" Width="98" Background="#55808080" Margin="0,8,0,4"/>
                     <Button Name="SettingsButton" Content="Settings..." Margin="0,4,0,0" Height="30" Width="98"/>
+                    <!-- Help: the user manual (online) and the list of keys (also F1). -->
+                    <Button Name="ManualButton" Content="Manual" Margin="0,4,0,0" Height="24" Width="48"
+                            ToolTip="Open the user manual (in the browser)."/>
+                    <Button Name="KeysButton" Content="Keys (F1)" Margin="2,4,0,0" Height="24" Width="48"
+                            ToolTip="List of the keyboard and mouse shortcuts (F1)."/>
                     <!-- Spare key, no longer used (the analog console has four keys: mode, coordination, test, setup). -->
                     <Button Name="SpareKey" Visibility="Collapsed" IsTabStop="False"/>
                 </WrapPanel>

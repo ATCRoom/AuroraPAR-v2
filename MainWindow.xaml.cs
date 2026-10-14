@@ -128,6 +128,7 @@ namespace AuroraPAR
         /// <summary>Virtual aircraft for tests (key T), merged with the traffic of Aurora.</summary>
         private readonly TestTraffic testTraffic = new();
         private TestTrafficWindow? testTrafficWindow;
+        private ShortcutsWindow? shortcutsWindow;
         private readonly TextBlock statusText = new() { FontSize = 14 };
         private readonly TextBlock dataText = new() { FontSize = 14 };
         /// <summary>
@@ -219,6 +220,8 @@ namespace AuroraPAR
             Vertical.SizeChanged += (s, e) => InvalidateViews();
             Horizontal.SizeChanged += (s, e) => InvalidateViews();
             SettingsButton.Click += SettingsButton_Click;
+            ManualButton.Click += (s, e) => OpenManual();
+            KeysButton.Click += (s, e) => OpenShortcuts();
             TiltUpButton.Click += (s, e) => TiltAntenna(1, 0);
             TiltDownButton.Click += (s, e) => TiltAntenna(-1, 0);
             TiltLeftButton.Click += (s, e) => TiltAntenna(0, -AzimuthSign);
@@ -1250,6 +1253,32 @@ namespace AuroraPAR
             Redraw();
         }
 
+        /// <summary>Manual button: the user manual in the browser.</summary>
+        private void OpenManual()
+        {
+            if (!Help.OpenManual())
+            {
+                MessageBox.Show(this, $"Cannot open the browser. The manual is at:\n{Help.ManualUrl}", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>Keys button / F1: the list of the keyboard and mouse shortcuts (one window, brought to front).</summary>
+        private void OpenShortcuts()
+        {
+            if (shortcutsWindow != null)
+            {
+                shortcutsWindow.Activate();
+                return;
+            }
+            shortcutsWindow = new ShortcutsWindow { Owner = this };
+            shortcutsWindow.Closed += (s, e) =>
+            {
+                shortcutsWindow = null;
+                FocusHelper.ReleaseKeyboard(this);
+            };
+            shortcutsWindow.Show();
+        }
+
         private void ToggleDisplayMode()
         {
             Profile profile = settings.Active;
@@ -1391,7 +1420,9 @@ namespace AuroraPAR
                 (ModeButton, "Analog (A)", "MODERN", "Switch to the modern display (key A).", 26),
                 (CoordinationButton, "Coordination", "COORD", "Coordination light panel with the tower (voiceless coordination).", 26),
                 (TestButton, "Test traffic (T)", "TEST", "Test traffic: aircraft to practise with (key T).", 26),
-                (SettingsButton, "Settings...", "SETUP", "Settings.", 30)
+                (SettingsButton, "Settings...", "SETUP", "Settings.", 30),
+                (ManualButton, "Manual", "MANUAL", "Open the user manual (in the browser).", 24),
+                (KeysButton, "Keys (F1)", "KEYS", "List of the keyboard and mouse shortcuts (F1).", 24)
             ];
             foreach ((Button button, string modern, string analogText, string tip, int height) in buttons)
             {
@@ -1406,11 +1437,13 @@ namespace AuroraPAR
                     button.ClearValue(StyleProperty);
                     button.ClearValue(FontSizeProperty);
                     button.Content = modern;
-                    button.Width = 98;
+                    // Manual and Keys share a row (half width).
+                    bool half = button == ManualButton || button == KeysButton;
+                    button.Width = half ? 48 : 98;
                     button.Height = height;
-                    button.Margin = new Thickness(0, 4, 0, 0);
+                    button.Margin = new Thickness(button == KeysButton ? 2 : 0, 4, 0, 0);
                     button.Tag = null;
-                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton ? tip : null;
+                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == ManualButton || button == KeysButton ? tip : null;
                 }
             }
             SpareKey.Visibility = Visibility.Collapsed;
@@ -2060,6 +2093,7 @@ namespace AuroraPAR
                 case Key.T: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
+                case Key.F1: OpenShortcuts(); break;
                 default: return;
             }
             e.Handled = true;
