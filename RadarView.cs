@@ -459,8 +459,7 @@ namespace AuroraPAR
         /// <summary>Analog scope: rain clutter inside the antenna beam (see <see cref="ClutterLayer"/>).</summary>
         private void UpdateClutter(double t, ScanEffectSpeed speed)
         {
-            // The clutter layer draws the beam as straight lines from the antenna: not with the angular scale.
-            if (!Options.Analog || Options.ClutterStrength <= 0 || Angular)
+            if (!Options.Analog || Options.ClutterStrength <= 0)
             {
                 clutter.Hide();
                 return;
@@ -476,6 +475,12 @@ namespace AuroraPAR
             Point origin = Unwarp(SweepOrigin());
             Point low = Unwarp(SweepEnd(0));
             Point high = Unwarp(SweepEnd(1));
+            // Angular scale: the beam edges are horizontal lines at their angle (logical y), only x is unwarped.
+            if (Angular)
+            {
+                low = new Point(low.X, SweepEnd(0).Y);
+                high = new Point(high.X, SweepEnd(1).Y);
+            }
             Color colour = Options.Theme.Brush(StyleElement.TrackInside) is SolidColorBrush brush ? brush.Color : Colors.LimeGreen;
             clutter.Update(new ClutterLayer.Frame
             {
@@ -500,6 +505,7 @@ namespace AuroraPAR
                 DriftY = -Options.ClutterWindRightKt / 3600 * LateralPixelsPerNM,
                 Colour = colour,
                 AxisY = AxisY,
+                Angular = Angular,
                 Unwarp = Compressed ? ClutterColumn : null
             });
         }

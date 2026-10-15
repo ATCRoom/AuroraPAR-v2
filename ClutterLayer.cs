@@ -136,6 +136,12 @@ namespace AuroraPAR
             /// </summary>
             public Func<double, (double X, double Factor)>? Unwarp;
             public double AxisY;
+            /// <summary>
+            /// Angular vertical scale: the height on the screen is the angle from the antenna, so the position across the
+            /// beam is read directly from the logical y (LowY / HighY are logical, the beam edges are horizontal lines);
+            /// <see cref="Unwarp"/> is then used only for x.
+            /// </summary>
+            public bool Angular;
         }
 
         public void Hide() => image.Visibility = Visibility.Collapsed;
@@ -225,14 +231,15 @@ namespace AuroraPAR
                     if (f.Unwarp != null)
                     {
                         linearX = columnX[bx];
-                        linearY = f.AxisY + (ly - f.AxisY) * columnFactor[bx];
+                        if (!f.Angular) linearY = f.AxisY + (ly - f.AxisY) * columnFactor[bx];
                     }
                     double dx = linearX - f.OriginX;
                     if (dx <= 1) continue;
                     double mask = 0, p = 0;
                     for (int g = 0; g < count; g++)
                     {
-                        double y = f.OriginY + (linearY - f.OriginY) * slope / dx;
+                        // Where the direction from the antenna reaches the end of the range (angular: the height itself).
+                        double y = f.Angular ? linearY : f.OriginY + (linearY - f.OriginY) * slope / dx;
                         double pg = (y - wedges[g].LowY) / (wedges[g].HighY - wedges[g].LowY);
                         double m = Math.Clamp((Math.Min(pg, 1 - pg) + EdgeFade) / (2 * EdgeFade), 0, 1) * wedges[g].Weight;
                         if (m > mask) { mask = m; p = pg; }
