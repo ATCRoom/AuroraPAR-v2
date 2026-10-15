@@ -1,6 +1,8 @@
 {
   "Name": "PAR2090",
   "RunwaySide": "Left",
+  "AntennaSide": "Left",
+  "AntennaOffsetMetres": 140,
   "StartupRange": "Fixed",
   "RunwayChangeRange": "Fixed",
   "PreferredRange": 15,
