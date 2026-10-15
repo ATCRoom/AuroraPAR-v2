@@ -19,13 +19,13 @@
   "CompressedScale": true,
   "CompressionKnee": 2,
   "DistanceScaleLock": "LogOnly",
-  "ScanUp": 8,
+  "ScanUp": 6,
   "ScanDown": -1,
   "ScanLeft": 15,
   "ScanRight": 15,
   "BeamEnabled": false,
-  "ShowAltitudeScale": true,
-  "ShowLateralScale": true,
+  "ShowAltitudeScale": false,
+  "ShowLateralScale": false,
   "ShowAltitudeLines": false,
   "ScanEffect": false,
   "DhLineSide": "Both",
@@ -88,8 +88,7 @@
       {
         "Range": 15,
         "Lines": [
-          "One",
-          "Half"
+          "One"
         ],
         "Text": "One",
         "ShowUnit": false
@@ -97,10 +96,9 @@
       {
         "Range": 20,
         "Lines": [
-          "One",
-          "Half"
+          "One"
         ],
-        "Text": "One",
+        "Text": "Two",
         "ShowUnit": false
       },
       {
@@ -166,9 +164,8 @@
         "Width": 1
       },
       "ScanLimits": {
-        "Color": "#808080",
-        "Width": 1,
-        "Hidden": true
+        "Color": "#6A5F8A",
+        "Width": 1
       },
       "Ground": {
         "Color": "#F0F0F0",

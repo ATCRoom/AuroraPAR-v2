@@ -161,7 +161,12 @@ namespace AuroraPAR
                     string text = $"{value:0} {unit}";
                     bool screenUp = isRight != RunwayOnRight;
                     double dx = RunwayOnRight ? 4 : -4 - TextWidth(text);
-                    AddText(text, XAt(from), LateralY(from, sign * offsetNM), dx, Brush(StyleElement.AltitudeScale), aboveAnchor: screenUp);
+                    // Only when the whole text is inside the view (near the edge it would be cut, or go over the other view).
+                    double y = LateralY(from, sign * offsetNM);
+                    double textHeight = TextHeight(new TextBlock { Text = text, FontSize = Options.RangeMarks.TextSize });
+                    double top = ToScreenY(y) - (screenUp ? textHeight : 0);
+                    if (top < 0 || top + textHeight > Canvas.ActualHeight) continue;
+                    AddText(text, XAt(from), y, dx, Brush(StyleElement.AltitudeScale), aboveAnchor: screenUp);
                 }
             }
         }
