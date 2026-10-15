@@ -2332,6 +2332,7 @@ namespace AuroraPAR
             viewOptions.FixedHeights = profile.FixedHeightLines.ToArray();
             viewOptions.Angular = profile.AngularNow;
             viewOptions.ThresholdTick = profile.ThresholdTick;
+            viewOptions.ShowFapLine = profile.ShowFapLine;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
             LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";

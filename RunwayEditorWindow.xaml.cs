@@ -68,6 +68,7 @@ namespace AuroraPAR
             new("range", "Default range (NM)", "1, 2.5, 5, 10, 15 or 20 (the closest is used)"),
             new("touchdown", "Touchdown from threshold (m)", "optional: empty = automatic"),
             new("magvar", "Magnetic variation", "optional, e.g. 3E or 2W: empty = default in Settings"),
+            new("fapalt", "Final App. Altitude (FAP ALT, ft)", "optional, altitude as on the chart: drawn as a line when the profile shows it"),
         ];
 
         private static readonly Brush ErrorBackground = new SolidColorBrush(Color.FromRgb(255, 215, 215));
@@ -315,6 +316,15 @@ namespace AuroraPAR
                         return null;
                     }
                     return CheckNumber(text, 0, 3000);
+                case "fapalt":
+                    if (text.Length == 0) return null;
+                    if (CheckNumber(text, 1, 30000) is string fapError) return fapError;
+                    if (TryNumber(text, out double fap) && TryNumber(draft["elevation"], out double thresholdElevation))
+                    {
+                        if (fap <= thresholdElevation) return "must be above the threshold elevation";
+                        info = $"= {fap - thresholdElevation:0} ft above the threshold";
+                    }
+                    return null;
                 case "magvar":
                     if (text.Length == 0) return null;
                     if (!MagneticVariation.TryParse(text, out double variation)) return "e.g. 3E, 2.5W or -2";
@@ -365,7 +375,7 @@ namespace AuroraPAR
             {
                 // Show the values exactly as written in the file (e.g. 3.0 stays 3.0, 082.1 stays 082.1).
                 string[] f = runway.SourceText.Split(';', StringSplitOptions.TrimEntries);
-                string[] keys = ["icao", "designator", "heading", "elevation", "latitude", "longitude", "length", "width", "glideslope", "tch", "dh", "range", "touchdown", "magvar"];
+                string[] keys = ["icao", "designator", "heading", "elevation", "latitude", "longitude", "length", "width", "glideslope", "tch", "dh", "range", "touchdown", "magvar", "fapalt"];
                 for (int i = 0; i < keys.Length; i++)
                 {
                     draft[keys[i]] = i < f.Length ? f[i] : "";
@@ -386,6 +396,7 @@ namespace AuroraPAR
             draft["range"] = FormatNumber(runway.DefaultDistance);
             draft["touchdown"] = runway.TouchdownOverrideM is double touchdown ? FormatNumber(touchdown) : "";
             draft["magvar"] = runway.MagneticVariation is double variation ? MagneticVariation.Format(variation) : "";
+            draft["fapalt"] = runway.FapAltitude is double fap ? FormatNumber(fap) : "";
             return draft;
         }
 
@@ -415,7 +426,8 @@ namespace AuroraPAR
                 Distance = range,
                 DefaultDistance = range,
                 TouchdownOverrideM = string.IsNullOrWhiteSpace(draft["touchdown"]) ? null : Number(draft, "touchdown"),
-                MagneticVariation = MagneticVariation.TryParse(draft["magvar"], out double variation) ? variation : null
+                MagneticVariation = MagneticVariation.TryParse(draft["magvar"], out double variation) ? variation : null,
+                FapAltitude = TryNumber(draft["fapalt"], out double fap) && fap > 0 ? fap : null
             };
         }
 

@@ -227,6 +227,9 @@
                         <TextBlock Name="FixedHeightsUnit" Text="ft" VerticalAlignment="Center" Margin="6,0,0,0"/>
                         <TextBlock Name="FixedHeightsNote" Text="e.g. 600 or 300, 600" Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
                     </StackPanel>
+                    <CheckBox Name="FapLineCheck" Margin="200,6,0,0"
+                              Content="Line at the final approach altitude of the runway (FAP ALT in the runway editor), e.g. FAP600M"
+                              ToolTip="Where the glide path reaches the altitude where the final approach starts. The altitude is set for each runway / approach in the runway editor (FAP ALT, ft as on the chart); a runway without it has no line. Written as a height with QFE, as an altitude with QNH, in the unit of the heights. Style: Colours and lines → Fixed height lines."/>
                     <Grid Name="DhSymbolGrid" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200"/>
@@ -337,7 +340,7 @@
                         <CheckBox Name="AltitudeScaleCheck" Content="Show" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Style="{StaticResource Line}"
-                                ToolTip="Azimuth view: distance from the centreline in feet, on the side (LIN) or on curved lines (LOG), as the altitude scale.">
+                                ToolTip="Azimuth view: distance from the centreline in the unit of the heights (ft or m), on the side (LIN) or on curved lines (LOG), as the altitude scale.">
                         <TextBlock Text="Lateral scale (azimuth)" Style="{StaticResource Label}"/>
                         <CheckBox Name="LateralScaleCheck" Content="Show" VerticalAlignment="Center"/>
                     </StackPanel>

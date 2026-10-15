@@ -154,6 +154,12 @@ namespace AuroraPAR
         public double? MagneticVariation { get; set; }
 
         /// <summary>
+        /// Altitude (ft, as on the chart) where the final approach starts (FAP ALT), optional: drawn as a fixed height
+        /// line when the profile shows it (see <see cref="Profile.ShowFapLine"/>).
+        /// </summary>
+        public double? FapAltitude { get; set; }
+
+        /// <summary>
         /// Magnetic final course: true heading corrected with the variation of the runway, or the given default.
         /// </summary>
         public int FinalCourse(double defaultVariation)
@@ -417,7 +423,7 @@ namespace AuroraPAR
     internal class DataFile
     {
         //Format: ICAO;DESIGNATOR;HEADING;ELEVATION;LATITUDE;LONGITUDE;LENGTH IN METERS;WIDTH IN METERS;GLIDE SLOPE;TCH;MDH;DEFAULT DISTANCE[;TOUCHDOWN DISTANCE FROM THRESHOLD IN METERS (optional)]
-        public const string FormatComment = "# ICAO;DESIGNATOR;HEADING(deg true);THRESHOLD ELEVATION(ft);THRESHOLD LATITUDE;THRESHOLD LONGITUDE;LENGTH(m);WIDTH(m);GLIDE SLOPE(deg);TCH(ft);DH(ft);DEFAULT RANGE(NM)[;TOUCHDOWN FROM THRESHOLD(m)][;MAGNETIC VARIATION e.g. 3E or 2W]";
+        public const string FormatComment = "# ICAO;DESIGNATOR;HEADING(deg true);THRESHOLD ELEVATION(ft);THRESHOLD LATITUDE;THRESHOLD LONGITUDE;LENGTH(m);WIDTH(m);GLIDE SLOPE(deg);TCH(ft);DH(ft);DEFAULT RANGE(NM)[;TOUCHDOWN FROM THRESHOLD(m)][;MAGNETIC VARIATION e.g. 3E or 2W][;FAP ALT(ft)]";
 
         public static async Task<Runway[]> GetRunways(string path)
         {
@@ -493,6 +499,11 @@ namespace AuroraPAR
                 {
                     runway.MagneticVariation = variation;
                 }
+                // Optional 15th field: final approach altitude (FAP ALT, ft). The 13th and 14th can then be empty.
+                if (linedata.Length >= 15 && TryParse(linedata[14], out double fapAltitude) && fapAltitude > 0)
+                {
+                    runway.FapAltitude = fapAltitude;
+                }
                 return true;
             }
             return false;
@@ -557,14 +568,15 @@ namespace AuroraPAR
                 CoordinateParser.Format(r.Latitude), CoordinateParser.Format(r.Longitude),
                 Format(r.LengthM), Format(r.WidthM), Format(r.GlideSlope), Format(r.TCH),
                 Format(r.DefaultMDH), Format(r.DefaultDistance));
-            if (r.TouchdownOverrideM != null || r.MagneticVariation != null)
-            {
-                line += ";" + (r.TouchdownOverrideM is double touchdown ? Format(touchdown) : "");
-            }
-            if (r.MagneticVariation is double variation)
-            {
-                line += ";" + AuroraPAR.MagneticVariation.Format(variation);
-            }
+            // Optional fields: touchdown, magnetic variation, FAP altitude; the empty ones at the end are left out.
+            List<string> optional =
+            [
+                r.TouchdownOverrideM is double touchdown ? Format(touchdown) : "",
+                r.MagneticVariation is double variation ? AuroraPAR.MagneticVariation.Format(variation) : "",
+                r.FapAltitude is double fap ? Format(fap) : ""
+            ];
+            while (optional.Count > 0 && optional[^1].Length == 0) optional.RemoveAt(optional.Count - 1);
+            foreach (string field in optional) line += ";" + field;
             return line;
         }
 

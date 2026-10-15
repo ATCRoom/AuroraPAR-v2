@@ -82,18 +82,26 @@ namespace AuroraPAR
         }
 
         private static readonly double[] LateralSteps = [500, 1000, 2000, 2500, 5000, 10000, 20000];
+        private static readonly double[] LateralStepsMetres = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
+
+        /// <summary>Unit of the lateral scale: the unit of the heights (feet or metres), its name and NM per unit.</summary>
+        private (double[] Steps, string Name, double NMPerUnit) LateralUnit => Options.ScaleInMetres
+            ? (LateralStepsMetres, "m", 1 / 1852.0)
+            : (LateralSteps, "ft", 1 / Runway.FeetPerNM);
 
         /// <summary>
         /// Step of the lateral scale: three or four values a side, but always at least two (2 + 2), so a range where the
-        /// natural step is more than half the view (15 and 30 NM) takes the next smaller one.
+        /// natural step is more than half the view (15 and 30 NM) takes the next smaller one. <paramref name="half"/>:
+        /// half the view in the unit of the scale.
         /// </summary>
-        private static double LateralStep(double halfFt)
+        private double LateralStep(double half)
         {
-            double step = LateralSteps.FirstOrDefault(s => s >= halfFt / 3.5, LateralSteps[^1]);
+            double[] steps = LateralUnit.Steps;
+            double step = steps.FirstOrDefault(s => s >= half / 3.5, steps[^1]);
             // The second value must be inside the view (a little margin for the edge of the canvas).
-            while (step > LateralSteps[0] && 2 * step > halfFt * 0.95)
+            while (step > steps[0] && 2 * step > half * 0.95)
             {
-                step = LateralSteps[Math.Max(0, Array.IndexOf(LateralSteps, step) - 1)];
+                step = steps[Math.Max(0, Array.IndexOf(steps, step) - 1)];
             }
             return step;
         }
@@ -104,16 +112,17 @@ namespace AuroraPAR
         /// </summary>
         private void DrawLateralScale()
         {
-            double halfFt = CenterY / yscale * Runway.FeetPerNM;
-            double step = LateralStep(halfFt);
-            for (double value = 0; value <= halfFt; value += step)
+            (_, string unit, double nmPerUnit) = LateralUnit;
+            double half = CenterY / yscale / nmPerUnit;
+            double step = LateralStep(half);
+            for (double value = 0; value <= half; value += step)
             {
                 foreach (int sign in value == 0 ? new[] { 1 } : new[] { 1, -1 })
                 {
-                    double y = CenterY - sign * value / Runway.FeetPerNM * yscale;
+                    double y = CenterY - sign * value * nmPerUnit * yscale;
                     if (y < 10 || y > Canvas.ActualHeight - 10) continue;
                     AddLine(-XShift, y, 8 - XShift, y, StyleElement.AltitudeScale);
-                    AddSideText($"{value:0} ft", y, Brush(StyleElement.AltitudeScale));
+                    AddSideText($"{value:0} {unit}", y, Brush(StyleElement.AltitudeScale));
                 }
             }
         }
@@ -125,16 +134,18 @@ namespace AuroraPAR
         /// </summary>
         private void DrawCompressedLateralScale(double end, double scanLeft, double scanRight)
         {
-            double halfFt = CenterY / yscale * Runway.FeetPerNM;
-            double step = LateralStep(halfFt);
+            (_, string unit, double nmPerUnit) = LateralUnit;
+            double half = CenterY / yscale / nmPerUnit;
+            double step = LateralStep(half);
+            double maxValue = Options.ScaleInMetres ? 10000 : 30000;
             foreach (bool isRight in new[] { true, false })
             {
                 double tan = Math.Tan(Math.Abs(isRight ? scanRight : scanLeft) * Math.PI / 180);
                 if (tan <= 0) continue;
                 double sign = isRight ? 1 : -1;
-                for (double value = step; value <= 30000; value += step)
+                for (double value = step; value <= maxValue; value += step)
                 {
-                    double offsetNM = value / Runway.FeetPerNM;
+                    double offsetNM = value * nmPerUnit;
                     // Where the offset comes into the scan, seen from the antenna (beside the runway when it is there).
                     double fromAntenna = (offsetNM - sign * Radar.AntennaOffsetNM) / tan;
                     if (fromAntenna <= 0) continue;
@@ -147,7 +158,7 @@ namespace AuroraPAR
                     }, StyleElement.AltitudeLines);
                     // Outside the scan limits: above the upper line, below the lower one (on the screen, which is
                     // mirrored with the runway on the right), on the runway side of the point.
-                    string text = $"{value:0} ft";
+                    string text = $"{value:0} {unit}";
                     bool screenUp = isRight != RunwayOnRight;
                     double dx = RunwayOnRight ? 4 : -4 - TextWidth(text);
                     AddText(text, XAt(from), LateralY(from, sign * offsetNM), dx, Brush(StyleElement.AltitudeScale), aboveAnchor: screenUp);

@@ -375,10 +375,13 @@ namespace AuroraPAR
         /// </summary>
         private void DrawFixedHeights(double end, double upper, double lower)
         {
-            if (Options.FixedHeights.Count == 0 || Options.Theme.IsHidden(StyleElement.FixedHeight)) return;
+            // The fixed heights of the profile (FH) and the final approach altitude of the runway (FAP, height above the threshold).
+            List<(double HeightFt, string Name)> lines = [.. Options.FixedHeights.Select(h => (h, "FH"))];
+            if (Options.ShowFapLine && Runway.FapAltitude is double fap && fap > Runway.Elevation) lines.Add((fap - Runway.Elevation, "FAP"));
+            if (lines.Count == 0 || Options.Theme.IsHidden(StyleElement.FixedHeight)) return;
             double tanUpper = Math.Tan(upper * Math.PI / 180);
             if (tanUpper <= 0) return;
-            foreach (double heightFt in Options.FixedHeights)
+            foreach ((double heightFt, string name) in lines)
             {
                 double heightNM = heightFt / Runway.FeetPerNM;
                 double from = AntennaNM + heightNM / tanUpper;
@@ -387,8 +390,10 @@ namespace AuroraPAR
                 if (from >= to) continue;
                 if (!Compressed && !Angular) AddLine(XAt(from), Y(heightFt), XAt(to), Y(heightFt), StyleElement.FixedHeight);
                 else AddCurve(t => { double r = SampleFromEnd(from, to, t); return new Point(XAt(r), YEnd(r, heightFt)); }, StyleElement.FixedHeight, segments: AngularCurveSegments);
-                double value = Options.ScaleInMetres ? heightFt * 0.3048 : heightFt;
-                string text = "FH" + Math.Round(value).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + (Options.ScaleInMetres ? "M" : "FT");
+                // FH: the height set; FAP: as the other altitudes, a height with QFE and an altitude with QNH.
+                double shownFt = name == "FAP" && !Options.Qfe ? heightFt + Runway.Elevation : heightFt;
+                double value = Options.ScaleInMetres ? shownFt * 0.3048 : shownFt;
+                string text = name + Math.Round(value).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + (Options.ScaleInMetres ? "M" : "FT");
                 double y = YEnd(from, heightFt);
                 double width = MeasureWidth(new TextBlock { Text = text, FontSize = Options.RangeMarks.TextSize });
                 // Towards the far end, above the line (below it when there is no room at the top of the view).

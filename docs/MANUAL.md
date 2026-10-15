@@ -134,7 +134,7 @@ The antenna always stays at the same place: zooming in enlarges the approach, it
 
 
 - **Extended centreline** (yellow) with its **approach limits** left and right (default ±1.5°).
-- **Lateral scale** (*Settings → Display → Lateral scale (azimuth)*, on by default): distance from the centreline in **feet** on the runway side of the view, `0 ft` at the centreline and the same values above and below (no sign), at a round step (three or four values a side). With the log distance scale the offsets shrink with the distance, so each value is a faint curve starting at the scan limit, with the value written there (as the altitude scale in LOG). Colour of the *Altitude scale*; curves in the style of the *Altitude lines*. Metres / km will come with the unit options.
+- **Lateral scale** (*Settings → Display → Lateral scale (azimuth)*, on by default): distance from the centreline in **feet or metres** (the unit of the heights, *Units*) on the runway side of the view, `0 ft` at the centreline and the same values above and below (no sign), at a round step (three or four values a side). With the log distance scale the offsets shrink with the distance, so each value is a faint curve starting at the scan limit, with the value written there (as the altitude scale in LOG). Colour of the *Altitude scale*; curves in the style of the *Altitude lines*.
 - A red vertical line at the distance where the glide path reaches the DH.
 - Left/right are always **as seen by the pilot on the approach**. With the runway on the right of the screen the azimuth view is rotated by 180°, so the pilot's right stays on the same side as the direction of flight.
 
@@ -434,7 +434,7 @@ The window has the **profile** bar at the top (everything below belongs to that 
 
 A profile holds all the display options, so that different controllers or different radar types can have their own set-up.
 
-**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2000** (modern, in the colours of the UK PAR 2000: only range ticks, also on the glide path, lower approach limit only, azimuth safety limits, CRS selector, labels at 45°), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns) and **PAR-E** (the ELDIS PAR-E: angular views, antenna beside the runway, distances in km, see [10.6](#106-angular-views-and-the-par-e-profile)). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
+**Profiles that come with the program:** the `Profiles` folder next to AuroraPAR.exe holds the profiles **Default** (a plain modern display: the starting point), **PAR2000** (modern, in the colours of the UK PAR 2000: only range ticks, also on the glide path, lower approach limit only, azimuth safety limits, CRS selector, labels at 45°), **PAR2080** (analog, narrow beam moved with the joystick, FIAR keys with the range panel, drum readouts) and **PAR2090** (modern, keys per range, label with a line between the columns), **PAR-E** (the ELDIS PAR-E: angular views, antenna beside the runway, distances in km, see [10.6](#106-angular-views-and-the-par-e-profile)) and **ARTMACS-style** (from the pictures of the PAR of the ARTMACS simulator, not a real radar: red axes and ticks, km, heights and lateral scale in metres, olive glide path with ticks, no limits drawn, blue runway, labels callsign / speed and distance / deviation / SSR code). At the first start (no settings file yet) they become your profiles, Default active. If you already have settings, add them with **Import...** from that folder.
 
 - Select the active profile from the list; **Rename**, **Duplicate**, **Delete**.
 - **Export...** saves the profile as a `.json` file to share with other controllers; **Import...** loads one.
@@ -521,10 +521,11 @@ Options made for this picture (they work with the other scales too):
 | Threshold as a tick like the DH | *Approach and DH* | instead of the threshold symbol: a tick from the ground up (side view, as long as the vertical DH line) and across the centreline (azimuth view, as long as the DH azimuth line), in the style of the DH lines |
 | Approach limit lines end at | *Radar* | PAR-E: 10 km |
 | Fixed height lines | *Approach and DH* | up to 5 heights, in the unit of the heights (e.g. `600`): an orange line written `FH600M` where it comes into the scan (colour: *Colours and lines → Fixed height lines*) |
+| Final approach altitude line | *Approach and DH* | the altitude where the final approach starts, set for each runway / approach in the runway editor (**FAP ALT**, ft as on the chart): a line written e.g. `FAP600M` (height with QFE, altitude with QNH), with the style of the fixed height lines; there you see where the glide path reaches it. A runway without FAP ALT has no line |
 | DH vertical line *full height* | *Approach and DH* | the DH as a line across the whole view, from the ground to the top |
 | Compact label text | *Tracks and labels* | `ID:56 A3M` / `D:4.45KM R23M` |
 
-**The PAR-E profile** (in the `Profiles` folder; *Import...* if you already have settings) puts it all together, from the screenshots of the real display: black background, distance lines every km in cyan and every 5 km in magenta (across the view up to 10 km), km, angles up to 14° and ±15°, antenna 140 m on the left of the runway, glide path white, blue approach limits up to 10 km, `FH600M` in orange, the DH and the threshold as short grey ticks (DH: 100 ft above and below its point in the side view; threshold: 100 ft from the ground; both 50 m each side of the centreline in the azimuth view), a mark at 0KM, yellow capsule tracks with green plots, compact labels (ID, deviation from the glide path, distance, deviation from the centreline), heights in metres (QFE), ranges 5 to 20 NM (9–37 km). Not reproduced: the plan view window of the real display and the label strip under the elevation view (here the labels follow the tracks).
+**The PAR-E profile** (in the `Profiles` folder; *Import...* if you already have settings) puts it all together, from the screenshots of the real display: black background, distance lines every km in cyan and every 5 km in magenta (across the view up to 10 km), km, angles up to 14° and ±15°, antenna 140 m on the left of the runway, glide path white, blue approach limits up to 10 km, the final approach altitude line in orange (`FAP…`, when the runway has FAP ALT), the DH and the threshold as short grey ticks (DH: 100 ft above and below its point in the side view; threshold: 100 ft from the ground; both 50 m each side of the centreline in the azimuth view), a mark at 0KM, yellow capsule tracks with green plots, compact labels (ID, deviation from the glide path, distance, deviation from the centreline), heights in metres (QFE), ranges 5 to 20 NM (9–37 km). Not reproduced: the plan view window of the real display and the label strip under the elevation view (here the labels follow the tracks).
 
 ---
 
@@ -622,10 +623,10 @@ Below the fields, **Distance reminders of this runway** works like the Reminders
 One runway per line, fields separated by `;`, decimals with a dot. Lines starting with `#` are comments.
 
 ```
-ICAO;DESIGNATOR;HEADING;ELEVATION;LATITUDE;LONGITUDE;LENGTH_M;WIDTH_M;GLIDE_SLOPE;TCH;MDH;DEFAULT_DISTANCE[;TOUCHDOWN_M[;MAGVAR]]
+ICAO;DESIGNATOR;HEADING;ELEVATION;LATITUDE;LONGITUDE;LENGTH_M;WIDTH_M;GLIDE_SLOPE;TCH;MDH;DEFAULT_DISTANCE[;TOUCHDOWN_M[;MAGVAR[;FAP_ALT]]]
 ```
 
-To give the magnetic variation without the touchdown distance leave that field empty: `...;10;;3E`.
+To give the magnetic variation without the touchdown distance leave that field empty: `...;10;;3E`. **FAP_ALT** is the final approach altitude in ft (as on the chart), optional: e.g. `...;10;;;2000` without touchdown and variation. In the runway editor: *Final App. Altitude (FAP ALT, ft)*; drawn as a line when *Approach and DH → Line at the final approach altitude* is ticked.
 
 Several lines with the same ICAO and designator and different glide path angles are the approaches of one runway ([section 8b](#8b-glide-path-several-approaches-and-unpublished-angle)).
 

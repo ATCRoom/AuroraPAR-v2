@@ -93,6 +93,8 @@ namespace AuroraPAR
         public bool Angular { get; set; }
         /// <summary>Threshold drawn as a tick like the DH (see <see cref="Profile.ThresholdTick"/>).</summary>
         public bool ThresholdTick { get; set; }
+        /// <summary>Line at the final approach altitude of the runway (see <see cref="Profile.ShowFapLine"/>).</summary>
+        public bool ShowFapLine { get; set; }
     }
 
     /// <summary>

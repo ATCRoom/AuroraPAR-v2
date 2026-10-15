@@ -460,6 +460,11 @@ namespace AuroraPAR
         /// the DH azimuth line; style of the DH lines.
         /// </summary>
         public bool ThresholdTick { get; set; }
+        /// <summary>
+        /// Line at the final approach altitude of the runway (FAP ALT in runways.par), written e.g. FAP600M where it
+        /// starts, with the style of the fixed height lines; a runway without FAP ALT has none.
+        /// </summary>
+        public bool ShowFapLine { get; set; }
 
         // Tracks and labels.
         public LabelLayout ElevationLabel { get; set; } = LabelLayout.DefaultElevation();
@@ -954,7 +959,11 @@ namespace AuroraPAR
             {
                 // Folder not readable: the default profile.
             }
-            if (settings.Profiles.Count > 0) settings.ActiveProfile = settings.Profiles[0].Name;
+            // The Default profile active (the others come first in name order, e.g. ARTMACS-style).
+            if (settings.Profiles.Count > 0)
+            {
+                settings.ActiveProfile = settings.Profiles.FirstOrDefault(p => p.Name == AppSettings.DefaultProfileName)?.Name ?? settings.Profiles[0].Name;
+            }
             return settings;
         }
 

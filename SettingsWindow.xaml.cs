@@ -240,6 +240,8 @@ namespace AuroraPAR
             AltitudeLinesCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowAltitudeLines, p => p.ShowAltitudeLines = false);
             DistanceNmRadio.Checked += (s, e) => SetProfileValue(p => p.DistanceUnit == DistanceUnit.NauticalMiles, p => p.DistanceUnit = DistanceUnit.NauticalMiles);
             DistanceKmRadio.Checked += (s, e) => SetProfileValue(p => p.DistanceUnit == DistanceUnit.Kilometres, p => p.DistanceUnit = DistanceUnit.Kilometres);
+            FapLineCheck.Checked += (s, e) => SetProfileValue(p => p.ShowFapLine, p => p.ShowFapLine = true);
+            FapLineCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowFapLine, p => p.ShowFapLine = false);
             CompactLabelsCheck.Checked += (s, e) => SetProfileValue(p => p.CompactLabels, p => p.CompactLabels = true);
             CompactLabelsCheck.Unchecked += (s, e) => SetProfileValue(p => !p.CompactLabels, p => p.CompactLabels = false);
             FixedHeightsBox.LostFocus += (s, e) => ApplyFixedHeights();
@@ -388,6 +390,7 @@ namespace AuroraPAR
                 DistanceNmRadio.IsChecked = Active.DistanceUnit == DistanceUnit.NauticalMiles;
                 DistanceKmRadio.IsChecked = Active.DistanceUnit == DistanceUnit.Kilometres;
                 CompactLabelsCheck.IsChecked = Active.CompactLabels;
+                FapLineCheck.IsChecked = Active.ShowFapLine;
                 bool metres = Active.AltitudeScaleUnit == LengthUnit.Metres;
                 FixedHeightsUnit.Text = metres ? "m" : "ft";
                 if (!FixedHeightsBox.IsKeyboardFocused)
