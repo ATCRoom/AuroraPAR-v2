@@ -27,7 +27,7 @@
   "BeamEnabled": false,
   "ShowAltitudeScale": true,
   "ShowLateralScale": true,
-  "ShowAltitudeLines": true,
+  "ShowAltitudeLines": false,
   "ScanEffect": false,
   "ShowFapLine": true,
   "DhLineSide": "Both",
@@ -258,13 +258,9 @@
       "LabelLeader": {
         "Color": "#FFFFFF",
         "Width": 1
-      },
-      "AltitudeLines": {
-        "Color": "#7A0000",
-        "Dash": "Dotted",
-        "Width": 1
       }
     }
   },
-  "AltitudeLinesIn": "LogOnly"
+  "AltitudeLinesIn": "LogOnly",
+  "DistanceScaleLock": "LinOnly"
 }

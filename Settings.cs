@@ -85,6 +85,14 @@ namespace AuroraPAR
         AnglesWithLog
     }
 
+    /// <summary>Distance scales allowed in a profile: both (key C switches them), or locked to one of them.</summary>
+    internal enum DistanceScaleLock
+    {
+        Both,
+        LinOnly,
+        LogOnly
+    }
+
     /// <summary>Where the antenna stands: on the runway centreline (as before), or beside the runway, as seen landing.</summary>
     internal enum AntennaSide
     {
@@ -425,6 +433,15 @@ namespace AuroraPAR
         /// approach limits, centreline) stays straight; heights and lateral offsets shrink with the distance.
         /// </summary>
         public bool CompressedScale { get; set; }
+        /// <summary>LIN and LOG (default), or only one of them in this profile (no LIN / LOG keys, key C off).</summary>
+        public DistanceScaleLock DistanceScaleLock { get; set; } = DistanceScaleLock.Both;
+
+        /// <summary>Puts the distance scale in the one allowed by <see cref="DistanceScaleLock"/>.</summary>
+        public void ApplyScaleLock()
+        {
+            if (DistanceScaleLock == DistanceScaleLock.LinOnly) CompressedScale = false;
+            else if (DistanceScaleLock == DistanceScaleLock.LogOnly) CompressedScale = true;
+        }
         /// <summary>Compressed scale: distance from the touchdown (NM) within which the scale stays almost linear.</summary>
         public double CompressionKnee { get; set; } = DefaultCompressionKnee;
         public const double DefaultCompressionKnee = 3;
@@ -578,6 +595,8 @@ namespace AuroraPAR
             if (!Enum.IsDefined(DistanceUnit)) DistanceUnit = DistanceUnit.NauticalMiles;
             if (!Enum.IsDefined(VerticalScale)) VerticalScale = VerticalScale.Heights;
             if (!Enum.IsDefined(AntennaSide)) AntennaSide = AntennaSide.OnCentreline;
+            if (!Enum.IsDefined(DistanceScaleLock)) DistanceScaleLock = DistanceScaleLock.Both;
+            ApplyScaleLock();
             AntennaOffsetMetres = double.IsFinite(AntennaOffsetMetres) ? Math.Clamp(AntennaOffsetMetres, 10, 2000) : DefaultAntennaOffset;
             ApproachLimitsTo = double.IsFinite(ApproachLimitsTo) && ApproachLimitsTo > 0 ? Math.Min(ApproachLimitsTo, 100) : 0;
             FixedHeightLines = (FixedHeightLines ?? []).Where(h => double.IsFinite(h) && h > 0 && h <= 60000)

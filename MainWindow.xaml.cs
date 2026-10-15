@@ -1256,6 +1256,12 @@ namespace AuroraPAR
         {
             Profile profile = settings.Active;
             if (profile.CompressedScale == log) return;
+            // Locked in this profile: the scale does not change.
+            if (profile.DistanceScaleLock != DistanceScaleLock.Both)
+            {
+                ShowBanner(profile.DistanceScaleLock == DistanceScaleLock.LinOnly ? "LIN ONLY IN THIS PROFILE" : "LOG ONLY IN THIS PROFILE");
+                return;
+            }
             profile.CompressedScale = log;
             SettingsStore.Save(settings);
             ApplyProfile();
@@ -1370,7 +1376,8 @@ namespace AuroraPAR
             ApplyKeyPanels(analog);
             aptEntry.Icao = runway.ICAO;
             DistanceComboBox.Visibility = modern;
-            ScalePanel.Visibility = modern;
+            // No LIN | LOG keys when the profile allows only one scale.
+            ScalePanel.Visibility = analog || settings.Active.DistanceScaleLock != DistanceScaleLock.Both ? Visibility.Collapsed : Visibility.Visible;
             PrefButton.Visibility = modern;
             TiltPanel.Visibility = modern;
             BrightnessPanel.Visibility = modern;
@@ -2310,6 +2317,7 @@ namespace AuroraPAR
         private void ApplyProfile()
         {
             Profile profile = settings.Active;
+            profile.ApplyScaleLock();
             radar.ApplyProfile(profile);
             ApplyRanges(profile);
             viewOptions.Qfe = profile.PressureReference == PressureReference.QFE;

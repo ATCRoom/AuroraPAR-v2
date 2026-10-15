@@ -964,6 +964,9 @@ namespace AuroraPAR
             AddNumberField("Lines across the view up to (from the touchdown; 0 = all); beyond: short lines, distance written only on the largest marks",
                 p => p.RangeMarks.FullLinesTo * DistanceUnits.PerNM(p.DistanceUnit), (p, v) => p.RangeMarks.FullLinesTo = v / DistanceUnits.PerNM(p.DistanceUnit),
                 0, 100, unitOf: p => DistanceUnits.Name(p.DistanceUnit));
+            AddChoiceRow("Distance scale", ["LIN and LOG (keys LIN | LOG, key C)", "LIN only", "LOG only"],
+                p => (int)p.DistanceScaleLock, (p, i) => { p.DistanceScaleLock = (DistanceScaleLock)i; p.ApplyScaleLock(); },
+                "Lock the profile to one distance scale, e.g. when its LOG is not the one of the radar it imitates: no LIN | LOG keys, key C off.");
             AddCheckRow("Distance written in the colour of its mark (e.g. 5 km magenta, 1 km cyan as on the PAR-E)",
                 p => p.RangeMarks.TextInMarkColour, (p, v) => p.RangeMarks.TextInMarkColour = v);
             AddCheckRow("A mark at 0 (the touchdown point), with its distance written (0KM, as on the PAR-E)",
