@@ -1,0 +1,151 @@
+{
+  "Name": "AN-APN-22",
+  "DisplayMode": "Analog",
+  "LockDisplayMode": true,
+  "AnalogColor": "#E4EEE0",
+  "KeyStyle": "Fiar",
+  "RunwaySide": "Left",
+  "StartupRange": "Fixed",
+  "RunwayChangeRange": "Fixed",
+  "PreferredRange": 10,
+  "DisplayRanges": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "DistanceUnit": "NauticalMiles",
+  "VerticalScale": "AnglesWithLog",
+  "CompressedScale": true,
+  "CompressionKnee": 1,
+  "AntennaSide": "Right",
+  "AntennaOffsetMetres": 140,
+  "ScanModel": 2,
+  "ScanUp": 8,
+  "ScanDown": -1,
+  "ScanLeft": 10,
+  "ScanRight": 10,
+  "BeamEnabled": false,
+  "RainClutter": true,
+  "EchoGrowth": 2,
+  "TrackSymbol": {
+    "Shape": "ElongatedO",
+    "Size": 14
+  },
+  "ThresholdSymbol": {
+    "Shape": "Line",
+    "Size": 10
+  },
+  "TouchdownSymbol": {
+    "Shape": "None",
+    "Size": 12
+  },
+  "AntennaSymbol": {
+    "Shape": "None",
+    "Size": 8
+  },
+  "DhLineSide": "None",
+  "DhDropSide": "None",
+  "ShowAltitudeScale": false,
+  "ShowLateralScale": false,
+  "ShowAltitudeLines": false,
+  "RangeMarks": {
+    "Drawing": "Lines",
+    "Rows": [
+      {
+        "Range": 1,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 2.5,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 5,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 10,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 15,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 20,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 30,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      },
+      {
+        "Range": 40,
+        "Lines": [
+          "One"
+        ],
+        "Text": null,
+        "ShowUnit": true
+      }
+    ]
+  },
+  "Style": {
+    "Elements": {
+      "ApproachLimits": {
+        "Color": "#FF0000",
+        "Width": 1,
+        "HiddenAnalog": true
+      },
+      "SafetyLimits": {
+        "Color": "#FF8C00",
+        "Width": 1,
+        "Dash": "Dashed",
+        "HiddenAnalog": true
+      },
+      "ScanLimits": {
+        "Color": "#5F9EA0",
+        "Width": 3,
+        "HiddenAnalog": true
+      },
+      "AntennaBeam": {
+        "Color": "#40E0D0",
+        "Width": 2,
+        "HiddenAnalog": true
+      },
+      "DecisionHeightAzimuth": {
+        "Color": "#FF0000",
+        "Width": 2,
+        "HiddenAnalog": true
+      }
+    }
+  }
+}
