@@ -218,5 +218,6 @@
       }
     }
   },
-  "UpperApproachLimit": false
+  "UpperApproachLimit": false,
+  "AzimuthApproachLimits": false
 }

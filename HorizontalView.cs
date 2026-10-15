@@ -244,7 +244,7 @@ namespace AuroraPAR
             // The approach limits may end before the end of the range (as on the PAR-E, at 10 km).
             double limitsEnd = Options.ApproachLimitsTo > 0 ? Math.Min(displayEnd, Options.ApproachLimitsTo) : displayEnd;
             limitSplit = Math.Min(limitSplit, limitsEnd);
-            foreach (bool isRight in new[] { false, true })
+            foreach (bool isRight in Options.AzimuthApproachLimits ? new[] { false, true } : Array.Empty<bool>())
             {
                 double sign = isRight ? 1 : -1;
                 bool onRight = isRight;

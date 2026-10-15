@@ -2337,6 +2337,7 @@ namespace AuroraPAR
             viewOptions.DistanceUnit = profile.DistanceUnit;
             viewOptions.CompactLabels = profile.CompactLabels;
             viewOptions.ApproachLimitsTo = profile.ApproachLimitsTo;
+            viewOptions.AzimuthApproachLimits = profile.AzimuthApproachLimits;
             viewOptions.FixedHeights = profile.FixedHeightLines.ToArray();
             viewOptions.Angular = profile.AngularNow;
             viewOptions.ThresholdTick = profile.ThresholdTick;

@@ -84,6 +84,8 @@ namespace AuroraPAR
         public bool CompactLabels { get; set; }
         /// <summary>Approach limit lines up to this distance from the touchdown (NM); 0 = to the end of the range.</summary>
         public double ApproachLimitsTo { get; set; }
+        /// <summary>Approach limit lines in the azimuth view (see <see cref="Profile.AzimuthApproachLimits"/>).</summary>
+        public bool AzimuthApproachLimits { get; set; } = true;
         /// <summary>Fixed height lines, feet above the threshold (see <see cref="Profile.FixedHeightLines"/>).</summary>
         public IReadOnlyList<double> FixedHeights { get; set; } = [];
         /// <summary>

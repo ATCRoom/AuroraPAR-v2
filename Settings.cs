@@ -299,6 +299,8 @@ namespace AuroraPAR
         /// path the track keeps the "inside" colour, however high, until it goes below the lower limit.
         /// </summary>
         public bool UpperApproachLimit { get; set; } = true;
+        /// <summary>Approach limit lines drawn in the azimuth view (off, as on the AN/TPN-31: only the drawing, the track colour still follows the limits).</summary>
+        public bool AzimuthApproachLimits { get; set; } = true;
         /// <summary>Where the labels start: at 45° (up right by default) with a leader line, or next to the track.</summary>
         public LabelPlacement LabelPlacement { get; set; } = LabelPlacement.UpRight;
         /// <summary>Distance (px) from the track to the nearest corner of the label, along the 45° line.</summary>

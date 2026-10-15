@@ -894,6 +894,8 @@ namespace AuroraPAR
             AddHeader("Approach limits (track green inside, red outside)");
             AddCheckRow("Upper approach limit (off: lower limit only, as on some PARs: above the glide path the track stays green, however high)",
                 p => p.UpperApproachLimit, (p, v) => p.UpperApproachLimit = v);
+            AddCheckRow("Approach limits in the azimuth view (off: lines not drawn there, as on the AN/TPN-31; the track still turns red outside)",
+                p => p.AzimuthApproachLimits, (p, v) => p.AzimuthApproachLimits = v);
             AddNumberField("Above the glide path", p => p.ApproachAbove, (p, v) => p.ApproachAbove = v, 0.1, 5);
             AddNumberField("Below the glide path", p => p.ApproachBelow, (p, v) => p.ApproachBelow = v, 0.1, 5);
             AddNumberField("Left of the centreline", p => p.ApproachLeft, (p, v) => p.ApproachLeft = v, 0.1, 10);
