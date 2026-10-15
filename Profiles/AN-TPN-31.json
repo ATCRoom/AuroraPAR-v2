@@ -164,8 +164,8 @@
         "Width": 1
       },
       "ScanLimits": {
-        "Color": "#6A5F8A",
-        "Width": 1
+        "Color": "#E6E6F0",
+        "Width": 3
       },
       "Ground": {
         "Color": "#F0F0F0",
