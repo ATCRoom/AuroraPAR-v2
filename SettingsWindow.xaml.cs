@@ -899,9 +899,9 @@ namespace AuroraPAR
                 p => p.ApproachLimitsTo * DistanceUnits.PerNM(p.DistanceUnit), (p, v) => p.ApproachLimitsTo = v / DistanceUnits.PerNM(p.DistanceUnit),
                 0, 100, unitOf: p => DistanceUnits.Name(p.DistanceUnit));
             AddHeader("Antenna position and vertical scale of the views");
-            AddChoiceRow("Vertical scale", ["Heights and distances (ft / m)", "Angles from the antenna (°), as on the PAR-E"],
+            AddChoiceRow("Vertical scale", ["Heights and distances (ft / m)", "Angles from the antenna (°), as on the PAR-E", "Angles with LOG, heights with LIN (key C switches both)"],
                 p => (int)p.VerticalScale, (p, i) => p.VerticalScale = (VerticalScale)i,
-                "Heights: the classic picture, glide path and centreline straight. Angles: the vertical axis is the angle seen from the antenna (elevation, azimuth), as on the PAR-E: the glide path, the limits and a centreline seen from an antenna beside the runway become curves, a direction from the antenna is a horizontal line. Works with LIN and LOG distances.");
+                "Heights: the classic picture, glide path and centreline straight. Angles: the vertical axis is the angle seen from the antenna (elevation, azimuth), as on the PAR-E: the glide path, the limits and a centreline seen from an antenna beside the runway become curves, a direction from the antenna is a horizontal line. Works with LIN and LOG distances. Angles with LOG, heights with LIN: the LIN / LOG keys and key C switch the vertical scale too, so the glide path is straight in LIN and curved in LOG.");
             AddChoiceRow("Antenna position", ["On the runway centreline", "Left of the runway (seen landing)", "Right of the runway (seen landing)"],
                 p => (int)p.AntennaSide, (p, i) => p.AntennaSide = (AntennaSide)i,
                 "Where the antenna stands, at half the runway length. Beside the runway its azimuth is measured from its own position (parallel to the centreline): the azimuth scan and, with the angular scale, the centreline show it.");

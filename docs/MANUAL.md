@@ -472,7 +472,7 @@ Set once for your radar type:
 | Antenna beam | *Narrow antenna beam moved by the tilt* (on/off); elevation width, azimuth width, elevation centre in neutral (or *automatic: the glide path angle in use*, the default), azimuth centre in neutral (+ right); *Draw the edges of the beam* | new profile: off; when turned on: 7 / 24 / automatic (GP) / 0 |
 | Antenna tilt | step; *Azimuth: swap left and right* ([section 7](#7-antenna-tilt)) | 2 / not ticked |
 | Approach limit lines end at | distance from the touchdown (in the distance unit) where the approach limit lines stop, as on the PAR-E (10 km); 0 = the whole range. The colour of the track still follows the limits everywhere | 0 |
-| Antenna position and vertical scale | *Vertical scale*: heights and distances, or angles from the antenna; *Antenna position*: on the centreline, left or right of the runway (seen landing); *Antenna distance from the centreline* (10–2000 m). See [10.6](#106-angular-views-and-the-par-e-profile) | heights / on the centreline / 140 m |
+| Antenna position and vertical scale | *Vertical scale*: heights and distances, angles from the antenna, or angles with LOG and heights with LIN (key C switches both); *Antenna position*: on the centreline, left or right of the runway (seen landing); *Antenna distance from the centreline* (10–2000 m). See [10.6](#106-angular-views-and-the-par-e-profile) | heights / on the centreline / 140 m |
 
 Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 / −1 / 10 / 10), with the beam off; profiles converted by the first test builds with the beam go back to their old scan limits (or to the defaults above when they cannot be found). The scale of the views does not change with the scan limits or the beam: they move the lines, the rest keeps its size.
 
@@ -501,7 +501,7 @@ Profiles of the versions before the antenna beam keep their scan limits (e.g. 8 
 
 ### 10.6 Angular views and the PAR-E profile
 
-On some modern PARs (e.g. the **ELDIS PAR-E**) the vertical axis of the two views is not a height or a lateral distance but the **angle seen from the antenna**: elevation above the horizon (top view) and azimuth from the direction of the antenna (bottom view), with the distance axis compressed. *Settings → Radar → Vertical scale: Angles from the antenna* gives this picture (with LIN or LOG distances):
+On some modern PARs (e.g. the **ELDIS PAR-E**) the vertical axis of the two views is not a height or a lateral distance but the **angle seen from the antenna**: elevation above the horizon (top view) and azimuth from the direction of the antenna (bottom view), with the distance axis compressed. *Settings → Radar → Vertical scale: Angles from the antenna* gives this picture (with LIN or LOG distances); with *Angles with LOG, heights with LIN* (the PAR-E profile) the LIN / LOG keys and key **C** switch the vertical scale too: LOG shows the angular picture, LIN the classic one with the glide path straight (the banner says LOG SCALE, ANGLES or LINEAR SCALE, HEIGHTS):
 
 - a direction from the antenna is a **horizontal line**: the scan limits are the top and bottom of the views;
 - the **glide path** rises from the touchdown point and flattens towards its angle (3°); the **approach limits** are curves around it;

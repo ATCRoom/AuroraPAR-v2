@@ -80,7 +80,9 @@ namespace AuroraPAR
     internal enum VerticalScale
     {
         Heights,
-        Angles
+        Angles,
+        /// <summary>Angles with the LOG distance scale, heights with the LIN one: key C switches both (PAR-E profile).</summary>
+        AnglesWithLog
     }
 
     /// <summary>Where the antenna stands: on the runway centreline (as before), or beside the runway, as seen landing.</summary>
@@ -436,6 +438,10 @@ namespace AuroraPAR
         public DistanceUnit DistanceUnit { get; set; } = DistanceUnit.NauticalMiles;
         /// <summary>Vertical axis of the views: heights (default) or angles from the antenna (PAR-E).</summary>
         public VerticalScale VerticalScale { get; set; } = VerticalScale.Heights;
+
+        /// <summary>Angular scale in use now: always, or only with the LOG distance scale (see <see cref="VerticalScale"/>).</summary>
+        [JsonIgnore]
+        public bool AngularNow => VerticalScale == VerticalScale.Angles || (VerticalScale == VerticalScale.AnglesWithLog && CompressedScale);
         /// <summary>Antenna on the centreline (default) or beside the runway, at <see cref="AntennaOffsetMetres"/>.</summary>
         public AntennaSide AntennaSide { get; set; } = AntennaSide.OnCentreline;
         /// <summary>Distance of the antenna from the runway centreline when beside the runway (mean of four real PARs: 140 m).</summary>

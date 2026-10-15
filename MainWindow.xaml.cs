@@ -1259,9 +1259,11 @@ namespace AuroraPAR
             profile.CompressedScale = log;
             SettingsStore.Save(settings);
             ApplyProfile();
-            ShowBanner(log
+            // With "angles with LOG, heights with LIN" the vertical scale changes too: said in the banner.
+            string vertical = profile.VerticalScale == VerticalScale.AnglesWithLog ? (log ? ", ANGLES" : ", HEIGHTS") : "";
+            ShowBanner((log
                 ? $"LOG SCALE ({profile.CompressionKnee.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM)"
-                : "LINEAR SCALE");
+                : "LINEAR SCALE") + vertical);
         }
 
         /// <summary>
@@ -2328,7 +2330,7 @@ namespace AuroraPAR
             viewOptions.CompactLabels = profile.CompactLabels;
             viewOptions.ApproachLimitsTo = profile.ApproachLimitsTo;
             viewOptions.FixedHeights = profile.FixedHeightLines.ToArray();
-            viewOptions.Angular = profile.VerticalScale == VerticalScale.Angles;
+            viewOptions.Angular = profile.AngularNow;
             viewOptions.ThresholdTick = profile.ThresholdTick;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";

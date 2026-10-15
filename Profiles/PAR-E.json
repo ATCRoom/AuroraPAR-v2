@@ -7,7 +7,7 @@
   "PreferredRange": 20,
   "DisplayRanges": [ 5, 10, 15, 20 ],
   "DistanceUnit": "Kilometres",
-  "VerticalScale": "Angles",
+  "VerticalScale": "AnglesWithLog",
   "AntennaSide": "Left",
   "AntennaOffsetMetres": 140,
   "CompressedScale": true,
