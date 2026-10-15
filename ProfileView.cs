@@ -182,8 +182,13 @@ namespace AuroraPAR
             AddLine(XAt(length), H, XAt(end), H, StyleElement.Ground);
             // Runway.
             AddLine(0, H, XAt(length), H, StyleElement.Runway);
-            // Threshold: a line up to the scan limit, or a symbol on the runway.
-            if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
+            // Threshold: a tick like the DH (option), a line up to the scan limit, or a symbol on the runway.
+            if (Options.ThresholdTick)
+            {
+                double tick = Options.DhDropLength > 0 ? Options.DhDropLength : Runway.MDH;
+                AddLine(XAt(length), H, XAt(length), YEnd(length, tick), StyleElement.DecisionHeightDrop);
+            }
+            else if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
             {
                 AddLine(XAt(length), H, XAt(length), Math.Min(H, ScanY(length, upper)), StyleElement.Runway);
             }

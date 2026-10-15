@@ -33,9 +33,11 @@ namespace AuroraPAR
                 TickPlace ticksOn = Active.RangeMarks.TicksOn;
                 double fullLinesTo = Active.RangeMarks.FullLinesTo;
                 bool textInMarkColour = Active.RangeMarks.TextInMarkColour;
+                bool markAtZero = Active.RangeMarks.MarkAtZero;
                 Active.RangeMarks = RangeMarkSettings.Default();
                 Active.RangeMarks.FullLinesTo = fullLinesTo;
                 Active.RangeMarks.TextInMarkColour = textInMarkColour;
+                Active.RangeMarks.MarkAtZero = markAtZero;
                 // The text format and size are separate choices: Default resets only the table.
                 Active.RangeMarks.TextFormat = format;
                 Active.RangeMarks.TextSize = size;

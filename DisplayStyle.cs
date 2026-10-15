@@ -128,6 +128,8 @@ namespace AuroraPAR
         public double FullLinesTo { get; set; }
         /// <summary>The distance is written in the colour of its mark (as on the PAR-E), instead of the range mark text colour.</summary>
         public bool TextInMarkColour { get; set; }
+        /// <summary>A mark at 0 (the touchdown point), with its distance written (0KM), as on the PAR-E.</summary>
+        public bool MarkAtZero { get; set; }
 
         /// <summary>Size of the distance text, in pixels.</summary>
         public double TextSize { get; set; } = DefaultTextSize;
@@ -207,6 +209,8 @@ namespace AuroraPAR
             // Only the ticked types count: a line takes the style of the largest ticked type it belongs to.
             List<MarkInterval> types = selected.OrderByDescending(MarkIntervals.Nm).ToList();
             double perNM = DistanceUnits.PerNM(unit);
+            // The mark at 0: the style of the largest interval ticked, with text if the range writes any.
+            if (MarkAtZero) yield return (0, MarkIntervals.Element(types[0]), row.Text != null, false);
             const double finest = 0.25;
             int count = (int)Math.Floor(range * perNM / finest + 1e-6);
             for (int k = 1; k <= count; k++)

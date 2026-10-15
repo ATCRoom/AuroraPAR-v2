@@ -37,6 +37,7 @@
   "HistoryDots": 12,
   "HistoryInterval": 1,
   "CompactLabels": true,
+  "ThresholdTick": true,
   "LabelPlacement": "DownRight",
   "LabelOffsetDistance": 40,
   "RandomTrackIds": true,
@@ -69,6 +70,7 @@
     "Drawing": "Lines",
     "FullLinesTo": 5.39957,
     "TextInMarkColour": true,
+    "MarkAtZero": true,
     "TextFormat": "Decimal",
     "TextSize": 12,
     "Rows": [

@@ -184,7 +184,21 @@ namespace AuroraPAR
             {
                 AddLine(0, cy, XAt(length), cy, StyleElement.Runway);
             }
-            if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
+            if (Options.ThresholdTick)
+            {
+                // A tick like the DH one: across the centreline by the length of the DH azimuth line (or up to the scan limits).
+                double low = Math.Min(ScanY(length, Radar.ScanLeftEdge), ScanY(length, Radar.ScanRightEdge));
+                double high = Math.Max(ScanY(length, Radar.ScanLeftEdge), ScanY(length, Radar.ScanRightEdge));
+                if (Options.DhAzimuthLength > 0)
+                {
+                    double lengthNM = Options.DhAzimuthLength / 1852;
+                    double a = LateralY(length, -lengthNM), b = LateralY(length, lengthNM);
+                    low = Math.Max(low, Math.Min(a, b));
+                    high = Math.Min(high, Math.Max(a, b));
+                }
+                if (low < high) AddLine(XAt(length), low, XAt(length), high, StyleElement.DecisionHeightAzimuth);
+            }
+            else if (Options.ThresholdSymbol.Shape == SymbolShape.Line)
             {
                 AddLine(XAt(length), LateralY(length, -Runway.WidthNM), XAt(length), LateralY(length, Runway.WidthNM), StyleElement.Runway);
             }

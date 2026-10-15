@@ -448,6 +448,12 @@ namespace AuroraPAR
         public const int MaxFixedHeightLines = 5;
         /// <summary>Label text without spaces, as on the PAR-E: D:4.45KM, A3M (above the glide path), R23M, ID:56.</summary>
         public bool CompactLabels { get; set; }
+        /// <summary>
+        /// Threshold drawn as a tick like the DH ones (instead of its symbol), as on the PAR-E: in the side view from the
+        /// ground up by the length of the DH vertical line, in the azimuth view across the centreline by the length of
+        /// the DH azimuth line; style of the DH lines.
+        /// </summary>
+        public bool ThresholdTick { get; set; }
 
         // Tracks and labels.
         public LabelLayout ElevationLabel { get; set; } = LabelLayout.DefaultElevation();

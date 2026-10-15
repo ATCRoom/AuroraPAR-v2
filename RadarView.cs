@@ -91,6 +91,8 @@ namespace AuroraPAR
         /// <see cref="RadarView.Angular"/>.
         /// </summary>
         public bool Angular { get; set; }
+        /// <summary>Threshold drawn as a tick like the DH (see <see cref="Profile.ThresholdTick"/>).</summary>
+        public bool ThresholdTick { get; set; }
     }
 
     /// <summary>

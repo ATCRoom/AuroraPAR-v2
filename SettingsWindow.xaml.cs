@@ -736,6 +736,8 @@ namespace AuroraPAR
             AddSymbolRow("DH point symbol (side view)", p => p.DhSymbol, all);
             AddSymbolRow("DH point symbol (azimuth view)", p => p.DhAzimuthSymbol, all);
             builderAdvanced = false;
+            AddCheckRow("Threshold as a tick like the DH (instead of its symbol): side view from the ground up by the length of the vertical DH line, azimuth view by the length of the DH azimuth line; style of the DH lines",
+                p => p.ThresholdTick, (p, v) => p.ThresholdTick = v);
         }
 
         private void AddSymbolRow(string label, Func<Profile, SymbolSetting> get, SymbolShape[] shapes)
@@ -961,6 +963,8 @@ namespace AuroraPAR
                 0, 100, unitOf: p => DistanceUnits.Name(p.DistanceUnit));
             AddCheckRow("Distance written in the colour of its mark (e.g. 5 km magenta, 1 km cyan as on the PAR-E)",
                 p => p.RangeMarks.TextInMarkColour, (p, v) => p.RangeMarks.TextInMarkColour = v);
+            AddCheckRow("A mark at 0 (the touchdown point), with its distance written (0KM, as on the PAR-E)",
+                p => p.RangeMarks.MarkAtZero, (p, v) => p.RangeMarks.MarkAtZero = v);
             builderAdvanced = true;
             // Coasting tracks: in Tracks and labels (advanced).
             builderGrid = CoastGrid;
