@@ -60,8 +60,9 @@
   "DhAzimuthSymbol": { "Shape": "None", "Size": 10 },
   "DhLineSide": "None",
   "DhLineLength": 0,
-  "DhDropSide": "FullHeight",
-  "DhAzimuthLength": 0,
+  "DhDropSide": "Both",
+  "DhDropLength": 100,
+  "DhAzimuthLength": 50,
   "FinalSegment": "Solid",
   "RangeTextBelowHorizon": true,
   "RangeMarks": {
