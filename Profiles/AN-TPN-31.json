@@ -1,0 +1,224 @@
+{
+  "Name": "AN-TPN-31",
+  "RunwaySide": "Left",
+  "DisplayMode": "Modern",
+  "StartupRange": "Fixed",
+  "RunwayChangeRange": "Fixed",
+  "PreferredRange": 10,
+  "DisplayRanges": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "DistanceUnit": "NauticalMiles",
+  "PressureReference": "QFE",
+  "VerticalScale": "Heights",
+  "AntennaSide": "Right",
+  "AntennaOffsetMetres": 140,
+  "CompressedScale": true,
+  "CompressionKnee": 2,
+  "DistanceScaleLock": "LogOnly",
+  "ScanUp": 8,
+  "ScanDown": -1,
+  "ScanLeft": 15,
+  "ScanRight": 15,
+  "BeamEnabled": false,
+  "ShowAltitudeScale": true,
+  "ShowLateralScale": true,
+  "ShowAltitudeLines": false,
+  "ScanEffect": false,
+  "DhLineSide": "Both",
+  "DhLineLength": 0.25,
+  "DhDropSide": "Both",
+  "DhDropLength": 100,
+  "DhAzimuthLength": 0,
+  "TrackSymbol": {
+    "Shape": "FilledCircle",
+    "Size": 7
+  },
+  "CoastSymbol": {
+    "Shape": "Circle",
+    "Size": 7
+  },
+  "HistorySymbol": {
+    "Shape": "FilledCircle",
+    "Size": 2
+  },
+  "HistoryDots": 10,
+  "HistoryInterval": 2,
+  "ThresholdSymbol": {
+    "Shape": "None",
+    "Size": 10
+  },
+  "TouchdownSymbol": {
+    "Shape": "None",
+    "Size": 12
+  },
+  "AntennaSymbol": {
+    "Shape": "None",
+    "Size": 5
+  },
+  "RangeTextBelowHorizon": true,
+  "RangeMarks": {
+    "Drawing": "Lines",
+    "TextInMarkColour": true,
+    "MarkAtZero": false,
+    "TextSize": 11,
+    "TextFormat": "Decimal",
+    "Rows": [
+      {
+        "Range": 5,
+        "Lines": [
+          "One",
+          "Half"
+        ],
+        "Text": "One",
+        "ShowUnit": false
+      },
+      {
+        "Range": 10,
+        "Lines": [
+          "One",
+          "Half"
+        ],
+        "Text": "One",
+        "ShowUnit": false
+      },
+      {
+        "Range": 15,
+        "Lines": [
+          "One",
+          "Half"
+        ],
+        "Text": "One",
+        "ShowUnit": false
+      },
+      {
+        "Range": 20,
+        "Lines": [
+          "One",
+          "Half"
+        ],
+        "Text": "One",
+        "ShowUnit": false
+      },
+      {
+        "Range": 30,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      },
+      {
+        "Range": 40,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      }
+    ]
+  },
+  "Style": {
+    "Elements": {
+      "Background": {
+        "Color": "#1C1236"
+      },
+      "MarkFive": {
+        "Color": "#30D040",
+        "Width": 1
+      },
+      "MarkTwo": {
+        "Color": "#30D040",
+        "Width": 1
+      },
+      "MarkOne": {
+        "Color": "#30D040",
+        "Width": 1
+      },
+      "MarkHalf": {
+        "Color": "#30D040",
+        "Width": 1,
+        "Dash": "Dashed"
+      },
+      "MarkQuarter": {
+        "Color": "#30D040",
+        "Width": 1,
+        "Dash": "Dashed"
+      },
+      "RangeText": {
+        "Color": "#30D040"
+      },
+      "GlidePath": {
+        "Color": "#30D040",
+        "Width": 2
+      },
+      "Centerline": {
+        "Color": "#30D040",
+        "Width": 2
+      },
+      "ApproachLimits": {
+        "Color": "#F0F0F0",
+        "Width": 1
+      },
+      "ScanLimits": {
+        "Color": "#808080",
+        "Width": 1,
+        "Hidden": true
+      },
+      "Ground": {
+        "Color": "#F0F0F0",
+        "Width": 1
+      },
+      "Runway": {
+        "Color": "#F0F0F0",
+        "Width": 2
+      },
+      "DecisionHeight": {
+        "Color": "#00D8E8",
+        "Width": 2
+      },
+      "DecisionHeightDrop": {
+        "Color": "#00D8E8",
+        "Width": 2
+      },
+      "DecisionHeightAzimuth": {
+        "Color": "#00D8E8",
+        "Width": 1
+      },
+      "DecisionHeightMark": {
+        "Color": "#00D8E8"
+      },
+      "AltitudeScale": {
+        "Color": "#F0F0F0",
+        "Width": 1
+      },
+      "TrackInside": {
+        "Color": "#FFFFFF"
+      },
+      "TrackOutside": {
+        "Color": "#FF5050"
+      },
+      "TrackCoasting": {
+        "Color": "#C0C0C0"
+      },
+      "PlotInside": {
+        "Color": "#B4B4B4"
+      },
+      "PlotOutside": {
+        "Color": "#B4B4B4"
+      },
+      "LabelText": {
+        "Color": "#FFFFFF"
+      },
+      "LabelLeader": {
+        "Color": "#FFFFFF",
+        "Width": 1
+      }
+    }
+  }
+}
