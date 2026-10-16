@@ -1,0 +1,287 @@
+{
+  "Name": "ARTMACS-style (PRIMARY ONLY)",
+  "RunwaySide": "Left",
+  "DisplayMode": "Modern",
+  "StartupRange": "Fixed",
+  "RunwayChangeRange": "Fixed",
+  "PreferredRange": 15,
+  "DisplayRanges": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "DistanceUnit": "Kilometres",
+  "AltitudeScaleUnit": "Metres",
+  "PressureReference": "QFE",
+  "VerticalScale": "Heights",
+  "AntennaSide": "Left",
+  "AntennaOffsetMetres": 50,
+  "CompressedScale": false,
+  "CompressionKnee": 3,
+  "ScanModel": 2,
+  "ScanUp": 10,
+  "ScanDown": -1,
+  "ScanLeft": 15,
+  "ScanRight": 15,
+  "BeamEnabled": false,
+  "ShowAltitudeScale": false,
+  "ShowLateralScale": false,
+  "ShowAltitudeLines": false,
+  "ScanEffect": false,
+  "ShowFapLine": true,
+  "DhLineSide": "Both",
+  "DhLineLength": 0,
+  "DhDropSide": "None",
+  "DhAzimuthLength": 0,
+  "TrackSymbol": {
+    "Shape": "ElongatedO",
+    "Size": 14
+  },
+  "CoastSymbol": {
+    "Shape": "ElongatedO",
+    "Size": 12
+  },
+  "HistorySymbol": {
+    "Shape": "Line",
+    "Size": 12
+  },
+  "HistoryDots": 8,
+  "HistoryInterval": 0.5,
+  "ThresholdSymbol": {
+    "Shape": "None",
+    "Size": 10
+  },
+  "TouchdownSymbol": {
+    "Shape": "None",
+    "Size": 12
+  },
+  "AntennaSymbol": {
+    "Shape": "FilledCircle",
+    "Size": 5
+  },
+  "LabelPlacement": "UpRight",
+  "LabelOffsetDistance": 25,
+  "ElevationLabel": {
+    "Rows": 4,
+    "Columns": 2,
+    "Cells": [
+      "Callsign",
+      "None",
+      "GroundSpeed",
+      "DistanceFromTouchdown",
+      "GlidePathDeviation",
+      "None",
+      "SsrCode",
+      "None"
+    ]
+  },
+  "AzimuthLabel": {
+    "Rows": 4,
+    "Columns": 2,
+    "Cells": [
+      "Callsign",
+      "None",
+      "GroundSpeed",
+      "DistanceFromTouchdown",
+      "CenterlineDeviation",
+      "None",
+      "SsrCode",
+      "None"
+    ]
+  },
+  "RangeTextBelowHorizon": true,
+  "RangeMarks": {
+    "Drawing": "Lines",
+    "TickLength": 8,
+    "TickSide": "Both",
+    "TicksOn": "Both",
+    "MarkAtZero": true,
+    "TextSize": 11,
+    "TextFormat": "Decimal",
+    "Rows": [
+      {
+        "Range": 5,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      },
+      {
+        "Range": 10,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      },
+      {
+        "Range": 15,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      },
+      {
+        "Range": 20,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      },
+      {
+        "Range": 30,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      },
+      {
+        "Range": 40,
+        "Lines": [
+          "Five",
+          "One"
+        ],
+        "Text": "Five",
+        "ShowUnit": false
+      }
+    ]
+  },
+  "Style": {
+    "Elements": {
+      "Background": {
+        "Color": "#000000"
+      },
+      "MarkFive": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "MarkOne": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "MarkTwo": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "MarkHalf": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "MarkQuarter": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "RangeText": {
+        "Color": "#E00000"
+      },
+      "Ground": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "Centerline": {
+        "Color": "#E00000",
+        "Width": 2
+      },
+      "Runway": {
+        "Color": "#2828FF",
+        "Width": 2,
+        "Hidden": false
+      },
+      "GlidePath": {
+        "Color": "#E00000",
+        "Width": 2
+      },
+      "ApproachLimits": {
+        "Color": "#FF0000",
+        "Width": 1,
+        "Hidden": true
+      },
+      "ScanLimits": {
+        "Color": "#808080",
+        "Width": 1,
+        "Hidden": true
+      },
+      "Antenna": {
+        "Color": "#E00000"
+      },
+      "DecisionHeight": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Dash": "Dashed"
+      },
+      "DecisionHeightDrop": {
+        "Color": "#9AB428",
+        "Width": 1
+      },
+      "DecisionHeightAzimuth": {
+        "Color": "#9AB428",
+        "Width": 1
+      },
+      "DecisionHeightMark": {
+        "Color": "#9AB428"
+      },
+      "FixedHeight": {
+        "Color": "#9AB428",
+        "Width": 1,
+        "Dash": "Dashed"
+      },
+      "AltitudeScale": {
+        "Color": "#E00000",
+        "Width": 1,
+        "Hidden": false
+      },
+      "TrackInside": {
+        "Color": "#FFFFFF"
+      },
+      "TrackOutside": {
+        "Color": "#FFFFFF"
+      },
+      "TrackCoasting": {
+        "Color": "#C0C0C0"
+      },
+      "PlotInside": {
+        "Color": "#B4B4B4"
+      },
+      "PlotOutside": {
+        "Color": "#B4B4B4"
+      },
+      "LabelText": {
+        "Color": "#FFFFFF"
+      },
+      "LabelLeader": {
+        "Color": "#FFFFFF",
+        "Width": 1
+      },
+      "Terrain": {
+        "Color": "#FF8C1A",
+        "Width": 1
+      },
+      "DeviationCrosshair": {
+        "Color": "#E00000",
+        "Width": 1
+      }
+    }
+  },
+  "AltitudeLinesIn": "LogOnly",
+  "DistanceScaleLock": "LinOnly",
+  "NumbersOnlyLabels": true,
+  "TerrainDisplay": "Off",
+  "DeviationCrosshair": false,
+  "PrimaryVideo": true
+}

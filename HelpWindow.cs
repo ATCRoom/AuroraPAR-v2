@@ -41,7 +41,6 @@ namespace AuroraPAR
                 ("P / Shift+P", "Next / previous profile"),
                 ("C", "Linear / log distance scale"),
                 ("S", "Track smoothing On / Off (this session only)"),
-                ("V", "Primary video: all red, no labels, receiver noise / normal (modern display, this session)"),
                 ("X", "Deviation crosshair on / off (modern display, saved in the profile)"),
                 ("O", "Terrain / obstacles: stepped line → filled → hidden (modern display, this session)"),
                 ("L", "Hide / show all labels")

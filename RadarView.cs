@@ -99,7 +99,7 @@ namespace AuroraPAR
         public bool ThresholdTick { get; set; }
         /// <summary>Circle at the far end of the glide path and of the centreline (see <see cref="Profile.LineEndCircles"/>).</summary>
         public bool LineEndCircles { get; set; }
-        /// <summary>Primary video (key V, modern display): all red, no labels, noise (see <see cref="Theme.Primary"/>).</summary>
+        /// <summary>Primary video only (profile option, modern display): all red, no labels, noise (see <see cref="Theme.Primary"/>).</summary>
         public bool PrimaryVideo { get; set; }
         /// <summary>Deviation crosshair of the selected aircraft in the side view (see <see cref="Profile.DeviationCrosshair"/>).</summary>
         public bool DeviationCrosshair { get; set; }

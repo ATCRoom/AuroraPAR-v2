@@ -122,8 +122,6 @@ namespace AuroraPAR
         private readonly TrackFilter trackFilter = new();
         /// <summary>Key S: track smoothing chosen for this session (not saved), to compare; null: the profile's.</summary>
         private TrackSmoothing? sessionSmoothing;
-        /// <summary>Key V: primary video (all red, no labels, noise) in the modern display, this session.</summary>
-        private bool primaryVideo;
         /// <summary>Key O: terrain drawing for this session (null: as in the profile).</summary>
         private TerrainDisplay? sessionTerrain;
         /// <summary>Distance of the information area from the edge of the side view (the crosshair goes beside it).</summary>
@@ -1331,19 +1329,6 @@ namespace AuroraPAR
             InvalidateViews();
         }
 
-        /// <summary>Key V: primary video (all red, no labels, receiver noise) / normal video, modern display, this session.</summary>
-        private void TogglePrimaryVideo()
-        {
-            if (viewOptions.Analog)
-            {
-                ShowBanner("PRIMARY VIDEO (MODERN DISPLAY ONLY)");
-                return;
-            }
-            primaryVideo = !primaryVideo;
-            ApplyProfile();
-            ShowBanner(primaryVideo ? "VIDEO PRIMARY" : "VIDEO NORMAL");
-        }
-
         /// <summary>
         /// Key S: track smoothing On / Off for this session (to compare); the profile setting
         /// is not changed and comes back at the next start or profile switch.
@@ -2295,7 +2280,6 @@ namespace AuroraPAR
                 case Key.T: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
-                case Key.V when modifiers == 0: TogglePrimaryVideo(); break;
                 case Key.X when modifiers == 0: ToggleCrosshair(); break;
                 case Key.O when modifiers == 0: ToggleTerrain(); break;
                 // 1–5 = lights of the coordination panel, 0 = Reset (only if the panel is open).
@@ -2396,7 +2380,7 @@ namespace AuroraPAR
             viewOptions.EchoGrowth = profile.EchoGrowth;
             consolePanel.Drums = profile.Readouts == ReadoutStyle.Drums;
             aptEntry.Drums = profile.Readouts == ReadoutStyle.Drums;
-            viewOptions.PrimaryVideo = primaryVideo && !analog;
+            viewOptions.PrimaryVideo = profile.PrimaryVideo && !analog;
             viewOptions.DeviationCrosshair = profile.DeviationCrosshair;
             if (!profile.DeviationCrosshair) viewOptions.SelectedCallsign = null;
             viewOptions.Theme = analog

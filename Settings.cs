@@ -499,6 +499,11 @@ namespace AuroraPAR
         /// </summary>
         public bool DeviationCrosshair { get; set; }
         /// <summary>
+        /// Primary radar video only, as the PRI picture of ARTMACS (modern display): everything in red with the brightness
+        /// of each element, no labels, receiver noise beyond the antenna.
+        /// </summary>
+        public bool PrimaryVideo { get; set; }
+        /// <summary>
         /// Line at the final approach altitude of the runway (FAP ALT in runways.par), written e.g. FAP600M where it
         /// starts, with the style of the fixed height lines; a runway without FAP ALT has none.
         /// </summary>

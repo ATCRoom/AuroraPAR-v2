@@ -55,7 +55,7 @@ namespace AuroraPAR
             return theme;
         }
 
-        /// <summary>Colour of the primary video (key V): everything red, as the primary radar picture of ARTMACS.</summary>
+        /// <summary>Colour of the primary video (profile option): everything red, as the primary radar picture of ARTMACS.</summary>
         public static readonly Color PrimaryRed = Color.FromRgb(0xFF, 0x30, 0x20);
 
         /// <summary>
