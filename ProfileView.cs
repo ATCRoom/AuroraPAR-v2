@@ -22,9 +22,10 @@ namespace AuroraPAR
         protected override bool IsNoiseArea(Point logical) => logical.Y < H;
 
         /// <summary>
-        /// Deviation crosshair (option) of <paramref name="aircraft"/>, in the top corner on the runway side; null hides it.
+        /// Deviation crosshair (option) of <paramref name="aircraft"/>, at the top on the runway side, beside the
+        /// information area (<paramref name="inset"/>: its width from the edge, pixels); null hides it.
         /// </summary>
-        public void SetCrosshair(Aircraft? aircraft)
+        public void SetCrosshair(Aircraft? aircraft, double inset = 0)
         {
             if (aircraft == null || !Options.DeviationCrosshair || Options.Analog || Options.Theme.IsHidden(StyleElement.DeviationCrosshair)
                 || Canvas.ActualWidth < 300 || Canvas.ActualHeight < 220)
@@ -49,7 +50,8 @@ namespace AuroraPAR
             crosshair.LateralFt = aircraft.LateralOffset(Runway) * Runway.FeetPerNM;
             // Primary video: no identity.
             crosshair.Title = Options.PrimaryVideo ? "" : aircraft.Callsign;
-            Canvas.SetLeft(crosshair, RunwayOnRight ? Canvas.ActualWidth - crosshair.Width - LeftMargin : LeftMargin);
+            double fromEdge = Math.Max(LeftMargin, inset);
+            Canvas.SetLeft(crosshair, RunwayOnRight ? Canvas.ActualWidth - crosshair.Width - fromEdge : fromEdge);
             Canvas.SetTop(crosshair, 4);
             crosshair.Visibility = Visibility.Visible;
             crosshair.InvalidateVisual();

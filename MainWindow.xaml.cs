@@ -124,6 +124,8 @@ namespace AuroraPAR
         private TrackSmoothing? sessionSmoothing;
         /// <summary>Key V: primary video (all red, no labels, noise) in the modern display, this session.</summary>
         private bool primaryVideo;
+        /// <summary>Distance of the information area from the edge of the side view (the crosshair goes beside it).</summary>
+        private double infoMargin = 4;
 
         /// <summary>Track smoothing in use: the one of the profile, or the one chosen with key S.</summary>
         private TrackSmoothing Smoothing => sessionSmoothing ?? settings.Active.TrackSmoothing;
@@ -2431,6 +2433,7 @@ namespace AuroraPAR
             // Information area in the top corner on the runway side, away from the far end of the scan limits.
             // Leave room for the altitude scale, drawn on the same side.
             double margin = viewOptions.ShowAltitudeScale && (viewOptions.DistanceKnee <= 0 || viewOptions.Angular) ? 75 : 4;
+            infoMargin = margin;
             ApplyDisplayMode(analog);
             if (right)
             {
@@ -2628,7 +2631,8 @@ namespace AuroraPAR
             Aircraft? target = viewOptions.SelectedCallsign != null
                 ? aircrafts.FirstOrDefault(a => a.Callsign == viewOptions.SelectedCallsign)
                 : aircrafts.Where(a => radar.IsSeen(a, runway) && a.DistanceFromTouchdown(runway) > 0).OrderBy(a => a.DistanceFromTouchdown(runway)).FirstOrDefault();
-            profileView.SetCrosshair(target);
+            // Beside the information area (its width changes with the text), never over it.
+            profileView.SetCrosshair(target, infoMargin + (infoPanel.IsVisible ? infoPanel.ActualWidth : 0) + 12);
         }
         private static void SetText(TextBlock block, string text)
         {
