@@ -101,6 +101,8 @@ namespace AuroraPAR
         public bool LineEndCircles { get; set; }
         /// <summary>Line at the final approach altitude of the runway (see <see cref="Profile.ShowFapLine"/>).</summary>
         public bool ShowFapLine { get; set; }
+        /// <summary>Terrain / obstacle profile of the runway (see <see cref="Profile.TerrainDisplay"/>).</summary>
+        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Filled;
     }
 
     /// <summary>
@@ -1430,6 +1432,27 @@ namespace AuroraPAR
                 IsHitTestVisible = false
             };
             AddStatic(line);
+        }
+
+        /// <summary>Filled area (logical points, closed), in the colour of an element, a little transparent, with its outline.</summary>
+        protected void AddPolygon(IEnumerable<Point> logical, StyleElement element, double fillOpacity = 0.85)
+        {
+            if (Options.Theme.IsHidden(element)) return;
+            PointCollection points = new(logical.Select(p => new Point(ToScreenX(p.X), ToScreenY(p.Y))));
+            if (points.Count < 3) return;
+            Brush stroke = Options.Theme.Brush(element);
+            Brush fill = stroke.Clone();
+            fill.Opacity = fillOpacity;
+            fill.Freeze();
+            AddStatic(new Polygon
+            {
+                Points = points,
+                Fill = fill,
+                Stroke = stroke,
+                StrokeThickness = Options.Theme.Width(element),
+                StrokeLineJoin = PenLineJoin.Round,
+                IsHitTestVisible = false
+            });
         }
 
         protected double ToScreenX(double x)

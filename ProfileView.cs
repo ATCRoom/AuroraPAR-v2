@@ -211,6 +211,7 @@ namespace AuroraPAR
                 }
             }
             AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), H - Options.AntennaSymbol.Size / 2, Brush(StyleElement.Antenna));
+            DrawTerrain();
             // Glide path and its approach limits, all starting at the touchdown point.
             AddGlidePathLine(0, StyleElement.GlidePath);
             if (Options.LineEndCircles)
@@ -410,6 +411,65 @@ namespace AuroraPAR
                 dx += Math.Clamp(left, 2, Math.Max(2, Canvas.ActualWidth - width - 2)) - left;
                 bool above = y - 2 - Options.RangeMarks.TextSize * 1.4 > 0;
                 AddText(text, XAt(from), above ? y - 2 : y + 2, dx, Brush(StyleElement.FixedHeight), aboveAnchor: above);
+            }
+        }
+
+        /// <summary>
+        /// Terrain / obstacle profile of the runway (terrain.par): each step filled from the ground up to its altitude, or
+        /// as a stepped line with the altitude written on it (QNH: altitude, QFE: height). Distances from the threshold;
+        /// cut at the end of the range. Straight with the linear heights, curves with the compressed or angular scale.
+        /// </summary>
+        private void DrawTerrain()
+        {
+            if (Options.TerrainDisplay == TerrainDisplay.Off || Runway.Terrain.Count == 0 || Options.Theme.IsHidden(StyleElement.Terrain)) return;
+            double threshold = Runway.LengthNM;
+            double maxFromEnd = Runway.LengthNM + Runway.Distance;
+            int segments = Compressed || Angular ? AngularCurveSegments / 4 : 1;
+            List<(double A, double B, double Height, double Altitude)> steps = [];
+            foreach (TerrainStep step in Runway.Terrain)
+            {
+                double a = threshold + step.FromNM;
+                double b = Math.Min(threshold + step.ToNM, maxFromEnd);
+                double height = step.AltitudeFt - Runway.Elevation;
+                if (b > a && height > 0) steps.Add((a, b, height, step.AltitudeFt));
+            }
+            if (steps.Count == 0) return;
+            IEnumerable<Point> Edge(double a, double b, double height, bool forward) =>
+                Enumerable.Range(0, segments + 1).Select(i =>
+                {
+                    double t = forward ? (double)i / segments : 1 - (double)i / segments;
+                    double r = SampleFromEnd(a, b, t);
+                    return new Point(XAt(r), YEnd(r, height));
+                });
+            if (Options.TerrainDisplay == TerrainDisplay.Filled)
+            {
+                foreach ((double a, double b, double height, _) in steps)
+                {
+                    AddPolygon(Edge(a, b, height, true).Concat(Edge(a, b, 0, false)), StyleElement.Terrain);
+                }
+                return;
+            }
+            for (int i = 0; i < steps.Count; i++)
+            {
+                (double a, double b, double height, double altitude) = steps[i];
+                AddCurve(t => { double r = SampleFromEnd(a, b, t); return new Point(XAt(r), YEnd(r, height)); }, StyleElement.Terrain, segments: Math.Max(1, segments));
+                // Riser at the start: from the step before when they touch, else from the ground; at the end down to the ground when nothing follows.
+                bool joined = i > 0 && Math.Abs(steps[i - 1].B - a) < 1e-6;
+                double from = joined ? steps[i - 1].Height : 0;
+                AddLine(XAt(a), YEnd(a, from), XAt(a), YEnd(a, height), StyleElement.Terrain);
+                bool followed = i + 1 < steps.Count && Math.Abs(steps[i + 1].A - b) < 1e-6;
+                if (!followed && b < maxFromEnd) AddLine(XAt(b), YEnd(b, height), XAt(b), YEnd(b, 0), StyleElement.Terrain);
+                // The value above the middle of the step.
+                double shownFt = Options.Qfe ? height : altitude;
+                double value = Options.ScaleInMetres ? shownFt * 0.3048 : shownFt;
+                string text = Math.Round(value).ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+                double width = MeasureWidth(new TextBlock { Text = text, FontSize = Options.RangeMarks.TextSize });
+                double middle = SampleFromEnd(a, b, 0.5);
+                double y = YEnd(middle, height);
+                if (Math.Abs(XAt(b) - XAt(a)) > width + 4 && y - 2 - Options.RangeMarks.TextSize * 1.4 > 0)
+                {
+                    AddText(text, XAt(middle), y - 2, -width / 2, Brush(StyleElement.Terrain), aboveAnchor: true);
+                }
             }
         }
 

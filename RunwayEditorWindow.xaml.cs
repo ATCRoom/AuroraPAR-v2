@@ -69,6 +69,7 @@ namespace AuroraPAR
             new("touchdown", "Touchdown from threshold (m)", "optional: empty = automatic"),
             new("magvar", "Magnetic variation", "optional, e.g. 3E or 2W: empty = default in Settings"),
             new("fapalt", "Final App. Altitude (FAP ALT, ft)", "optional, altitude as on the chart: drawn as a line when the profile shows it"),
+            new("terrain", "Terrain / obstacles", "optional, for all the approaches of this runway (terrain.par): FROM-TO=ALTITUDE; ... in NM from the threshold and ft, e.g. 9.4-11.1=3310; 11.1-13.8=3910"),
         ];
 
         private static readonly Brush ErrorBackground = new SolidColorBrush(Color.FromRgb(255, 215, 215));
@@ -86,6 +87,8 @@ namespace AuroraPAR
         /// </summary>
         private bool loading;
         private bool dirty;
+        /// <summary>A terrain profile was changed: terrain.par is written with the next Save.</summary>
+        private bool terrainChanged;
 
         /// <summary>
         /// True if the runway file was saved at least once.
@@ -215,6 +218,17 @@ namespace AuroraPAR
                 Dispatcher.BeginInvoke(new Action(UpdateReminders));
             }
             string text = boxes[key].Text;
+            if (key == "terrain")
+            {
+                // One profile for the runway: the same text for all its approaches (14 3.0, 14 2.5...); the runway line is not changed.
+                string terrainKey = TerrainFile.Key(draft["icao"], draft["designator"]);
+                foreach (Draft other in drafts.Where(d => TerrainFile.Key(d["icao"], d["designator"]) == terrainKey)) other["terrain"] = text;
+                draft["terrain"] = text;
+                terrainChanged = true;
+                dirty = true;
+                UpdateNotes();
+                return;
+            }
             bool isCoordinate = key == "latitude" || key == "longitude";
             // A latitude and longitude pasted together in one field are split into both fields.
             if (isCoordinate && !CoordinateParser.TryParse(text, key == "latitude", out _)
@@ -325,6 +339,15 @@ namespace AuroraPAR
                         info = $"= {fap - thresholdElevation:0} ft above the threshold";
                     }
                     return null;
+                case "terrain":
+                    {
+                        if (!TerrainFile.TryParseSteps(text, out List<TerrainStep> steps, out string? terrainError)) return terrainError;
+                        if (steps.Count > 0)
+                        {
+                            info = $"{steps.Count} step{(steps.Count > 1 ? "s" : "")}, {FormatNumber(steps.Min(s => s.FromNM))}–{FormatNumber(steps.Max(s => s.ToNM))} NM, highest {FormatNumber(steps.Max(s => s.AltitudeFt))} ft";
+                        }
+                        return null;
+                    }
                 case "magvar":
                     if (text.Length == 0) return null;
                     if (!MagneticVariation.TryParse(text, out double variation)) return "e.g. 3E, 2.5W or -2";
@@ -380,6 +403,7 @@ namespace AuroraPAR
                 {
                     draft[keys[i]] = i < f.Length ? f[i] : "";
                 }
+                draft["terrain"] = TerrainFile.FormatSteps(runway.Terrain);
                 return draft;
             }
             draft["icao"] = runway.ICAO;
@@ -397,6 +421,7 @@ namespace AuroraPAR
             draft["touchdown"] = runway.TouchdownOverrideM is double touchdown ? FormatNumber(touchdown) : "";
             draft["magvar"] = runway.MagneticVariation is double variation ? MagneticVariation.Format(variation) : "";
             draft["fapalt"] = runway.FapAltitude is double fap ? FormatNumber(fap) : "";
+            draft["terrain"] = TerrainFile.FormatSteps(runway.Terrain);
             return draft;
         }
 
@@ -521,6 +546,25 @@ namespace AuroraPAR
             {
                 MessageBox.Show(this, $"Cannot write the runway file {path}:\n{ex.Message}\n\nIf the program is in a protected folder (e.g. Program Files), move it to another folder.", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
+            }
+            if (terrainChanged)
+            {
+                Dictionary<string, (string Icao, string Runway, string Steps)> profiles = [];
+                foreach (Draft draft in drafts)
+                {
+                    profiles[TerrainFile.Key(draft["icao"], draft["designator"])] = (draft["icao"], draft["designator"], draft["terrain"]);
+                }
+                string terrainPath = TerrainFile.PathFor(path);
+                try
+                {
+                    TerrainFile.Save(terrainPath, profiles);
+                    terrainChanged = false;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"Cannot write the terrain file {terrainPath}:\n{ex.Message}", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
             }
             Saved = true;
             dirty = false;

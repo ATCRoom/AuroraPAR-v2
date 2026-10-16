@@ -258,10 +258,15 @@
       "LabelLeader": {
         "Color": "#FFFFFF",
         "Width": 1
+      },
+      "Terrain": {
+        "Color": "#FF8C1A",
+        "Width": 1
       }
     }
   },
   "AltitudeLinesIn": "LogOnly",
   "DistanceScaleLock": "LinOnly",
-  "NumbersOnlyLabels": true
+  "NumbersOnlyLabels": true,
+  "TerrainDisplay": "Filled"
 }

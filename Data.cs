@@ -158,6 +158,11 @@ namespace AuroraPAR
         /// line when the profile shows it (see <see cref="Profile.ShowFapLine"/>).
         /// </summary>
         public double? FapAltitude { get; set; }
+        /// <summary>
+        /// Terrain / obstacle profile under the approach, from terrain.par (the same for all the approaches of the
+        /// runway); empty if none. See <see cref="TerrainFile"/>.
+        /// </summary>
+        public IReadOnlyList<TerrainStep> Terrain { get; set; } = [];
 
         /// <summary>
         /// Magnetic final course: true heading corrected with the variation of the runway, or the given default.
@@ -435,12 +440,12 @@ namespace AuroraPAR
 
         public static async Task<Runway[]> GetRunways(string path)
         {
-            return Parse(await System.IO.File.ReadAllLinesAsync(path));
+            return TerrainFile.Attach(Parse(await System.IO.File.ReadAllLinesAsync(path)), TerrainFile.PathFor(path));
         }
 
         public static Runway[] ReadRunways(string path)
         {
-            return Parse(System.IO.File.ReadAllLines(path));
+            return TerrainFile.Attach(Parse(System.IO.File.ReadAllLines(path)), TerrainFile.PathFor(path));
         }
 
         private static Runway[] Parse(string[] lines)
@@ -600,5 +605,159 @@ namespace AuroraPAR
         {
             return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
         }
+    }
+
+    /// <summary>One step of a terrain / obstacle profile: from-to distance from the threshold (NM) and altitude (ft AMSL).</summary>
+    internal readonly record struct TerrainStep(double FromNM, double ToNM, double AltitudeFt);
+
+    /// <summary>
+    /// terrain.par, next to runways.par: one line per runway (not per approach), e.g.
+    /// <c>LIRN;24;9.4-11.1=3310;11.1-13.8=3910</c> = ICAO; runway (first word of the designator in runways.par);
+    /// steps FROM-TO (NM from the threshold) = ALTITUDE (ft above sea level, as on the charts). Lines starting with
+    /// # are comments. A missing or damaged file gives no terrain (never an error at start).
+    /// </summary>
+    internal static class TerrainFile
+    {
+        public const string FileName = "terrain.par";
+        public const string FormatComment = "# ICAO;RUNWAY;FROM-TO(NM from threshold)=ALTITUDE(ft AMSL);... e.g. LIRN;24;9.4-11.1=3310;11.1-13.8=3910";
+
+        public static string PathFor(string runwaysPath) =>
+            System.IO.Path.Combine(System.IO.Path.GetDirectoryName(runwaysPath) ?? "", FileName);
+
+        /// <summary>Runway name used in terrain.par: the first word of the designator ("14 3.0" → "14").</summary>
+        public static string RunwayName(string designator) =>
+            designator.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+
+        public static string Key(string icao, string designator) => $"{icao.Trim().ToUpperInvariant()} {RunwayName(designator).ToUpperInvariant()}";
+
+        /// <summary>Profiles by <see cref="Key"/>; empty if the file is missing or cannot be read.</summary>
+        public static Dictionary<string, List<TerrainStep>> Read(string path)
+        {
+            Dictionary<string, List<TerrainStep>> terrain = [];
+            try
+            {
+                if (!System.IO.File.Exists(path)) return terrain;
+                foreach (string line in System.IO.File.ReadAllLines(path))
+                {
+                    if (TryParseLine(line, out string key, out List<TerrainStep> steps, out _)) terrain[key] = steps;
+                }
+            }
+            catch (Exception)
+            {
+                // Not readable: no terrain.
+            }
+            return terrain;
+        }
+
+        public static Runway[] Attach(Runway[] runways, string path)
+        {
+            Dictionary<string, List<TerrainStep>> terrain = Read(path);
+            foreach (Runway runway in runways)
+            {
+                runway.Terrain = terrain.TryGetValue(Key(runway.ICAO, runway.Designator), out List<TerrainStep>? steps) ? steps : [];
+            }
+            return runways;
+        }
+
+        private static bool TryParseLine(string line, out string key, out List<TerrainStep> steps, out string? error)
+        {
+            key = "";
+            steps = [];
+            error = null;
+            string text = line.Trim();
+            if (text.Length == 0 || text.StartsWith('#')) return false;
+            string[] fields = text.Split(';', 3);
+            if (fields.Length < 3) return false;
+            key = Key(fields[0], fields[1]);
+            return TryParseSteps(fields[2], out steps, out error);
+        }
+
+        /// <summary>
+        /// Steps as written in the file and in the runway editor: <c>9.4-11.1=3310; 11.1-13.8=3910</c> (separated by ;).
+        /// Empty text = no steps (valid).
+        /// </summary>
+        public static bool TryParseSteps(string text, out List<TerrainStep> steps, out string? error)
+        {
+            steps = [];
+            error = null;
+            foreach (string raw in text.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                string[] parts = raw.Split('=', StringSplitOptions.TrimEntries);
+                string[] range = parts[0].Split('-', StringSplitOptions.TrimEntries);
+                if (parts.Length != 2 || range.Length != 2
+                    || !TryNumber(range[0], out double from) || !TryNumber(range[1], out double to) || !TryNumber(parts[1], out double altitude))
+                {
+                    error = $"\"{raw}\": write FROM-TO=ALTITUDE, e.g. 9.4-11.1=3310";
+                    return false;
+                }
+                if (from < 0 || to <= from || to > 100)
+                {
+                    error = $"\"{raw}\": the distances must go up, between 0 and 100 NM";
+                    return false;
+                }
+                if (altitude < -1500 || altitude > 30000)
+                {
+                    error = $"\"{raw}\": altitude between -1500 and 30000 ft";
+                    return false;
+                }
+                steps.Add(new TerrainStep(from, to, altitude));
+            }
+            steps.Sort((a, b) => a.FromNM.CompareTo(b.FromNM));
+            return true;
+        }
+
+        public static string FormatSteps(IEnumerable<TerrainStep> steps) =>
+            string.Join("; ", steps.Select(s => $"{Number(s.FromNM)}-{Number(s.ToNM)}={Number(s.AltitudeFt)}"));
+
+        /// <summary>
+        /// Writes the profiles of the given runways (key → steps text, empty = no line), keeping comments and the lines
+        /// of the other runways; a copy of the old file is kept as terrain.par.bak.
+        /// </summary>
+        public static void Save(string path, IReadOnlyDictionary<string, (string Icao, string Runway, string Steps)> profiles)
+        {
+            List<string> lines = [];
+            HashSet<string> written = [];
+            if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Copy(path, path + ".bak", overwrite: true);
+                foreach (string line in System.IO.File.ReadAllLines(path))
+                {
+                    string text = line.Trim();
+                    string[] fields = text.Split(';', 3);
+                    if (text.Length == 0 || text.StartsWith('#') || fields.Length < 3)
+                    {
+                        lines.Add(line);
+                        continue;
+                    }
+                    string key = Key(fields[0], fields[1]);
+                    if (!profiles.TryGetValue(key, out var profile))
+                    {
+                        lines.Add(line);
+                        continue;
+                    }
+                    if (written.Add(key) && profile.Steps.Trim().Length > 0) lines.Add(LineOf(profile));
+                }
+            }
+            else
+            {
+                lines.Add(FormatComment);
+            }
+            foreach ((string key, var profile) in profiles)
+            {
+                if (!written.Contains(key) && profile.Steps.Trim().Length > 0) lines.Add(LineOf(profile));
+            }
+            System.IO.File.WriteAllLines(path, lines);
+        }
+
+        private static string LineOf((string Icao, string Runway, string Steps) profile)
+        {
+            TryParseSteps(profile.Steps, out List<TerrainStep> steps, out _);
+            return $"{profile.Icao.Trim().ToUpperInvariant()};{RunwayName(profile.Runway)};{string.Join(";", steps.Select(s => $"{Number(s.FromNM)}-{Number(s.ToNM)}={Number(s.AltitudeFt)}"))}";
+        }
+
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse(text.Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value);
+
+        private static string Number(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
     }
 }

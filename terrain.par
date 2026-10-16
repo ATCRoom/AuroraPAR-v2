@@ -1,0 +1,6 @@
+# AuroraPAR terrain / obstacle profile under the approach, one line per runway (all its approaches).
+# ICAO;RUNWAY;FROM-TO(NM from threshold)=ALTITUDE(ft AMSL);...
+# Drawn in the side view when the profile shows it (Settings -> Approach and DH -> Terrain / obstacles).
+# Also editable in the runway editor (field Terrain / obstacles). Simulation only: not real terrain data.
+# LIRN 24: minimum altitudes of the segments from the profile view of the ILS chart (test, 16 Oct 2026).
+LIRN;24;9.4-11.1=3310;11.1-13.8=3910;13.8-19.0=5200

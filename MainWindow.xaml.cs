@@ -2338,6 +2338,7 @@ namespace AuroraPAR
             viewOptions.ThresholdTick = profile.ThresholdTick;
             viewOptions.LineEndCircles = profile.LineEndCircles;
             viewOptions.ShowFapLine = profile.ShowFapLine;
+            viewOptions.TerrainDisplay = profile.TerrainDisplay;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
             LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";

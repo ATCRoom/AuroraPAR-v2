@@ -44,6 +44,9 @@
     <None Update="runways.par">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="terrain.par">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <!-- Profiles that come with the program: the profiles of a first start (no settings file yet). -->
     <None Include="Profiles\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

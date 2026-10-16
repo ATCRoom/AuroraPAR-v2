@@ -634,6 +634,19 @@ To give the magnetic variation without the touchdown distance leave that field e
 
 Several lines with the same ICAO and designator and different glide path angles are the approaches of one runway ([section 8b](#8b-glide-path-several-approaches-and-unpublished-angle)).
 
+#### Terrain and obstacles: `terrain.par`
+
+An optional profile of the terrain or of the minimum altitudes under the approach, drawn in the side view. It is in **terrain.par**, next to runways.par, one line per **runway** (the same for all its approaches, 14 3.0, 14 2.5...):
+
+```
+ICAO;RUNWAY;FROM-TO=ALTITUDE;FROM-TO=ALTITUDE;...
+LIRN;24;9.4-11.1=3310;11.1-13.8=3910;13.8-19.0=5200
+```
+
+**RUNWAY** is the first word of the designator in runways.par (`24`, `16L`). **FROM-TO** are distances in NM from the threshold, **ALTITUDE** in ft above sea level, as on the charts. Lines starting with `#` are comments; a missing file means no terrain. In the runway editor the same steps are in the field **Terrain / obstacles** (`9.4-11.1=3310; 11.1-13.8=3910`), saved in terrain.par with Save (the old file is kept as terrain.par.bak).
+
+How it is drawn is chosen per profile in *Settings → Approach and DH → Terrain / obstacles*: **filled** from the ground up to each altitude (terrain, as on the ARTMACS display; default), a **stepped line** with the value written on each step (minimum altitudes of the segments, OCA; altitude with QNH, height with QFE, in ft or m), or **not drawn**. Colour in *Colours and lines → Terrain / obstacles*. With the LOG or the angular scale the steps follow the scale (the tops become curves). The data come from the person who prepared the runway (charts, an elevation profile): simulation only, not real terrain data. The package has an example for LIRN 24 (minimum altitudes of the ILS chart).
+
 ### 12.4 CRSCalculator: runway heading and magnetic variation
 
 A heading taken from the runway number or from the magnetic value on a chart is rounded, and a small error grows with the distance: **0.1° is about 48 m of lateral error at 15 NM** (0.3° is 145 m). **CRSCalculator** (download **CRSCalculator-win-x64.zip** from the same page as AuroraPAR, a small program of its own: `CRSCalculator.exe`) gives the heading from the coordinates of the two thresholds:

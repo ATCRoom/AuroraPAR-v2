@@ -788,6 +788,9 @@ namespace AuroraPAR
                 p => p.ThresholdTick, (p, v) => p.ThresholdTick = v);
             AddCheckRow("Small circle at the far end of the glide path and of the centreline (as on the AN/APN-22)",
                 p => p.LineEndCircles, (p, v) => p.LineEndCircles = v);
+            AddChoiceRow("Terrain / obstacles (terrain.par)", ["Filled from the ground (terrain, as on ARTMACS)", "Stepped line with the altitude (minimum altitudes, OCA)", "Not drawn"],
+                p => (int)p.TerrainDisplay, (p, i) => p.TerrainDisplay = (TerrainDisplay)i,
+                "Profile under the approach of the runway, from terrain.par next to runways.par (field Terrain / obstacles of the runway editor). Colour in Colours and lines → Terrain / obstacles.");
         }
 
         private void AddSymbolRow(string label, Func<Profile, SymbolSetting> get, SymbolShape[] shapes)
