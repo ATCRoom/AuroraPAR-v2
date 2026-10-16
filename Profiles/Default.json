@@ -34,5 +34,16 @@
   "CompressedScale": false,
   "CompressionKnee": 3,
   "FinalSegment": "Solid",
-  "RangeDefaultKey": "PREF"
+  "RangeDefaultKey": "PREF",
+  "ScanEffect": true,
+  "Style": {
+    "Elements": {
+      "ScanEffect": {
+        "Color": "#70F0E0",
+        "Width": 1,
+        "Hidden": true,
+        "HiddenAnalog": false
+      }
+    }
+  }
 }
