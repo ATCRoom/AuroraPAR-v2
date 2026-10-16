@@ -499,30 +499,13 @@ namespace AuroraPAR
         /// <summary>Ground clutter specks into the video layer (same bitmap as the noise).</summary>
         private void DrawClutter(int width, int height, double antennaX)
         {
-            if (clutterFor.Runway != Runway || clutterFor.Level != Options.GroundClutter)
-            {
-                clutterSpecks = GroundClutter.Build(Runway, Options.GroundClutter, Runway.ClutterZones);
-                clutterFor = (Runway, Options.GroundClutter);
-            }
             Color color = Options.Theme.Brush(StyleElement.GroundClutter) is SolidColorBrush brush ? brush.Color : Colors.Olive;
             double strength = (color.A / 255.0) * (Options.Mti ? 0.35 : 1);
-            double antennaAlong = Radar.AntennaFromRunwayEnd(Runway) - Runway.LengthNM;
-            foreach (ClutterSpeck speck in clutterSpecks)
+            foreach ((int x, int y, double weight) in ClutterPixels(width, height))
             {
-                // Only what the antenna sees: inside the scan limits in azimuth and in elevation.
-                double fromAntenna = speck.AlongNM - antennaAlong;
-                if (fromAntenna <= 0) continue;
-                double azimuth = Math.Atan2(speck.LateralNM - Radar.AntennaOffsetNM, fromAntenna) * 180 / Math.PI;
-                double elevation = Math.Atan2(speck.HeightFt / Runway.FeetPerNM, fromAntenna) * 180 / Math.PI;
-                if (azimuth < -Radar.ScanLeft || azimuth > Radar.ScanRight || elevation > Radar.ScanUp || elevation < Radar.ScanDown) continue;
                 // A little flicker: not every speck at every look, and not always as bright.
                 if (noiseRandom.NextDouble() < 0.15) continue;
-                Point logical = WorldToLogical(speck.AlongNM, IsElevation ? speck.HeightFt : speck.LateralNM);
-                if (logical.X < antennaX || !IsNoiseArea(logical)) continue;
-                int x = (int)(ToScreenX(logical.X) / NoisePixel);
-                int y = (int)(ToScreenY(logical.Y) / NoisePixel);
-                if (x < 0 || y < 0 || x >= width || y >= height) continue;
-                int alpha = (int)Math.Round(255 * Math.Clamp(speck.Weight * strength * (0.55 + 0.45 * noiseRandom.NextDouble()), 0, 1));
+                int alpha = (int)Math.Round(255 * Math.Clamp(weight * strength * (0.55 + 0.45 * noiseRandom.NextDouble()), 0, 1));
                 if (alpha <= 0) continue;
                 int existing = (noisePixels[y * width + x] >> 24) & 0xFF;
                 if (existing >= alpha) continue;
@@ -604,7 +587,10 @@ namespace AuroraPAR
         /// <summary>Analog scope: rain clutter inside the antenna beam (see <see cref="ClutterLayer"/>).</summary>
         private void UpdateClutter(double t, ScanEffectSpeed speed)
         {
-            if (!Options.Analog || Options.ClutterStrength <= 0)
+            int[]? ground = Options.Analog && Options.GroundClutter != GroundClutterLevel.Off && !Options.Theme.IsHidden(StyleElement.GroundClutter)
+                ? GroundMask((int)Math.Ceiling(Canvas.ActualWidth / NoisePixel), (int)Math.Ceiling(Canvas.ActualHeight / NoisePixel))
+                : null;
+            if (!Options.Analog || (Options.ClutterStrength <= 0 && ground == null))
             {
                 clutter.Hide();
                 return;
@@ -651,8 +637,59 @@ namespace AuroraPAR
                 Colour = colour,
                 AxisY = AxisY,
                 Angular = Angular,
-                Unwarp = Compressed ? ClutterColumn : null
+                Unwarp = Compressed ? ClutterColumn : null,
+                Ground = ground,
+                GroundGain = Options.Mti ? 0.45 : 1.2
             });
+        }
+
+        private int[]? groundMask;
+        private (Runway?, GroundClutterLevel, int, int, bool, double, int) groundMaskFor;
+
+        /// <summary>
+        /// Analog scope: the ground clutter as strengths 0..255 on the pixels of the clutter layer (the beam lights
+        /// them up as the rain), built again when the runway, the level or the picture changes.
+        /// </summary>
+        private int[] GroundMask(int width, int height)
+        {
+            var key = (Runway, Options.GroundClutter, width, height, RunwayOnRight, XShift, staticVersion);
+            if (groundMask != null && key.Equals(groundMaskFor)) return groundMask;
+            groundMaskFor = key;
+            groundMask = new int[width * height];
+            foreach ((int x, int y, double weight) in ClutterPixels(width, height))
+            {
+                int value = (int)Math.Round(255 * Math.Clamp(weight, 0, 1));
+                int i = y * width + x;
+                if (value > groundMask[i]) groundMask[i] = value;
+            }
+            return groundMask;
+        }
+
+        /// <summary>Pixels (layer bitmap, <see cref="NoisePixel"/> screen pixels each) of the ground clutter specks the antenna can see.</summary>
+        private IEnumerable<(int X, int Y, double Weight)> ClutterPixels(int width, int height)
+        {
+            if (clutterFor.Runway != Runway || clutterFor.Level != Options.GroundClutter)
+            {
+                clutterSpecks = GroundClutter.Build(Runway, Options.GroundClutter, Runway.ClutterZones);
+                clutterFor = (Runway, Options.GroundClutter);
+            }
+            double antennaAlong = Radar.AntennaFromRunwayEnd(Runway) - Runway.LengthNM;
+            double antennaX = XAt(Radar.AntennaFromRunwayEnd(Runway));
+            foreach (ClutterSpeck speck in clutterSpecks)
+            {
+                // Only what the antenna sees: inside the scan limits in azimuth and in elevation.
+                double fromAntenna = speck.AlongNM - antennaAlong;
+                if (fromAntenna <= 0) continue;
+                double azimuth = Math.Atan2(speck.LateralNM - Radar.AntennaOffsetNM, fromAntenna) * 180 / Math.PI;
+                double elevation = Math.Atan2(speck.HeightFt / Runway.FeetPerNM, fromAntenna) * 180 / Math.PI;
+                if (azimuth < -Radar.ScanLeft || azimuth > Radar.ScanRight || elevation > Radar.ScanUp || elevation < Radar.ScanDown) continue;
+                Point logical = WorldToLogical(speck.AlongNM, IsElevation ? speck.HeightFt : speck.LateralNM);
+                if (logical.X < antennaX || !IsNoiseArea(logical)) continue;
+                int x = (int)(ToScreenX(logical.X) / NoisePixel);
+                int y = (int)(ToScreenY(logical.Y) / NoisePixel);
+                if (x < 0 || y < 0 || x >= width || y >= height) continue;
+                yield return (x, y, speck.Weight);
+            }
         }
 
         /// <summary>

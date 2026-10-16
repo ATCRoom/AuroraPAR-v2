@@ -478,5 +478,6 @@
   "Reminders": [],
   "RangeTextBelowHorizon": false,
   "MagneticVariation": 4,
-  "ScanEffectSpeed": "Fast"
+  "ScanEffectSpeed": "Fast",
+  "GroundClutter": "Medium"
 }

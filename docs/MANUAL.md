@@ -654,14 +654,14 @@ How it is drawn is chosen per profile in *Settings → Approach and DH → Terra
 
 #### Ground clutter: `clutter.par`
 
-*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground, buildings and hills, strongest near the antenna and weaker farther out, with a little flicker, in both views, only inside the scan limits (modern display; not yet on the analog scope). They are always the same for a runway: invented once from its name, or taken from **clutter.par** next to runways.par, one line per runway:
+*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground, buildings and hills, strongest near the antenna and weaker farther out, with a little flicker, in both views, only inside the scan limits. On the analog scope the beam paints them like the rain clutter (they light up when the beam passes, then fade, in the phosphor colour; the antenna scan effect must be on). They are always the same for a runway: invented once from its name, or taken from **clutter.par** next to runways.par, one line per runway:
 
 ```
 ICAO;RUNWAY;FROM-TO:LATERAL:STRENGTH[:TOP];...
 LIRN;24;1-1.5:R200-R500:3;2.2-3:L800-L300:2:600
 ```
 
-**FROM-TO** in NM from the threshold, **LATERAL** in metres with L / R (left / right as seen landing; `L300-R300` across the centreline), **STRENGTH** 1 (light) to 3 (strong), **TOP** the top of the echoes in ft above the threshold (default 150 / 300 / 500 by strength). A runway in clutter.par gets only its zones. Key **M**: MTI filter on (default: the clutter weaker, as what is left on a real radar) / off (full). Colour: *Colours and lines → Ground clutter* (with *Show* per mode). The picture changes once a second (a look of the radar). FROM may be negative (between the antenna and the threshold): `-0.5-0.3`. Profiles with clutter: ARTMACS-style (PRIMARY ONLY) medium, AN-TPN-31 light. Simulation only: not real data.
+**FROM-TO** in NM from the threshold, **LATERAL** in metres with L / R (left / right as seen landing; `L300-R300` across the centreline), **STRENGTH** 1 (light) to 3 (strong), **TOP** the top of the echoes in ft above the threshold (default 150 / 300 / 500 by strength). A runway in clutter.par gets only its zones. Key **M**: MTI filter on (default: the clutter weaker, as what is left on a real radar) / off (full). Colour: *Colours and lines → Ground clutter* (with *Show* per mode). The picture changes once a second (a look of the radar). FROM may be negative (between the antenna and the threshold): `-0.5-0.3`. Profiles with clutter: ARTMACS-style (PRIMARY ONLY), PAR2080 and AN-APN-22 medium, AN-TPN-31 light. Simulation only: not real data.
 
 ### 12.4 CRSCalculator: runway heading and magnetic variation
 

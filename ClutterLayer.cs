@@ -142,13 +142,19 @@ namespace AuroraPAR
             /// <see cref="Unwarp"/> is then used only for x.
             /// </summary>
             public bool Angular;
+            /// <summary>
+            /// Ground clutter (see <see cref="GroundClutter"/>): strength 0..255 of each pixel of the layer (same size as
+            /// its bitmap), lit by the beam like the rain; null: none. <see cref="GroundGain"/> scales it (MTI).
+            /// </summary>
+            public int[]? Ground;
+            public double GroundGain;
         }
 
         public void Hide() => image.Visibility = Visibility.Collapsed;
 
         public void Update(in Frame f)
         {
-            if (f.Strength <= 0 || f.Width < 20 || f.Height < 20 || Math.Abs(f.HighY - f.LowY) < 1 || f.EndX - f.OriginX < 1)
+            if ((f.Strength <= 0 && f.Ground == null) || f.Width < 20 || f.Height < 20 || Math.Abs(f.HighY - f.LowY) < 1 || f.EndX - f.OriginX < 1)
             {
                 Hide();
                 return;
@@ -245,6 +251,10 @@ namespace AuroraPAR
                         if (m > mask) { mask = m; p = pg; }
                     }
                     if (mask <= 0) continue;
+                    double ground = f.Ground != null && f.Ground.Length == w * h ? f.Ground[by * w + bx] / 255.0 * f.GroundGain : 0;
+                    double a = 0;
+                    if (f.Strength > 0)
+                    {
                     int tx = (int)Math.Floor((lx - offsetX) * ratio) & (Tile - 1);
                     int ty = (int)Math.Floor((ly - offsetY) * ratio) & (Tile - 1);
                     int ti = ty * Tile + tx;
@@ -255,10 +265,13 @@ namespace AuroraPAR
                     double field = Math.Clamp((Patch[ti] - 0.35) * 1.8, 0, 1);
                     double dot = 0;
                     if (Hash(bx, by, cycle + 1) < dotBase * field * range * 3) dot = 0.3 + 0.7 * Hash(bx, by, cycle + 7);
-                    double a = (blob * f.Strength * 1.1 + dot);
+                    // Rain: weaker with the filter of the console.
+                    a = (blob * f.Strength * 1.1 + dot) * gainFilter;
+                    }
+                    a += ground;
                     if (a <= 0.01) continue;
                     double lit = light[Math.Clamp((int)((p + 0.1) / 1.2 * LutSize), 0, LutSize)];
-                    a = Math.Min(1, a * (0.6 + 0.6 * lit) * mask * gainFilter);
+                    a = Math.Min(1, a * (0.6 + 0.6 * lit) * mask);
                     if (a <= 0.01) continue;
                     int alpha = (int)(a * 235);
                     pixels[by * w + bx] = (alpha << 24)
