@@ -462,7 +462,8 @@ namespace AuroraPAR
         /// </summary>
         private void DrawTerrain()
         {
-            if (Options.TerrainDisplay == TerrainDisplay.Off || Runway.Terrain.Count == 0 || Options.Theme.IsHidden(StyleElement.Terrain)) return;
+            // Not on the analog scope (the old radars had no terrain picture).
+            if (Options.Analog || Options.TerrainDisplay == TerrainDisplay.Off || Runway.Terrain.Count == 0 || Options.Theme.IsHidden(StyleElement.Terrain)) return;
             double threshold = Runway.LengthNM;
             double maxFromEnd = Runway.LengthNM + Runway.Distance;
             int segments = Compressed || Angular ? AngularCurveSegments / 4 : 1;

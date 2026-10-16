@@ -1310,6 +1310,11 @@ namespace AuroraPAR
         /// <summary>Key O: terrain / obstacles stepped line → filled → hidden, for this session (the profile is not changed).</summary>
         private void ToggleTerrain()
         {
+            if (viewOptions.Analog)
+            {
+                ShowBanner("TERRAIN (MODERN DISPLAY ONLY)");
+                return;
+            }
             sessionTerrain = viewOptions.TerrainDisplay switch
             {
                 TerrainDisplay.Steps => TerrainDisplay.Filled,
