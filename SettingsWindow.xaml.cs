@@ -795,6 +795,9 @@ namespace AuroraPAR
                 p => p.DeviationCrosshair, (p, v) => p.DeviationCrosshair = v);
             AddCheckRow("Primary video only, as the PRI picture of ARTMACS (modern display): everything red, no labels, receiver noise",
                 p => p.PrimaryVideo, (p, v) => p.PrimaryVideo = v);
+            AddChoiceRow("Ground clutter (fixed echoes near the antenna; key M: MTI on / off)", ["Off", "Light", "Medium", "Strong"],
+                p => (int)p.GroundClutter, (p, i) => p.GroundClutter = (GroundClutterLevel)i,
+                "Echoes of the ground, buildings and hills, strongest near the antenna, always the same for a runway (invented from its name, or the zones of clutter.par next to runways.par). Colour in Colours and lines → Ground clutter. Key M: MTI filter on (weaker, default) / off.");
         }
 
         private void AddSymbolRow(string label, Func<Profile, SymbolSetting> get, SymbolShape[] shapes)

@@ -324,7 +324,9 @@ namespace AuroraPAR
         /// <summary>Terrain / obstacle profile of terrain.par (side view; added later: default orange).</summary>
         Terrain,
         /// <summary>Deviation crosshair of the selected aircraft and the frame of its label (added later: red).</summary>
-        DeviationCrosshair
+        DeviationCrosshair,
+        /// <summary>Ground clutter echoes (added later: khaki).</summary>
+        GroundClutter
     }
 
     /// <summary>Colour (as #RRGGBB), dash style and width of an element.</summary>
@@ -353,7 +355,7 @@ namespace AuroraPAR
         {
             StyleElement.RangeText or StyleElement.Background or StyleElement.PlotInside or StyleElement.PlotOutside
                 or StyleElement.Antenna or StyleElement.TrackInside or StyleElement.TrackOutside or StyleElement.TrackCoasting
-                or StyleElement.LabelText or StyleElement.LabelTextOutside or StyleElement.DecisionHeightMark => false,
+                or StyleElement.LabelText or StyleElement.LabelTextOutside or StyleElement.DecisionHeightMark or StyleElement.GroundClutter => false,
             _ => true
         };
 
@@ -393,6 +395,7 @@ namespace AuroraPAR
             StyleElement.FixedHeight => "Fixed height lines (FH)",
             StyleElement.Terrain => "Terrain / obstacles (terrain.par)",
             StyleElement.DeviationCrosshair => "Deviation crosshair (selected aircraft)",
+            StyleElement.GroundClutter => "Ground clutter",
             StyleElement.ScanEffect => "Antenna scan effect (beam line)",
             StyleElement.Background => "Background",
             StyleElement.PlotInside => "Plots inside limits (history)",
@@ -431,6 +434,7 @@ namespace AuroraPAR
             StyleElement.FixedHeight => new() { Color = "#FF8C00", Width = 2 },
             StyleElement.Terrain => new() { Color = "#C8701E", Width = 1 },
             StyleElement.DeviationCrosshair => new() { Color = "#E00000", Width = 1 },
+            StyleElement.GroundClutter => new() { Color = "#B4B478" },
             StyleElement.ScanEffect => new() { Color = "#70F0E0", Width = 1 },
             StyleElement.Background => new() { Color = "#000000" },
             StyleElement.PlotInside => new() { Color = "#008000" },

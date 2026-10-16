@@ -246,6 +246,7 @@ A label with no fields shows only the track symbol.
 | Alt+← / Alt+→ | Final course 1° less / more for this session (CRS selector); Alt+Home = course of the runway |
 | S | Track smoothing On / Off for this session, to compare (modern display; the setting of the profile is not changed and comes back at the next start or profile switch) |
 | X | Deviation crosshair on / off (modern display; saved in the profile, as the box in Settings) |
+| M | MTI filter on / off for this session: the ground clutter weaker (on, default) or full |
 | O | Terrain / obstacles (terrain.par): stepped line → filled → hidden, for this session (the profile setting comes back at the next start or profile switch) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
@@ -650,6 +651,17 @@ LIRN;24;9.4-11.1=3310;11.1-13.8=3910;13.8-19.0=5200
 **RUNWAY** is the first word of the designator in runways.par (`24`, `16L`). **FROM-TO** are distances in NM from the threshold, **ALTITUDE** in ft above sea level, as on the charts. Lines starting with `#` are comments; a missing file means no terrain. In the runway editor the same steps are in the field **Terrain / obstacles** (`9.4-11.1=3310; 11.1-13.8=3910`), saved in terrain.par with Save (only the runways whose terrain was changed; the other lines stay as they are; the old file is kept as terrain.par.bak). Note: like runways.par, the terrain.par of a new package replaces yours if you copy it over: keep a copy of your own.
 
 How it is drawn is chosen per profile in *Settings → Approach and DH → Terrain / obstacles*: a **stepped line** with the value written on each step (minimum altitudes of the segments, OCA; altitude with QNH, height with QFE, in ft or m; default), **filled** from the ground up to each altitude (terrain, as on the ARTMACS display; ARTMACS-style), or **not drawn**. Modern display only (never on the analog scope). Colour in *Colours and lines → Terrain / obstacles*. With the LOG or the angular scale the steps follow the scale (the tops become curves). The data come from the person who prepared the runway (charts, an elevation profile): simulation only, not real terrain data. The package has an example for LIRN 24 (minimum altitudes of the ILS chart).
+
+#### Ground clutter: `clutter.par`
+
+*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground, buildings and hills, strongest near the antenna and weaker farther out, with a little flicker, in both views (also on the analog scope). They are always the same for a runway: invented once from its name, or taken from **clutter.par** next to runways.par, one line per runway:
+
+```
+ICAO;RUNWAY;FROM-TO:LATERAL:STRENGTH[:TOP];...
+LIRN;24;1-1.5:R200-R500:3;2.2-3:L800-L300:2:600
+```
+
+**FROM-TO** in NM from the threshold, **LATERAL** in metres with L / R (left / right as seen landing; `L300-R300` across the centreline), **STRENGTH** 1 (light) to 3 (strong), **TOP** the top of the echoes in ft above the threshold (default 150 / 300 / 500 by strength). A runway in clutter.par gets only its zones. Key **M**: MTI filter on (default: the clutter weaker, as what is left on a real radar) / off (full). Colour: *Colours and lines → Ground clutter* (with *Show* per mode). Profiles with clutter: ARTMACS-style (PRIMARY ONLY) and AN-APN-22 medium, AN-TPN-31 light. Simulation only: not real data.
 
 ### 12.4 CRSCalculator: runway heading and magnetic variation
 

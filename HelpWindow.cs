@@ -43,6 +43,7 @@ namespace AuroraPAR
                 ("S", "Track smoothing On / Off (this session only)"),
                 ("X", "Deviation crosshair on / off (modern display, saved in the profile)"),
                 ("O", "Terrain / obstacles: stepped line → filled → hidden (modern display, this session)"),
+                ("M", "MTI filter on / off: ground clutter weaker / full (this session)"),
                 ("L", "Hide / show all labels")
             ]),
             ("Labels (modern display)", [

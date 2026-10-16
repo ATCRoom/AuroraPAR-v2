@@ -101,6 +101,10 @@ namespace AuroraPAR
         public bool LineEndCircles { get; set; }
         /// <summary>Primary video only (profile option, modern display): all red, no labels, noise (see <see cref="Theme.Primary"/>).</summary>
         public bool PrimaryVideo { get; set; }
+        /// <summary>Ground clutter of the profile (see <see cref="GroundClutter"/>).</summary>
+        public GroundClutterLevel GroundClutter { get; set; }
+        /// <summary>MTI filter on (key M): the ground clutter much weaker, as after the filter of a real radar.</summary>
+        public bool Mti { get; set; } = true;
         /// <summary>Deviation crosshair of the selected aircraft in the side view (see <see cref="Profile.DeviationCrosshair"/>).</summary>
         public bool DeviationCrosshair { get; set; }
         /// <summary>Aircraft selected with a click on its track or label (null: none, the crosshair takes the one closest to the runway).</summary>
@@ -417,12 +421,20 @@ namespace AuroraPAR
         /// <summary>Screen pixels per pixel of the noise picture.</summary>
         private const int NoisePixel = 2;
 
+        /// <summary>Ground clutter of the runway in use (see <see cref="GroundClutter"/>), built again when the runway or the level changes.</summary>
+        private List<ClutterSpeck> clutterSpecks = [];
+        private (Runway? Runway, GroundClutterLevel Level) clutterFor;
+
         /// <summary>
-        /// Primary video: receiver noise, sparse red specks beyond the antenna (side view: above the ground), new at every update of the traffic.
+        /// Video layer, new at every update of the traffic: receiver noise of the primary video (sparse red specks beyond
+        /// the antenna; side view: above the ground) and the ground clutter (fixed echoes with a little flicker, weaker
+        /// with the MTI).
         /// </summary>
         private void UpdateNoise()
         {
-            if (!Options.PrimaryVideo || Options.Analog || Canvas.ActualWidth <= 0 || Canvas.ActualHeight <= 0)
+            bool noise = Options.PrimaryVideo && !Options.Analog;
+            bool clutter = Options.GroundClutter != GroundClutterLevel.Off && !Options.Theme.IsHidden(StyleElement.GroundClutter);
+            if ((!noise && !clutter) || Canvas.ActualWidth <= 0 || Canvas.ActualHeight <= 0)
             {
                 if (noiseImage != null) noiseImage.Visibility = Visibility.Collapsed;
                 return;
@@ -445,7 +457,7 @@ namespace AuroraPAR
             Array.Clear(noisePixels);
             double antennaX = XAt(Radar.AntennaFromRunwayEnd(Runway));
             Color red = Theme.PrimaryRed;
-            int specks = width * height / 1500;
+            int specks = noise ? width * height / 1500 : 0;
             for (int i = 0; i < specks; i++)
             {
                 int x = noiseRandom.Next(width);
@@ -460,12 +472,40 @@ namespace AuroraPAR
                 // Premultiplied alpha.
                 noisePixels[y * width + x] = (alpha << 24) | ((red.R * alpha / 255) << 16) | ((red.G * alpha / 255) << 8) | (red.B * alpha / 255);
             }
+            if (clutter) DrawClutter(width, height, antennaX);
             noiseBitmap.WritePixels(new Int32Rect(0, 0, width, height), noisePixels, width * 4, 0);
             noiseImage.Width = width * NoisePixel;
             noiseImage.Height = height * NoisePixel;
             Canvas.SetLeft(noiseImage, 0);
             Canvas.SetTop(noiseImage, 0);
             noiseImage.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>Ground clutter specks into the video layer (same bitmap as the noise).</summary>
+        private void DrawClutter(int width, int height, double antennaX)
+        {
+            if (clutterFor.Runway != Runway || clutterFor.Level != Options.GroundClutter)
+            {
+                clutterSpecks = GroundClutter.Build(Runway, Options.GroundClutter, Runway.ClutterZones);
+                clutterFor = (Runway, Options.GroundClutter);
+            }
+            Color color = Options.Theme.Brush(StyleElement.GroundClutter) is SolidColorBrush brush ? brush.Color : Colors.Olive;
+            double strength = (color.A / 255.0) * (Options.Mti ? 0.35 : 1);
+            foreach (ClutterSpeck speck in clutterSpecks)
+            {
+                // A little flicker: not every speck at every look, and not always as bright.
+                if (noiseRandom.NextDouble() < 0.15) continue;
+                Point logical = WorldToLogical(speck.AlongNM, IsElevation ? speck.HeightFt : speck.LateralNM);
+                if (logical.X < antennaX || !IsNoiseArea(logical)) continue;
+                int x = (int)(ToScreenX(logical.X) / NoisePixel);
+                int y = (int)(ToScreenY(logical.Y) / NoisePixel);
+                if (x < 0 || y < 0 || x >= width || y >= height) continue;
+                int alpha = (int)Math.Round(255 * Math.Clamp(speck.Weight * strength * (0.55 + 0.45 * noiseRandom.NextDouble()), 0, 1));
+                if (alpha <= 0) continue;
+                int existing = (noisePixels[y * width + x] >> 24) & 0xFF;
+                if (existing >= alpha) continue;
+                noisePixels[y * width + x] = (alpha << 24) | ((color.R * alpha / 255) << 16) | ((color.G * alpha / 255) << 8) | (color.B * alpha / 255);
+            }
         }
 
         /// <summary>

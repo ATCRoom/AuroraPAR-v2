@@ -1305,6 +1305,14 @@ namespace AuroraPAR
             Redraw();
         }
 
+        /// <summary>Key M: MTI filter on / off (ground clutter weaker / full), for this session.</summary>
+        private void ToggleMti()
+        {
+            viewOptions.Mti = !viewOptions.Mti;
+            ShowBanner((viewOptions.Mti ? "MTI ON" : "MTI OFF") + (settings.Active.GroundClutter == GroundClutterLevel.Off ? " (NO GROUND CLUTTER IN THIS PROFILE)" : ""));
+            Redraw();
+        }
+
         /// <summary>Key O: terrain / obstacles stepped line → filled → hidden, for this session (the profile is not changed).</summary>
         private void ToggleTerrain()
         {
@@ -2282,6 +2290,7 @@ namespace AuroraPAR
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
                 case Key.X when modifiers == 0: ToggleCrosshair(); break;
                 case Key.O when modifiers == 0: ToggleTerrain(); break;
+                case Key.M when modifiers == 0: ToggleMti(); break;
                 // 1–5 = lights of the coordination panel, 0 = Reset (only if the panel is open).
                 case >= Key.D0 and <= Key.D9 or >= Key.NumPad0 and <= Key.NumPad9 when modifiers == 0:
                     if (coordinationWindow == null || !coordinationWindow.HandleKey(e.Key)) return;
@@ -2381,6 +2390,7 @@ namespace AuroraPAR
             consolePanel.Drums = profile.Readouts == ReadoutStyle.Drums;
             aptEntry.Drums = profile.Readouts == ReadoutStyle.Drums;
             viewOptions.PrimaryVideo = profile.PrimaryVideo && !analog;
+            viewOptions.GroundClutter = profile.GroundClutter;
             viewOptions.DeviationCrosshair = profile.DeviationCrosshair;
             if (!profile.DeviationCrosshair) viewOptions.SelectedCallsign = null;
             viewOptions.Theme = analog

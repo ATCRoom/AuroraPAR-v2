@@ -220,5 +220,6 @@
     }
   },
   "UpperApproachLimit": false,
-  "AzimuthApproachLimits": false
+  "AzimuthApproachLimits": false,
+  "GroundClutter": "Light"
 }

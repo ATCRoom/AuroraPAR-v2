@@ -37,6 +37,7 @@ jobs:
             publish/AuroraPAR.exe
             publish/runways.par
             publish/terrain.par
+            publish/clutter.par
             publish/MANUAL.md
             publish/Profiles/*.json
 
@@ -78,7 +79,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          Compress-Archive -Path publish/AuroraPAR.exe, publish/runways.par, publish/terrain.par, publish/MANUAL.md, publish/Profiles -DestinationPath AuroraPAR-win-x64.zip
+          Compress-Archive -Path publish/AuroraPAR.exe, publish/runways.par, publish/terrain.par, publish/clutter.par, publish/MANUAL.md, publish/Profiles -DestinationPath AuroraPAR-win-x64.zip
           Compress-Archive -Path publish-coord/AuroraCoord.exe -DestinationPath AuroraCoord-win-x64.zip
           Compress-Archive -Path publish-crs/CRSCalculator.exe -DestinationPath CRSCalculator-win-x64.zip
           $zips = 'AuroraPAR-win-x64.zip', 'AuroraCoord-win-x64.zip', 'CRSCalculator-win-x64.zip'

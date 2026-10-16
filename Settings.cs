@@ -503,6 +503,8 @@ namespace AuroraPAR
         /// of each element, no labels, receiver noise beyond the antenna.
         /// </summary>
         public bool PrimaryVideo { get; set; }
+        /// <summary>Ground clutter (see <see cref="AuroraPAR.GroundClutter"/>): off by default.</summary>
+        public GroundClutterLevel GroundClutter { get; set; }
         /// <summary>
         /// Line at the final approach altitude of the runway (FAP ALT in runways.par), written e.g. FAP600M where it
         /// starts, with the style of the fixed height lines; a runway without FAP ALT has none.
@@ -625,6 +627,7 @@ namespace AuroraPAR
             if (!Enum.IsDefined(AntennaSide)) AntennaSide = AntennaSide.OnCentreline;
             if (!Enum.IsDefined(DistanceScaleLock)) DistanceScaleLock = DistanceScaleLock.Both;
             if (!Enum.IsDefined(TerrainDisplay)) TerrainDisplay = TerrainDisplay.Steps;
+            if (!Enum.IsDefined(GroundClutter)) GroundClutter = GroundClutterLevel.Off;
             ApplyScaleLock();
             AntennaOffsetMetres = double.IsFinite(AntennaOffsetMetres) ? Math.Clamp(AntennaOffsetMetres, 10, 2000) : DefaultAntennaOffset;
             ApproachLimitsTo = double.IsFinite(ApproachLimitsTo) && ApproachLimitsTo > 0 ? Math.Min(ApproachLimitsTo, 100) : 0;

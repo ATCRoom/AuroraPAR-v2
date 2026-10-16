@@ -1,0 +1,5 @@
+# AuroraPAR ground clutter zones, one line per runway (all its approaches). Runways not listed get clutter invented
+# from their name (always the same). Shown when the profile has Ground clutter (Settings -> Approach and DH).
+# ICAO;RUNWAY;FROM-TO(NM from threshold):LATERAL FROM-TO(m, L or R as seen landing):STRENGTH 1-3[:TOP ft];...
+# e.g. LIRN;24;1-1.5:R200-R500:3;2.2-3:L800-L300:2:600
+# Simulation only: not real data.

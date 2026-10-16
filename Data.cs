@@ -163,6 +163,8 @@ namespace AuroraPAR
         /// runway); empty if none. See <see cref="TerrainFile"/>.
         /// </summary>
         public IReadOnlyList<TerrainStep> Terrain { get; set; } = [];
+        /// <summary>Ground clutter zones of the runway from clutter.par (none: invented clutter). See <see cref="GroundClutter"/>.</summary>
+        public IReadOnlyList<ClutterZone> ClutterZones { get; set; } = [];
 
         /// <summary>
         /// Magnetic final course: true heading corrected with the variation of the runway, or the given default.
@@ -440,12 +442,23 @@ namespace AuroraPAR
 
         public static async Task<Runway[]> GetRunways(string path)
         {
-            return TerrainFile.Attach(Parse(await System.IO.File.ReadAllLinesAsync(path)), TerrainFile.PathFor(path));
+            return AttachClutter(TerrainFile.Attach(Parse(await System.IO.File.ReadAllLinesAsync(path)), TerrainFile.PathFor(path)), path);
         }
 
         public static Runway[] ReadRunways(string path)
         {
-            return TerrainFile.Attach(Parse(System.IO.File.ReadAllLines(path)), TerrainFile.PathFor(path));
+            return AttachClutter(TerrainFile.Attach(Parse(System.IO.File.ReadAllLines(path)), TerrainFile.PathFor(path)), path);
+        }
+
+        /// <summary>Ground clutter zones of clutter.par (next to runways.par) on the runways.</summary>
+        private static Runway[] AttachClutter(Runway[] runways, string runwaysPath)
+        {
+            Dictionary<string, List<ClutterZone>> zones = GroundClutter.Read(GroundClutter.PathFor(runwaysPath));
+            foreach (Runway runway in runways)
+            {
+                runway.ClutterZones = zones.TryGetValue(TerrainFile.Key(runway.ICAO, runway.Designator), out List<ClutterZone>? list) ? list : [];
+            }
+            return runways;
         }
 
         private static Runway[] Parse(string[] lines)
