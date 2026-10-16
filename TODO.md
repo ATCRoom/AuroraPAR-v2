@@ -16,7 +16,6 @@
 - **Analog keys, still to do:** a customisation window for the keyboard keys (only if asked; useful for a programmable USB keypad, see "External controls"). Range / DH / BRT keys repeating while held, if wanted.
 
 
-- **Quarantine (a proposal, to evaluate at the end or later; decided 9 Oct):** the **virtual keypad on a phone / tablet** (a web page like the coordination phone panel, same relay and pairing, sending named commands to AuroraPAR). Other free applications already do the same: worth it only if there is a real request.
 
 
 - **Coordination, relay reliability (11 Oct evening, from the logs):** the free public relays were slow/rejecting (emqx *ServerUnavailable*, hivemq timeouts) on both PCs, with and without panel code; before (9-10 Oct) ~1 s. Decision: the system must stay **totally free**; keep it as it is and see. If it happens again: try the relays **in parallel** (first that answers wins, both panels on the same one) and/or more free public relays; paid server or own broker only if really needed.
@@ -34,6 +33,21 @@
 ## Profiles from photos (method agreed 15 Oct)
 
 Ready profiles made from pictures of real displays: the user sends pictures / links (whole screen with traffic, readable scales, name of the radar, datasheet); I list what is seen (certain vs guessed), map it to the options, propose the missing ones (code only after the go), write `Profiles/<name>.json` + manual, the user tests it against the pictures. Done: PAR2000, PAR-E, ARTMACS-style (simulator), AN-APN-22 (analog, Tempelhof 1986), AN-TPN-31 (ATNAVICS, one picture; not done by choice: info box "RWY GS-2.7" top left; **to do (16 Oct, only for this profile): distance text with two decimals "1.00"** = third choice *Two decimals (1.00NM)* next to Decimal / Fractions (DistanceTextFormat, DisplayStylePanel radio, Label "0.00"), set in AN-TPN-31; small, needs a build). PAR-80 / PAR Info-Display: rejected by the user (16 Oct). Missing for AN-APN-22: rain clutter with the angular scale (done 15 Oct: the beam edges are horizontal, position across the beam from the logical y), small circles at the end of the glide path and of the centreline (small). Ideas from the ARTMACS pictures, to decide (bigger work): labels with numbers without units (414 12.8, +53: small); deviation crosshair of the selected aircraft (±152 / ±304 m, as ILS needles: medium); primary-mode view all red with noise and no labels (medium, close to the analog scope without the console); vertical axis logarithmic too (LOG on both axes, glide path a curve: medium-large); (16 Oct, from the ARTMACS picture with weather) **terrain / obstacle profile**: orange filled staircase from ~1.5 km to ~18.5 km, about 40 → 300 m in 7–8 regular steps (looks like a terrain profile sampled in steps, not OCA: OCA would be few steps at the fixes, usually a line); proposal: optional per-runway list of steps (from–to distance, height), drawn filled in elevation, own style, works in LIN / LOG / angles, edited in the runway editor (small-medium; the same feature also serves OCA steps as a line). **Format agreed 16 Oct (option B):** separate file `terrain.par` next to runways.par, one line per runway (not per glide slope): `ICAO;RUNWAY;FROM-TO(NM)=ALTITUDE(ft AMSL);...` e.g. `LIBN;32;0.8-1.6=200;1.6-3=350`; heights minus threshold elevation, QFE/QNH like the FAP line; gaps = nothing drawn; missing file = nothing; runway editor field *Terrain / obstacles* writing that file; drawing filled or as a stepped line (per profile); **weather cells** in the modern display: three nested intensity contours (green / yellow / red, hatched, semi-transparent), in elevation a rounded column from the ground to ~1500 m, in azimuth an irregular polygon, same cell in both views; ARTMACS also has a *Polarisation CLEAR ↔ RAIN* slider (circular polarisation weakens rain echoes) and *Video gain* (medium-large); **design 16 Oct:** one 3D cell model (distance, lateral, size, top, intensity, drift with wind, grow/decay) for both views and for the analog rain clutter; intensity grid per view → contours (marching squares) → drawn under everything, recomputed every few s; sources: manual list (Settings → Weather, presets), random moving cells, later METAR (RA/SHRA/TSRA) and the Instructor; key W show/hide; polarisation CLEAR/RAIN also weakens echoes inside cells. **Display styles per profile** (*Colours and lines → Weather display*; mock-ups 16 Oct in scratchpad `wx/`): 1 filled hatched contours (ARTMACS), 2 colour scale 6 levels (weather radar), 3 monochrome hatch density (ATC display), 4 outlines only, 5 raw speckle (as analog), combinations. First style = most of the work, each further style small (5 medium: animated). **ground clutter** in three phases (16 Oct): (1) invented but fixed per runway (seed from the runway name; dense near the antenna, fading to 3–5 NM, same patches in elevation / azimuth / analog, slight flicker, MTI control, intensity per profile; reuses the rain clutter engine; medium); (2) clutter zones written per runway in a file (distance, lateral, strength), phase 1 where missing (medium); (3) computed from real terrain (SRTM tiles downloaded once per airport and cached; line of sight from the antenna; also fills the terrain profile automatically; no buildings; large).
+
+## Frozen
+
+Ideas kept but stopped on purpose (not for now); they come back only when the user says so.
+
+- **Weather radar (frozen 16 Oct: not needed for our purposes now).** Design agreed and mock-ups made (16 Oct, scratchpad `wx/`): one 3D cell model for both views and the analog scope, manual / random cells, key W, polarisation CLEAR/RAIN, display styles per profile (only style 1, hatched contours with ARTMACS-style, for a start). Full notes in *Profiles from photos* (ARTMACS weather picture).
+- **External controls — FROZEN until the keypad arrives** (mini keypad, 9 keys + 3 knobs, programmable with its own software, onboard memory). Agreed plan:
+  - Large knob = RANGE (press: back to a chosen start range); small knob 1 = EL TILT, small knob 2 = AZ TILT (press: tilt back to zero).
+  - 6 keys = coordination lights incl. RESET (AuroraCoord or the panel in AuroraPAR, whichever is open).
+  - 3 spare keys = function chosen from a list in the settings (Modern/Analog, next traffic, open panel, BRT −/+, reminders on/off…).
+  - DH and BRT stay on screen only.
+  - Global hotkeys (work without focus). Defaults: knobs F13–F21, lights F22–F24 + Shift+F13–F15, spare Shift+F16–F18; reassignable with "press the key to assign".
+  - Manual: table key → combination to set in the keypad software.
+  - First check what the keypad software allows (F13–F24? Shift combinations?). Joystick input could be added later on the same mapping page.
+- **Quarantine (a proposal, to evaluate at the end or later; decided 9 Oct):** the **virtual keypad on a phone / tablet** (a web page like the coordination phone panel, same relay and pairing, sending named commands to AuroraPAR). Other free applications already do the same: worth it only if there is a real request.
 
 ## Done, to be tested
 
@@ -139,14 +153,6 @@ All checked OK by the user (16 Oct): labels/colours/history, tilt and runway sid
 
 - Shout line (always-open intercom) in the coordination panel. Real panel (photo 9 Oct): a small intercom plate beside the lights with a loudspeaker grille, two keys (teal and orange, both do the same: talk) and a volume knob.
 - Event log for the instructor (monitor), with saving to a file.
-- **External controls — FROZEN until the keypad arrives** (mini keypad, 9 keys + 3 knobs, programmable with its own software, onboard memory). Agreed plan:
-  - Large knob = RANGE (press: back to a chosen start range); small knob 1 = EL TILT, small knob 2 = AZ TILT (press: tilt back to zero).
-  - 6 keys = coordination lights incl. RESET (AuroraCoord or the panel in AuroraPAR, whichever is open).
-  - 3 spare keys = function chosen from a list in the settings (Modern/Analog, next traffic, open panel, BRT −/+, reminders on/off…).
-  - DH and BRT stay on screen only.
-  - Global hotkeys (work without focus). Defaults: knobs F13–F21, lights F22–F24 + Shift+F13–F15, spare Shift+F16–F18; reassignable with "press the key to assign".
-  - Manual: table key → combination to set in the keypad software.
-  - First check what the keypad software allows (F13–F24? Shift combinations?). Joystick input could be added later on the same mapping page.
 - Range marks in km, tablet view, Mac/Linux version (Avalonia).
 - Coordination panel: button gently pulsing when the selected traffic reaches a reminder distance.
 - Translations of the user manual.
