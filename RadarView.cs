@@ -445,7 +445,7 @@ namespace AuroraPAR
             Array.Clear(noisePixels);
             double antennaX = XAt(Radar.AntennaFromRunwayEnd(Runway));
             Color red = Theme.PrimaryRed;
-            int specks = width * height / 220;
+            int specks = width * height / 1500;
             for (int i = 0; i < specks; i++)
             {
                 int x = noiseRandom.Next(width);
@@ -456,7 +456,7 @@ namespace AuroraPAR
                 double lx = (RunwayOnRight ? Canvas.ActualWidth - sx : sx) - XShift;
                 double ly = RunwayOnRight && FlipVertically ? Canvas.ActualHeight - sy : sy;
                 if (lx < antennaX || !IsNoiseArea(new Point(lx, ly))) continue;
-                int alpha = noiseRandom.Next(40, 170);
+                int alpha = noiseRandom.Next(30, 120);
                 // Premultiplied alpha.
                 noisePixels[y * width + x] = (alpha << 24) | ((red.R * alpha / 255) << 16) | ((red.G * alpha / 255) << 8) | (red.B * alpha / 255);
             }
