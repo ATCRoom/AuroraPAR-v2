@@ -226,7 +226,8 @@ namespace AuroraPAR
             {
                 double sy = (by + 0.5) * Pixel;
                 double ly = f.RunwayOnRight && f.FlipVertically ? f.Height - sy : sy;
-                if (ly > f.HorizonY) continue;
+                // Below the horizon nothing (the lowest ground echoes may round half a pixel below it).
+                if (ly > f.HorizonY + (f.Ground != null ? Pixel : 0)) continue;
                 for (int bx = 0; bx < w; bx++)
                 {
                     double sx = (bx + 0.5) * Pixel;
@@ -268,8 +269,9 @@ namespace AuroraPAR
                     // Rain: weaker with the filter of the console.
                     a = (blob * f.Strength * 1.1 + dot) * gainFilter;
                     }
+                    // The same cut-off as before for the rain alone (before the filter of the console).
+                    if (ground == 0 ? a <= 0.01 * gainFilter : a + ground <= 0.01) continue;
                     a += ground;
-                    if (a <= 0.01) continue;
                     double lit = light[Math.Clamp((int)((p + 0.1) / 1.2 * LutSize), 0, LutSize)];
                     a = Math.Min(1, a * (0.6 + 0.6 * lit) * mask);
                     if (a <= 0.01) continue;

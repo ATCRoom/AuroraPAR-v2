@@ -654,7 +654,7 @@ How it is drawn is chosen per profile in *Settings → Approach and DH → Terra
 
 #### Ground clutter: `clutter.par`
 
-*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground, buildings and hills, strongest near the antenna and weaker farther out, with a little flicker, in both views, only inside the scan limits. On the analog scope the beam paints them like the rain clutter (they light up when the beam passes, then fade, in the phosphor colour; the antenna scan effect must be on). They are always the same for a runway: invented once from its name, or taken from **clutter.par** next to runways.par, one line per runway:
+*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground, buildings and hills, strongest near the antenna and weaker farther out, with a little flicker, in both views, only inside the scan limits. On the analog scope the beam paints them like the rain clutter (they light up when the beam passes, then fade, in the phosphor colour: there the *Ground clutter* colour is not used, only its *Show*; the antenna scan effect must be on). They are always the same for a runway: invented once from its name, or taken from **clutter.par** next to runways.par, one line per runway:
 
 ```
 ICAO;RUNWAY;FROM-TO:LATERAL:STRENGTH[:TOP];...
