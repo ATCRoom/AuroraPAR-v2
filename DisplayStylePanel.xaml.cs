@@ -34,10 +34,12 @@ namespace AuroraPAR
                 double fullLinesTo = Active.RangeMarks.FullLinesTo;
                 bool textInMarkColour = Active.RangeMarks.TextInMarkColour;
                 bool markAtZero = Active.RangeMarks.MarkAtZero;
+                bool linesFullHeight = Active.RangeMarks.LinesFullHeight;
                 Active.RangeMarks = RangeMarkSettings.Default();
                 Active.RangeMarks.FullLinesTo = fullLinesTo;
                 Active.RangeMarks.TextInMarkColour = textInMarkColour;
                 Active.RangeMarks.MarkAtZero = markAtZero;
+                Active.RangeMarks.LinesFullHeight = linesFullHeight;
                 // The text format and size are separate choices: Default resets only the table.
                 Active.RangeMarks.TextFormat = format;
                 Active.RangeMarks.TextSize = size;

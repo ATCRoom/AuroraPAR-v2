@@ -1027,6 +1027,8 @@ namespace AuroraPAR
                 p => p.RangeMarks.TextInMarkColour, (p, v) => p.RangeMarks.TextInMarkColour = v);
             AddCheckRow("A mark at 0 (the touchdown point), with its distance written (0KM, as on the PAR-E)",
                 p => p.RangeMarks.MarkAtZero, (p, v) => p.RangeMarks.MarkAtZero = v);
+            AddCheckRow("Range lines over the whole height of the views, not only inside the scan limits (as on ARTMACS)",
+                p => p.RangeMarks.LinesFullHeight, (p, v) => p.RangeMarks.LinesFullHeight = v);
             builderAdvanced = true;
             // Coasting tracks: in Tracks and labels (advanced).
             builderGrid = CoastGrid;

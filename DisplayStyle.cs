@@ -132,6 +132,8 @@ namespace AuroraPAR
         public bool TextInMarkColour { get; set; }
         /// <summary>A mark at 0 (the touchdown point), with its distance written (0KM), as on the PAR-E.</summary>
         public bool MarkAtZero { get; set; }
+        /// <summary>Range lines over the whole height of the view, not only inside the scan limits (as on ARTMACS).</summary>
+        public bool LinesFullHeight { get; set; }
 
         /// <summary>Size of the distance text, in pixels.</summary>
         public double TextSize { get; set; } = DefaultTextSize;
