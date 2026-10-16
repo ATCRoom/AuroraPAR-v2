@@ -524,7 +524,7 @@ Options made for this picture (they work with the other scales too):
 | Lines across the view up to *n* | *Range and scale*, above the range marks table | beyond this distance the range marks are **short lines**, shorter towards the end of the range, and the distance is written only on the largest marks (PAR-E: a line every km, across the view up to 10 km, then short; text every km up to 10 km, then every 5 km) |
 | Distance written in the colour of its mark | *Range and scale* | e.g. 5 km magenta, 1 km cyan |
 | A mark at 0 | *Range and scale* | a mark at the touchdown point with its text (0KM) |
-| Range lines over the whole height | *Range and scale* | the lines from the top to the bottom of each view, not only inside the scan limits (ARTMACS-style (PRIMARY ONLY)) |
+| Range lines over the whole height | *Range and scale* | the lines from the top to the bottom of each view, not only inside the scan limits (ARTMACS-style (PRIMARY ONLY), AN-TPN-31) |
 | Threshold as a tick like the DH | *Approach and DH* | instead of the threshold symbol: a tick from the ground up (side view, as long as the vertical DH line) and across the centreline (azimuth view, as long as the DH azimuth line), in the style of the DH lines |
 | Small circle at the far end of the glide path and of the centreline | *Approach and DH* | as on the AN/APN-22 scopes, in the colour of the line (not PAR-E) |
 | Approach limit lines end at | *Radar* | PAR-E: 10 km |
