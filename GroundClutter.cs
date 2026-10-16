@@ -58,26 +58,30 @@ namespace AuroraPAR
                 }
                 return Capped(specks, random);
             }
-            // Invented: patches of echoes, many near the antenna (middle of the runway), fewer and weaker farther out.
+            // Invented: patches of echoes close to the radar, as left after the MTI on a real PAR: most within the first
+            // mile from the threshold, none beyond 2 NM, low on the ground and always well under the glide path.
             double antennaAlong = -runway.LengthNM / 2;
-            int patches = 28;
+            const double MaxAlongNM = 2;
+            int patches = 22;
             for (int p = 0; p < patches; p++)
             {
-                bool hill = random.NextDouble() < 0.12;
-                double along = antennaAlong + 0.2 + 5.2 * Math.Pow(random.NextDouble(), 2.2);
-                if (hill) along = 2 + 6 * random.NextDouble();
-                double lateral = (random.NextDouble() * 2 - 1) * (0.3 + 1.2 * random.NextDouble());
-                double radius = hill ? 0.3 + 0.3 * random.NextDouble() : 0.04 + 0.12 * random.NextDouble() + 0.03 * Math.Max(0, along);
-                double top = hill ? 300 + 500 * random.NextDouble() : 40 + 200 * random.NextDouble();
-                double weight = Math.Clamp(1.1 - Math.Max(0, along - antennaAlong) / 6, 0.25, 1) * (hill ? 0.6 : 1);
-                int count = (int)Math.Clamp(radius * radius * 30000 * weight * scale, 15, 900);
+                double along = antennaAlong + 0.1 + (MaxAlongNM - antennaAlong - 0.1) * Math.Pow(random.NextDouble(), 2.5);
+                double lateral = (random.NextDouble() * 2 - 1) * (0.15 + 0.6 * random.NextDouble());
+                double radius = 0.03 + 0.08 * random.NextDouble();
+                double top = 20 + 70 * random.NextDouble();
+                double weight = Math.Clamp(1.1 - Math.Max(0, along - antennaAlong) / 2.5, 0.3, 1);
+                int count = (int)Math.Clamp(radius * radius * 40000 * weight * scale, 10, 500);
                 for (int i = 0; i < count; i++)
                 {
                     // Gaussian around the centre of the patch, a little longer than wide along the approach.
                     (double gx, double gy) = Gaussian(random);
-                    double a = along + gx * radius * 0.6;
+                    double a = Math.Min(MaxAlongNM, along + gx * radius * 0.6);
                     double l = lateral + gy * radius * 0.45;
-                    double height = top * Math.Pow(random.NextDouble(), 2);
+                    // Never near the glide path: at most 40 % of its height there (and the top of the patch).
+                    double gpHeight = Math.Max(0, runway.GlidePathHeight(a + runway.TouchdownNM));
+                    // Behind the touchdown point there is no glide path (the runway): only the top of the patch.
+                    double limit = a + runway.TouchdownNM <= 0 ? top : Math.Min(top, Math.Max(10, 0.4 * gpHeight));
+                    double height = limit * Math.Pow(random.NextDouble(), 2);
                     specks.Add(new ClutterSpeck(a, l, height, weight * (0.4 + 0.6 * random.NextDouble())));
                 }
             }
