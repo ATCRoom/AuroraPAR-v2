@@ -41,10 +41,13 @@ namespace AuroraPAR
                 ("P / Shift+P", "Next / previous profile"),
                 ("C", "Linear / log distance scale"),
                 ("S", "Track smoothing On / Off (this session only)"),
+                ("V", "Primary video: all red, no labels, receiver noise / normal (modern display, this session)"),
+                ("X", "Deviation crosshair on / off (modern display, this session)"),
                 ("L", "Hide / show all labels")
             ]),
             ("Labels (modern display)", [
                 ("Drag a label", "Move it (a leader line joins it to its track)"),
+                ("Click on a track or its label", "Select it for the deviation crosshair (again: back to the aircraft closest to the runway)"),
                 ("Double click on a label", "Back to its place"),
                 ("Right click on a label", "Hide it (with a Track ID field: menu with Set ID...)"),
                 ("Right click near a track", "Hide / show its label (several tracks: a menu)")

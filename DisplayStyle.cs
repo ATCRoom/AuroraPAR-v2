@@ -320,7 +320,9 @@ namespace AuroraPAR
         /// <summary>Text colour of the field kept outside the label frame.</summary>
         LabelTextOutside,
         /// <summary>Terrain / obstacle profile of terrain.par (side view; added later: default orange).</summary>
-        Terrain
+        Terrain,
+        /// <summary>Deviation crosshair of the selected aircraft and the frame of its label (added later: red).</summary>
+        DeviationCrosshair
     }
 
     /// <summary>Colour (as #RRGGBB), dash style and width of an element.</summary>
@@ -388,6 +390,7 @@ namespace AuroraPAR
             StyleElement.AltitudeLines => "Altitude lines (every 1000)",
             StyleElement.FixedHeight => "Fixed height lines (FH)",
             StyleElement.Terrain => "Terrain / obstacles (terrain.par)",
+            StyleElement.DeviationCrosshair => "Deviation crosshair (selected aircraft)",
             StyleElement.ScanEffect => "Antenna scan effect (beam line)",
             StyleElement.Background => "Background",
             StyleElement.PlotInside => "Plots inside limits (history)",
@@ -425,6 +428,7 @@ namespace AuroraPAR
             StyleElement.AltitudeLines => new() { Color = "#008000", Dash = LineDash.Dotted, Width = 1 },
             StyleElement.FixedHeight => new() { Color = "#FF8C00", Width = 2 },
             StyleElement.Terrain => new() { Color = "#C8701E", Width = 1 },
+            StyleElement.DeviationCrosshair => new() { Color = "#E00000", Width = 1 },
             StyleElement.ScanEffect => new() { Color = "#70F0E0", Width = 1 },
             StyleElement.Background => new() { Color = "#000000" },
             StyleElement.PlotInside => new() { Color = "#008000" },

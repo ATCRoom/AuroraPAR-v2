@@ -791,6 +791,8 @@ namespace AuroraPAR
             AddChoiceRow("Terrain / obstacles (terrain.par)", ["Filled from the ground (terrain, as on ARTMACS)", "Stepped line with the altitude (minimum altitudes, OCA)", "Not drawn"],
                 p => (int)p.TerrainDisplay, (p, i) => p.TerrainDisplay = (TerrainDisplay)i,
                 "Profile under the approach of the runway, from terrain.par next to runways.par (field Terrain / obstacles of the runway editor). Colour in Colours and lines → Terrain / obstacles.");
+            AddCheckRow("Deviation crosshair of the selected aircraft in the side view, as on ARTMACS (±500 ft up / down, ±1000 ft left / right; click a track to select it; key X on / off)",
+                p => p.DeviationCrosshair, (p, v) => p.DeviationCrosshair = v);
         }
 
         private void AddSymbolRow(string label, Func<Profile, SymbolSetting> get, SymbolShape[] shapes)

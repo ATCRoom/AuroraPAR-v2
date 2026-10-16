@@ -55,6 +55,26 @@ namespace AuroraPAR
             return theme;
         }
 
+        /// <summary>Colour of the primary video (key V): everything red, as the primary radar picture of ARTMACS.</summary>
+        public static readonly Color PrimaryRed = Color.FromRgb(0xFF, 0x30, 0x20);
+
+        /// <summary>
+        /// Modern display in primary video: lines, widths and Show as in Colours &amp; lines, every colour the red of the
+        /// primary picture with the brightness of the element (as on the analog scope); the background as chosen.
+        /// </summary>
+        public static Theme Primary(DisplayStyleSettings settings, double boost = 0)
+        {
+            Theme theme = Modern(settings, boost);
+            foreach (StyleElement element in Enum.GetValues<StyleElement>())
+            {
+                if (element == StyleElement.Background) continue;
+                (Brush _, double width, LineDash dash) = theme.elements[element];
+                theme.elements[element] = (Frozen(Phosphor(PrimaryRed, Brightness(element), boost)), width, dash);
+            }
+            theme.Sweep = Frozen(Mix(PrimaryRed, System.Windows.Media.Colors.White, 0.4));
+            return theme;
+        }
+
         /// <param name="style">Width, dash style and Show of the lines as set in Colours &amp; lines (the colours are
         /// the phosphor).</param>
         public static Theme Analog(Color phosphor, double boost = 0, DisplayStyleSettings? style = null)

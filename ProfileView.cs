@@ -17,6 +17,44 @@ namespace AuroraPAR
         private double H => Canvas.ActualHeight - bottomBand;
         private double bottomBand = 24;
 
+        private DeviationCrosshair? crosshair;
+
+        protected override bool IsNoiseArea(Point logical) => logical.Y < H;
+
+        /// <summary>
+        /// Deviation crosshair (option) of <paramref name="aircraft"/>, in the top corner on the runway side; null hides it.
+        /// </summary>
+        public void SetCrosshair(Aircraft? aircraft)
+        {
+            if (aircraft == null || !Options.DeviationCrosshair || Options.Analog || Options.Theme.IsHidden(StyleElement.DeviationCrosshair)
+                || Canvas.ActualWidth < 300 || Canvas.ActualHeight < 220)
+            {
+                if (crosshair != null) crosshair.Visibility = Visibility.Collapsed;
+                return;
+            }
+            if (crosshair == null)
+            {
+                crosshair = new DeviationCrosshair();
+                Panel.SetZIndex(crosshair, 13);
+                Canvas.Children.Add(crosshair);
+            }
+            double distance = aircraft.DistanceFromTouchdown(Runway);
+            crosshair.Stroke = Options.Theme.Brush(StyleElement.DeviationCrosshair);
+            crosshair.Thickness = Options.Theme.Width(StyleElement.DeviationCrosshair);
+            crosshair.DotBrush = Options.Theme.Brush(StyleElement.TrackInside);
+            crosshair.TextBrush = Options.Theme.Brush(StyleElement.LabelText);
+            crosshair.FontSize = Options.RangeMarks.TextSize;
+            crosshair.Metres = Options.ScaleInMetres;
+            crosshair.VerticalFt = aircraft.Altitude - Runway.Elevation - Runway.GlidePathHeight(distance);
+            crosshair.LateralFt = aircraft.LateralOffset(Runway) * Runway.FeetPerNM;
+            // Primary video: no identity.
+            crosshair.Title = Options.PrimaryVideo ? "" : aircraft.Callsign;
+            Canvas.SetLeft(crosshair, RunwayOnRight ? Canvas.ActualWidth - crosshair.Width - LeftMargin : LeftMargin);
+            Canvas.SetTop(crosshair, 4);
+            crosshair.Visibility = Visibility.Visible;
+            crosshair.InvalidateVisual();
+        }
+
         /// <summary>
         /// Distance of the antenna from the far end of the runway, in NM.
         /// </summary>

@@ -494,6 +494,11 @@ namespace AuroraPAR
         /// <summary>Small circle at the far end of the glide path (side view) and of the centreline (azimuth view), as on the AN/APN-22.</summary>
         public bool LineEndCircles { get; set; }
         /// <summary>
+        /// Deviation crosshair in the side view, as on ARTMACS: the selected aircraft (click on its track or label; else
+        /// the one closest to the runway) as a dot on a cross, up / down ±500 ft and left / right ±1000 ft.
+        /// </summary>
+        public bool DeviationCrosshair { get; set; }
+        /// <summary>
         /// Line at the final approach altitude of the runway (FAP ALT in runways.par), written e.g. FAP600M where it
         /// starts, with the style of the fixed height lines; a runway without FAP ALT has none.
         /// </summary>

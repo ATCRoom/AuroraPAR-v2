@@ -122,6 +122,10 @@ namespace AuroraPAR
         private readonly TrackFilter trackFilter = new();
         /// <summary>Key S: track smoothing chosen for this session (not saved), to compare; null: the profile's.</summary>
         private TrackSmoothing? sessionSmoothing;
+        /// <summary>Key X: deviation crosshair on / off for this session (null: as in the profile).</summary>
+        private bool? sessionCrosshair;
+        /// <summary>Key V: primary video (all red, no labels, noise) in the modern display, this session.</summary>
+        private bool primaryVideo;
 
         /// <summary>Track smoothing in use: the one of the profile, or the one chosen with key S.</summary>
         private TrackSmoothing Smoothing => sessionSmoothing ?? settings.Active.TrackSmoothing;
@@ -164,6 +168,8 @@ namespace AuroraPAR
             DistanceComboBox.SelectionChanged += DistanceComboBox_SelectionChanged;
             profileView = new(Vertical, runway, radar, viewOptions);
             horizontalView = new(Horizontal, runway, radar, viewOptions);
+            profileView.TrackClicked = SelectTrack;
+            horizontalView.TrackClicked = SelectTrack;
             infoPanel.Children.Add(infoText);
             // One entry per runway: "LIPC 11" for the lines "LIPC 11 2.8" and "LIPC 11 2.5".
             RunwayComboBox.DisplayMemberPath = nameof(Runway.DisplayName);
@@ -1097,6 +1103,7 @@ namespace AuroraPAR
             }
             // Key S was for the profile in use: the next one starts with its own smoothing.
             sessionSmoothing = null;
+            sessionCrosshair = null;
             int index = profiles.IndexOf(settings.Active);
             Profile next = profiles[((index + direction) % profiles.Count + profiles.Count) % profiles.Count];
             settings.ActiveProfile = next.Name;
@@ -1275,6 +1282,43 @@ namespace AuroraPAR
         /// Key S: track smoothing On / Off for this session (to compare); the profile setting
         /// is not changed and comes back at the next start or profile switch.
         /// </summary>
+        /// <summary>
+        /// Click on a track or label: that aircraft for the deviation crosshair; the same again: back to the automatic
+        /// choice (the aircraft closest to the runway).
+        /// </summary>
+        private void SelectTrack(string callsign)
+        {
+            viewOptions.SelectedCallsign = viewOptions.SelectedCallsign == callsign ? null : callsign;
+            Redraw();
+        }
+
+        /// <summary>Key X: deviation crosshair on / off for this session.</summary>
+        private void ToggleCrosshair()
+        {
+            if (viewOptions.Analog)
+            {
+                ShowBanner("DEVIATION CROSSHAIR (MODERN DISPLAY ONLY)");
+                return;
+            }
+            sessionCrosshair = !viewOptions.DeviationCrosshair;
+            viewOptions.DeviationCrosshair = sessionCrosshair.Value;
+            ShowBanner(viewOptions.DeviationCrosshair ? "DEVIATION CROSSHAIR ON" : "DEVIATION CROSSHAIR OFF");
+            Redraw();
+        }
+
+        /// <summary>Key V: primary video (all red, no labels, receiver noise) / normal video, modern display, this session.</summary>
+        private void TogglePrimaryVideo()
+        {
+            if (viewOptions.Analog)
+            {
+                ShowBanner("PRIMARY VIDEO (MODERN DISPLAY ONLY)");
+                return;
+            }
+            primaryVideo = !primaryVideo;
+            ApplyProfile();
+            ShowBanner(primaryVideo ? "VIDEO PRIMARY" : "VIDEO NORMAL");
+        }
+
         private void ToggleSmoothing()
         {
             sessionSmoothing = Smoothing == TrackSmoothing.Off ? TrackSmoothing.Light : TrackSmoothing.Off;
@@ -2222,6 +2266,8 @@ namespace AuroraPAR
                 case Key.T: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
+                case Key.V when modifiers == 0: TogglePrimaryVideo(); break;
+                case Key.X when modifiers == 0: ToggleCrosshair(); break;
                 // 1–5 = lights of the coordination panel, 0 = Reset (only if the panel is open).
                 case >= Key.D0 and <= Key.D9 or >= Key.NumPad0 and <= Key.NumPad9 when modifiers == 0:
                     if (coordinationWindow == null || !coordinationWindow.HandleKey(e.Key)) return;
@@ -2320,9 +2366,11 @@ namespace AuroraPAR
             viewOptions.EchoGrowth = profile.EchoGrowth;
             consolePanel.Drums = profile.Readouts == ReadoutStyle.Drums;
             aptEntry.Drums = profile.Readouts == ReadoutStyle.Drums;
+            viewOptions.PrimaryVideo = primaryVideo && !analog;
+            viewOptions.DeviationCrosshair = sessionCrosshair ?? profile.DeviationCrosshair;
             viewOptions.Theme = analog
                 ? Theme.Analog(ColorText.Parse(profile.AnalogColor, Theme.DefaultPhosphor), BrightnessBoost(profile), profile.Style)
-                : Theme.Modern(profile.Style, BrightnessBoost(profile));
+                : viewOptions.PrimaryVideo ? Theme.Primary(profile.Style, BrightnessBoost(profile)) : Theme.Modern(profile.Style, BrightnessBoost(profile));
             viewOptions.RangeMarks = profile.RangeMarks;
             // Reminders of all the lines (approaches) of the runway.
             viewOptions.Reminders = r => settings.RemindersFor(runways.Where(x => x.RunwayKey == r.RunwayKey).Select(x => x.ToString()).Append(r.ToString()));
@@ -2574,6 +2622,12 @@ namespace AuroraPAR
             UpdateInfo();
             profileView.Render(aircrafts);
             horizontalView.Render(aircrafts);
+            // Deviation crosshair: the aircraft clicked, else the one seen closest to the runway.
+            if (viewOptions.SelectedCallsign != null && !aircrafts.Any(a => a.Callsign == viewOptions.SelectedCallsign)) viewOptions.SelectedCallsign = null;
+            Aircraft? target = viewOptions.SelectedCallsign != null
+                ? aircrafts.FirstOrDefault(a => a.Callsign == viewOptions.SelectedCallsign)
+                : aircrafts.Where(a => radar.IsSeen(a, runway) && a.DistanceFromTouchdown(runway) > 0).OrderBy(a => a.DistanceFromTouchdown(runway)).FirstOrDefault();
+            profileView.SetCrosshair(target);
         }
         private static void SetText(TextBlock block, string text)
         {

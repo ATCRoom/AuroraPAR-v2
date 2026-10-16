@@ -262,11 +262,16 @@
       "Terrain": {
         "Color": "#FF8C1A",
         "Width": 1
+      },
+      "DeviationCrosshair": {
+        "Color": "#E00000",
+        "Width": 1
       }
     }
   },
   "AltitudeLinesIn": "LogOnly",
   "DistanceScaleLock": "LinOnly",
   "NumbersOnlyLabels": true,
-  "TerrainDisplay": "Filled"
+  "TerrainDisplay": "Filled",
+  "DeviationCrosshair": true
 }

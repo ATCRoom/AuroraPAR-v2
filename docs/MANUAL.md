@@ -245,6 +245,8 @@ A label with no fields shows only the track symbol.
 | F1 | List of all the keys and mouse actions (also the **Keys** button) |
 | Alt+← / Alt+→ | Final course 1° less / more for this session (CRS selector); Alt+Home = course of the runway |
 | S | Track smoothing On / Off for this session, to compare (modern display; the setting of the profile is not changed and comes back at the next start or profile switch) |
+| V | Primary video / normal video (modern display, this session): everything red, no labels, receiver noise (specks) in the scan, as the primary picture of ARTMACS |
+| X | Deviation crosshair on / off (modern display, this session) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
 Keys are ignored while you are typing in a text box (e.g. the DH box).
@@ -462,6 +464,7 @@ A profile holds all the display options, so that different controllers or differ
 - **Edit labels...**: label layouts of the two views ([section 5.2](#52-labels)).
 - **Compact text, as on the PAR-E**: the label text without spaces and with the unit in capitals: `D:4.45KM` (distance), `A3M` / `B2M` (above / below the glide path), `R23M` / `L5M`, `ID:56`, `H600M` (height) or `A600M` (altitude). Off: the normal text (`6.2 NM`, `U 50 ft`, `R 75 ft`).
 - **Numbers only, as on ARTMACS**: the values without units, in the units of the profile: `12.8` (distance), `414` (ground speed), `1250` (altitude or height), `+53` / `-20` (above / below the glide path), `+75` / `-40` (right / left of the centreline). Callsign, SSR code and track ID as usual. It turns the compact text off (and the other way round).
+- **Deviation crosshair** (*Approach and DH*, key **X**): in the top corner of the side view on the runway side, a cross like the needles of an ILS, as on ARTMACS: the dot is the aircraft's deviation from the glide path (up = above, scale ±500 ft = ±152 m) and from the centreline (right = right of it as seen by the pilot, ±1000 ft = ±304 m); beyond the scale a hollow dot on the edge. It shows the aircraft **selected with a left click** on its track (or near it) or on its label (a click without dragging); the selected label gets a frame in the colour of the crosshair. Click it again (or when it disappears) and the crosshair goes back to the aircraft seen closest to the runway. Colour: *Colours and lines → Deviation crosshair*. ARTMACS-style has it on.
 
 ### 10.4 Radar (angles in degrees)
 

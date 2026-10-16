@@ -99,6 +99,12 @@ namespace AuroraPAR
         public bool ThresholdTick { get; set; }
         /// <summary>Circle at the far end of the glide path and of the centreline (see <see cref="Profile.LineEndCircles"/>).</summary>
         public bool LineEndCircles { get; set; }
+        /// <summary>Primary video (key V, modern display): all red, no labels, noise (see <see cref="Theme.Primary"/>).</summary>
+        public bool PrimaryVideo { get; set; }
+        /// <summary>Deviation crosshair of the selected aircraft in the side view (see <see cref="Profile.DeviationCrosshair"/>).</summary>
+        public bool DeviationCrosshair { get; set; }
+        /// <summary>Aircraft selected with a click on its track or label (null: none, the crosshair takes the one closest to the runway).</summary>
+        public string? SelectedCallsign { get; set; }
         /// <summary>Line at the final approach altitude of the runway (see <see cref="Profile.ShowFapLine"/>).</summary>
         public bool ShowFapLine { get; set; }
         /// <summary>Terrain / obstacle profile of the runway (see <see cref="Profile.TerrainDisplay"/>).</summary>
@@ -254,6 +260,8 @@ namespace AuroraPAR
             Canvas.ClipToBounds = true;
             // Right click near a track (not only exactly on its small symbol) hides or shows its label.
             Canvas.MouseRightButtonUp += Canvas_MouseRightButtonUp;
+            // Left click near a track selects it (deviation crosshair); again: back to the automatic choice.
+            Canvas.MouseLeftButtonUp += Canvas_MouseLeftButtonUp;
         }
 
         /// <summary>
@@ -287,6 +295,9 @@ namespace AuroraPAR
         protected abstract Point SweepEnd(double position);
         /// <summary>False when the track is outside the drawable area (it is then hidden).</summary>
         protected virtual bool IsDrawable(Point logical) => true;
+
+        /// <summary>Where the receiver noise of the primary video can be (beyond the antenna; the side view: above the ground).</summary>
+        protected virtual bool IsNoiseArea(Point logical) => IsDrawable(logical);
 
         /// <summary>
         /// <paramref name="keepTracks"/>: another approach of the same runway (other glide path angle): positions
@@ -383,6 +394,9 @@ namespace AuroraPAR
                     tracks[aircraft.Callsign] = track;
                 }
                 UpdateTrack(track, aircraft);
+                bool selected = aircraft.Callsign == Options.SelectedCallsign && Options.DeviationCrosshair;
+                track.Label.BorderThickness = new Thickness(selected ? 1 : 0);
+                if (selected) track.Label.BorderBrush = Options.Theme.Brush(StyleElement.DeviationCrosshair);
             }
             // Remove the tracks of aircraft no longer received from Aurora.
             foreach (string callsign in tracks.Keys.Where(c => !present.Contains(c)).ToList())
@@ -391,6 +405,65 @@ namespace AuroraPAR
                 RemoveTrack(tracks[callsign]);
                 tracks.Remove(callsign);
             }
+            UpdateNoise();
+        }
+
+        private System.Windows.Controls.Image? noiseImage;
+        private System.Windows.Media.Imaging.WriteableBitmap? noiseBitmap;
+        private int[] noisePixels = [];
+        private readonly Random noiseRandom = new();
+        /// <summary>Screen pixels per pixel of the noise picture.</summary>
+        private const int NoisePixel = 2;
+
+        /// <summary>
+        /// Primary video: receiver noise, sparse red specks inside the scan, new at every update of the traffic.
+        /// </summary>
+        private void UpdateNoise()
+        {
+            if (!Options.PrimaryVideo || Options.Analog || Canvas.ActualWidth <= 0 || Canvas.ActualHeight <= 0)
+            {
+                if (noiseImage != null) noiseImage.Visibility = Visibility.Collapsed;
+                return;
+            }
+            int width = Math.Max(1, (int)(Canvas.ActualWidth / NoisePixel));
+            int height = Math.Max(1, (int)(Canvas.ActualHeight / NoisePixel));
+            if (noiseImage == null)
+            {
+                noiseImage = new System.Windows.Controls.Image { IsHitTestVisible = false, Stretch = Stretch.Fill };
+                RenderOptions.SetBitmapScalingMode(noiseImage, BitmapScalingMode.NearestNeighbor);
+                Panel.SetZIndex(noiseImage, HistoryZIndex - 1);
+                Canvas.Children.Add(noiseImage);
+            }
+            if (noiseBitmap == null || noiseBitmap.PixelWidth != width || noiseBitmap.PixelHeight != height)
+            {
+                noiseBitmap = new System.Windows.Media.Imaging.WriteableBitmap(width, height, 96, 96, PixelFormats.Pbgra32, null);
+                noisePixels = new int[width * height];
+                noiseImage.Source = noiseBitmap;
+            }
+            Array.Clear(noisePixels);
+            double antennaX = XAt(Radar.AntennaFromRunwayEnd(Runway));
+            Color red = Theme.PrimaryRed;
+            int specks = width * height / 220;
+            for (int i = 0; i < specks; i++)
+            {
+                int x = noiseRandom.Next(width);
+                int y = noiseRandom.Next(height);
+                // Screen to logical (the inverse of ToScreenX / ToScreenY), only inside the scan.
+                double sx = (x + 0.5) * NoisePixel;
+                double sy = (y + 0.5) * NoisePixel;
+                double lx = (RunwayOnRight ? Canvas.ActualWidth - sx : sx) - XShift;
+                double ly = RunwayOnRight && FlipVertically ? Canvas.ActualHeight - sy : sy;
+                if (lx < antennaX || !IsNoiseArea(new Point(lx, ly))) continue;
+                int alpha = noiseRandom.Next(40, 170);
+                // Premultiplied alpha.
+                noisePixels[y * width + x] = (alpha << 24) | ((red.R * alpha / 255) << 16) | ((red.G * alpha / 255) << 8) | (red.B * alpha / 255);
+            }
+            noiseBitmap.WritePixels(new Int32Rect(0, 0, width, height), noisePixels, width * 4, 0);
+            noiseImage.Width = width * NoisePixel;
+            noiseImage.Height = height * NoisePixel;
+            Canvas.SetLeft(noiseImage, 0);
+            Canvas.SetTop(noiseImage, 0);
+            noiseImage.Visibility = Visibility.Visible;
         }
 
         /// <summary>
@@ -883,7 +956,7 @@ namespace AuroraPAR
         private void UpdateLabel(Track track, Aircraft aircraft)
         {
             LabelLayout layout = Layout;
-            if (!Options.ShowLabels || Options.Analog || track.LabelHidden || layout.IsEmpty)
+            if (!Options.ShowLabels || Options.Analog || Options.PrimaryVideo || track.LabelHidden || layout.IsEmpty)
             {
                 track.Label.Visibility = Visibility.Collapsed;
                 track.Leader.Visibility = Visibility.Collapsed;
@@ -1007,9 +1080,12 @@ namespace AuroraPAR
             };
             track.Label.MouseLeftButtonUp += (s, e) =>
             {
+                bool clicked = track.Label.IsMouseCaptured && (e.GetPosition(Canvas) - dragStart).Length < 3;
                 if (track.Label.IsMouseCaptured) track.Label.ReleaseMouseCapture();
                 dragging = null;
                 e.Handled = true;
+                // A click without dragging selects the aircraft (deviation crosshair).
+                if (clicked) TrackClicked?.Invoke(track.Callsign);
             };
             track.Label.MouseRightButtonUp += (s, e) =>
             {
@@ -1100,6 +1176,22 @@ namespace AuroraPAR
         /// Right click on the view: with a single track nearby its label is hidden or shown at once; with several
         /// tracks nearby (close formation) or with labels hidden elsewhere, a menu lists them by callsign.
         /// </summary>
+        /// <summary>Called with the callsign of a track clicked (on its symbol, near it or on its label without dragging).</summary>
+        public Action<string>? TrackClicked { get; set; }
+
+        private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (Options.Analog || TrackClicked == null) return;
+            Point click = e.GetPosition(Canvas);
+            Track? nearest = tracks.Values
+                .Where(t => t.Symbol.Visibility == Visibility.Visible && (t.Position - click).Length <= TrackClickDistance)
+                .OrderBy(t => (t.Position - click).Length)
+                .FirstOrDefault();
+            if (nearest == null) return;
+            e.Handled = true;
+            TrackClicked(nearest.Callsign);
+        }
+
         private void Canvas_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (Options.Analog) return;
