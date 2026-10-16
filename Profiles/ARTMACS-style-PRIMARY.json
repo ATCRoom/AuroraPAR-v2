@@ -154,7 +154,8 @@
         "Text": "Five",
         "ShowUnit": false
       }
-    ]
+    ],
+    "LinesFullHeight": true
   },
   "Style": {
     "Elements": {

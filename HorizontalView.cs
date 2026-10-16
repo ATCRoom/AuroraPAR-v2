@@ -339,7 +339,8 @@ namespace AuroraPAR
                     if (y1 < y2) AddLine(XAt(markNM), y1, XAt(markNM), y2, element);
                     continue;
                 }
-                AddLine(XAt(markNM), ScanY(markNM, left), XAt(markNM), ScanY(markNM, right), element);
+                if (Options.RangeMarks.LinesFullHeight) AddLine(XAt(markNM), 0, XAt(markNM), Canvas.ActualHeight, element);
+                else AddLine(XAt(markNM), ScanY(markNM, left), XAt(markNM), ScanY(markNM, right), element);
                 // Thicker where the antenna beam looks.
                 if (Radar.BeamEnabled)
                 {

@@ -343,8 +343,8 @@ namespace AuroraPAR
             foreach ((double distance, StyleElement element, bool text, bool isShort) in marks)
             {
                 double markNM = length - Runway.TouchdownNM + distance;
-                double top = ScanY(markNM, upper);
-                double bottom = lower > 0 ? ScanY(markNM, lower) : H;
+                double top = Options.RangeMarks.LinesFullHeight ? 0 : ScanY(markNM, upper);
+                double bottom = lower > 0 && !Options.RangeMarks.LinesFullHeight ? ScanY(markNM, lower) : H;
                 if (isShort && Options.RangeMarks.DrawLines && top < bottom && !HasReminderLine(reminders, distance))
                 {
                     // Short line (beyond the full lines), centred on the glide path, shorter towards the end.
