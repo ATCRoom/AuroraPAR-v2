@@ -39,7 +39,7 @@ Ready profiles made from pictures of real displays: the user sends pictures / li
 
 Last updates, newest first. When an item works in the test, delete it.
 
-- Phases 1, 2 and 3 tested OK by the user (16 Oct checklist).
+- Phases 1, 2, 3 and the ground clutter tested OK by the user (16 Oct checklist).
 
 - **(16 Oct) Ground clutter (phase 1 only; clutter.par removed the same evening: the hand-written zones looked like filled rectangles, the user: invented clutter is enough, it is eye candy):** GroundClutter.cs (specks in world coordinates, invented per runway from an FNV hash of the name: 22 patches between the antenna and 2 NM, mostly within 1 NM, 20–90 ft and at most 40 % of the glide path height (user, 16 Oct: clutter at 3 NM touching the GP unrealistic); or the zones of clutter.par), drawn into the video layer of RadarView (same bitmap as the primary noise) in both views (analog since 16 Oct evening: the specks are a strength mask fed into ClutterLayer, lit by the beam as the rain; PAR2080 and AN-APN-22 medium; AN-TPN-31 none, modern display), only inside the scan limits, new picture once a second, key M MTI on (35%) / off, profile option *Ground clutter* Off/Light/Medium/Strong (default Off), StyleElement GroundClutter. Profiles: ARTMACS-style (PRIMARY ONLY) medium (AN-TPN-31 removed, user 16 Oct). Review fixes: 1 Hz picture (no 10 Hz shimmer, also the primary noise), scan-limit clipping, max 8000 specks, negative FROM in clutter.par, Show per mode works. Not done: editor field for clutter.par (file only), errors of clutter.par lines shown to the user.
 
