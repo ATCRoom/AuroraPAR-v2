@@ -138,7 +138,7 @@
   },
   "DhLineSide": "None",
   "DhLineLength": 0.25,
-  "FinalSegment": "FromThreshold",
+  "FinalSegment": "Solid",
   "FinalSegmentDash": "Dashed",
   "DhDropSide": "Both",
   "DhDropLength": 1000,
@@ -479,5 +479,5 @@
   "RangeTextBelowHorizon": false,
   "MagneticVariation": 4,
   "ScanEffectSpeed": "Fast",
-  "GroundClutter": "Medium"
+  "GroundClutter": "Strong"
 }
