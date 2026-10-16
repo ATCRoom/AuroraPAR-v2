@@ -87,8 +87,8 @@ namespace AuroraPAR
         /// </summary>
         private bool loading;
         private bool dirty;
-        /// <summary>A terrain profile was changed: terrain.par is written with the next Save.</summary>
-        private bool terrainChanged;
+        /// <summary>Runways (terrain keys) whose terrain profile was edited: only their lines of terrain.par are written with the next Save.</summary>
+        private readonly HashSet<string> terrainChanged = [];
 
         /// <summary>
         /// True if the runway file was saved at least once.
@@ -224,7 +224,7 @@ namespace AuroraPAR
                 string terrainKey = TerrainFile.Key(draft["icao"], draft["designator"]);
                 foreach (Draft other in drafts.Where(d => TerrainFile.Key(d["icao"], d["designator"]) == terrainKey)) other["terrain"] = text;
                 draft["terrain"] = text;
-                terrainChanged = true;
+                terrainChanged.Add(terrainKey);
                 dirty = true;
                 UpdateNotes();
                 return;
@@ -250,6 +250,16 @@ namespace AuroraPAR
             if (key == "icao" || key == "designator")
             {
                 RunwayList.Items.Refresh();
+                // Another runway name: the terrain of that runway (of its other approaches), or none.
+                string terrainKey = TerrainFile.Key(draft["icao"], draft["designator"]);
+                string terrain = drafts.FirstOrDefault(d => d != draft && TerrainFile.Key(d["icao"], d["designator"]) == terrainKey)?["terrain"] ?? "";
+                if (terrain != draft["terrain"])
+                {
+                    draft["terrain"] = terrain;
+                    loading = true;
+                    boxes["terrain"].Text = terrain;
+                    loading = false;
+                }
             }
             UpdateNotes();
         }
@@ -486,6 +496,8 @@ namespace AuroraPAR
             if (Selected is not Draft draft) return;
             Draft copy = draft.Copy();
             copy["designator"] = "";
+            // The terrain belongs to the runway name: the copy gets it again when it is named like a runway that has one.
+            copy["terrain"] = "";
             copy.Modified = true;
             // Saved right after the runway it was copied from.
             copy.InsertAfterLine = draft.SourceLine ?? draft.InsertAfterLine;
@@ -547,23 +559,25 @@ namespace AuroraPAR
                 MessageBox.Show(this, $"Cannot write the runway file {path}:\n{ex.Message}\n\nIf the program is in a protected folder (e.g. Program Files), move it to another folder.", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
-            if (terrainChanged)
+            if (terrainChanged.Count > 0)
             {
+                // Only the runways whose terrain was edited: the other lines of terrain.par (also ones that could not be read) stay as they are.
                 Dictionary<string, (string Icao, string Runway, string Steps)> profiles = [];
                 foreach (Draft draft in drafts)
                 {
-                    profiles[TerrainFile.Key(draft["icao"], draft["designator"])] = (draft["icao"], draft["designator"], draft["terrain"]);
+                    string key = TerrainFile.Key(draft["icao"], draft["designator"]);
+                    if (terrainChanged.Contains(key)) profiles[key] = (draft["icao"], draft["designator"], draft["terrain"]);
                 }
                 string terrainPath = TerrainFile.PathFor(path);
                 try
                 {
                     TerrainFile.Save(terrainPath, profiles);
-                    terrainChanged = false;
+                    terrainChanged.Clear();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(this, $"Cannot write the terrain file {terrainPath}:\n{ex.Message}", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
+                    // The runways are saved: only the terrain is not (it stays to be saved).
+                    MessageBox.Show(this, $"The runways are saved, but the terrain file {terrainPath} cannot be written:\n{ex.Message}", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             Saved = true;

@@ -85,7 +85,6 @@ namespace AuroraPAR
         AnglesWithLog
     }
 
-    /// <summary>Distance scales allowed in a profile: both (key C switches them), or locked to one of them.</summary>
     /// <summary>How the terrain / obstacle profile of terrain.par is drawn in the side view.</summary>
     internal enum TerrainDisplay
     {
@@ -96,6 +95,7 @@ namespace AuroraPAR
         Off
     }
 
+    /// <summary>Distance scales allowed in a profile: both (key C switches them), or locked to one of them.</summary>
     internal enum DistanceScaleLock
     {
         Both,
@@ -503,8 +503,8 @@ namespace AuroraPAR
         /// starts, with the style of the fixed height lines; a runway without FAP ALT has none.
         /// </summary>
         public bool ShowFapLine { get; set; }
-        /// <summary>Terrain / obstacle profile of the runway (terrain.par): filled, stepped line or not drawn.</summary>
-        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Filled;
+        /// <summary>Terrain / obstacle profile of the runway (terrain.par): stepped line (default), filled or not drawn.</summary>
+        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Steps;
 
         // Tracks and labels.
         public LabelLayout ElevationLabel { get; set; } = LabelLayout.DefaultElevation();
@@ -619,7 +619,7 @@ namespace AuroraPAR
             if (!Enum.IsDefined(VerticalScale)) VerticalScale = VerticalScale.Heights;
             if (!Enum.IsDefined(AntennaSide)) AntennaSide = AntennaSide.OnCentreline;
             if (!Enum.IsDefined(DistanceScaleLock)) DistanceScaleLock = DistanceScaleLock.Both;
-            if (!Enum.IsDefined(TerrainDisplay)) TerrainDisplay = TerrainDisplay.Filled;
+            if (!Enum.IsDefined(TerrainDisplay)) TerrainDisplay = TerrainDisplay.Steps;
             ApplyScaleLock();
             AntennaOffsetMetres = double.IsFinite(AntennaOffsetMetres) ? Math.Clamp(AntennaOffsetMetres, 10, 2000) : DefaultAntennaOffset;
             ApproachLimitsTo = double.IsFinite(ApproachLimitsTo) && ApproachLimitsTo > 0 ? Math.Min(ApproachLimitsTo, 100) : 0;

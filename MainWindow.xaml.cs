@@ -122,8 +122,6 @@ namespace AuroraPAR
         private readonly TrackFilter trackFilter = new();
         /// <summary>Key S: track smoothing chosen for this session (not saved), to compare; null: the profile's.</summary>
         private TrackSmoothing? sessionSmoothing;
-        /// <summary>Key X: deviation crosshair on / off for this session (null: as in the profile).</summary>
-        private bool? sessionCrosshair;
         /// <summary>Key V: primary video (all red, no labels, noise) in the modern display, this session.</summary>
         private bool primaryVideo;
 
@@ -1103,7 +1101,6 @@ namespace AuroraPAR
             }
             // Key S was for the profile in use: the next one starts with its own smoothing.
             sessionSmoothing = null;
-            sessionCrosshair = null;
             int index = profiles.IndexOf(settings.Active);
             Profile next = profiles[((index + direction) % profiles.Count + profiles.Count) % profiles.Count];
             settings.ActiveProfile = next.Name;
@@ -1279,20 +1276,17 @@ namespace AuroraPAR
         }
 
         /// <summary>
-        /// Key S: track smoothing On / Off for this session (to compare); the profile setting
-        /// is not changed and comes back at the next start or profile switch.
-        /// </summary>
-        /// <summary>
-        /// Click on a track or label: that aircraft for the deviation crosshair; the same again: back to the automatic
-        /// choice (the aircraft closest to the runway).
+        /// Click on a track or label: that aircraft for the deviation crosshair (its label gets a frame); the same again:
+        /// back to the automatic choice (the aircraft closest to the runway). Nothing while the crosshair is off.
         /// </summary>
         private void SelectTrack(string callsign)
         {
+            if (!viewOptions.DeviationCrosshair) return;
             viewOptions.SelectedCallsign = viewOptions.SelectedCallsign == callsign ? null : callsign;
             Redraw();
         }
 
-        /// <summary>Key X: deviation crosshair on / off for this session.</summary>
+        /// <summary>Key X: deviation crosshair on / off, saved in the profile (the same as the box in Settings).</summary>
         private void ToggleCrosshair()
         {
             if (viewOptions.Analog)
@@ -1300,8 +1294,10 @@ namespace AuroraPAR
                 ShowBanner("DEVIATION CROSSHAIR (MODERN DISPLAY ONLY)");
                 return;
             }
-            sessionCrosshair = !viewOptions.DeviationCrosshair;
-            viewOptions.DeviationCrosshair = sessionCrosshair.Value;
+            settings.Active.DeviationCrosshair = !settings.Active.DeviationCrosshair;
+            SettingsStore.Save(settings);
+            viewOptions.DeviationCrosshair = settings.Active.DeviationCrosshair;
+            if (!viewOptions.DeviationCrosshair) viewOptions.SelectedCallsign = null;
             ShowBanner(viewOptions.DeviationCrosshair ? "DEVIATION CROSSHAIR ON" : "DEVIATION CROSSHAIR OFF");
             Redraw();
         }
@@ -1319,6 +1315,10 @@ namespace AuroraPAR
             ShowBanner(primaryVideo ? "VIDEO PRIMARY" : "VIDEO NORMAL");
         }
 
+        /// <summary>
+        /// Key S: track smoothing On / Off for this session (to compare); the profile setting
+        /// is not changed and comes back at the next start or profile switch.
+        /// </summary>
         private void ToggleSmoothing()
         {
             sessionSmoothing = Smoothing == TrackSmoothing.Off ? TrackSmoothing.Light : TrackSmoothing.Off;
@@ -2367,7 +2367,8 @@ namespace AuroraPAR
             consolePanel.Drums = profile.Readouts == ReadoutStyle.Drums;
             aptEntry.Drums = profile.Readouts == ReadoutStyle.Drums;
             viewOptions.PrimaryVideo = primaryVideo && !analog;
-            viewOptions.DeviationCrosshair = sessionCrosshair ?? profile.DeviationCrosshair;
+            viewOptions.DeviationCrosshair = profile.DeviationCrosshair;
+            if (!profile.DeviationCrosshair) viewOptions.SelectedCallsign = null;
             viewOptions.Theme = analog
                 ? Theme.Analog(ColorText.Parse(profile.AnalogColor, Theme.DefaultPhosphor), BrightnessBoost(profile), profile.Style)
                 : viewOptions.PrimaryVideo ? Theme.Primary(profile.Style, BrightnessBoost(profile)) : Theme.Modern(profile.Style, BrightnessBoost(profile));

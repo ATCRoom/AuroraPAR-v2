@@ -245,8 +245,8 @@ A label with no fields shows only the track symbol.
 | F1 | List of all the keys and mouse actions (also the **Keys** button) |
 | Alt+← / Alt+→ | Final course 1° less / more for this session (CRS selector); Alt+Home = course of the runway |
 | S | Track smoothing On / Off for this session, to compare (modern display; the setting of the profile is not changed and comes back at the next start or profile switch) |
-| V | Primary video / normal video (modern display, this session): everything red, no labels, receiver noise (specks) in the scan, as the primary picture of ARTMACS |
-| X | Deviation crosshair on / off (modern display, this session) |
+| V | Primary video / normal video (modern display, this session): everything red, no labels, receiver noise (specks) beyond the antenna, as the primary picture of ARTMACS |
+| X | Deviation crosshair on / off (modern display; saved in the profile, as the box in Settings) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
 Keys are ignored while you are typing in a text box (e.g. the DH box).
@@ -646,9 +646,9 @@ ICAO;RUNWAY;FROM-TO=ALTITUDE;FROM-TO=ALTITUDE;...
 LIRN;24;9.4-11.1=3310;11.1-13.8=3910;13.8-19.0=5200
 ```
 
-**RUNWAY** is the first word of the designator in runways.par (`24`, `16L`). **FROM-TO** are distances in NM from the threshold, **ALTITUDE** in ft above sea level, as on the charts. Lines starting with `#` are comments; a missing file means no terrain. In the runway editor the same steps are in the field **Terrain / obstacles** (`9.4-11.1=3310; 11.1-13.8=3910`), saved in terrain.par with Save (the old file is kept as terrain.par.bak).
+**RUNWAY** is the first word of the designator in runways.par (`24`, `16L`). **FROM-TO** are distances in NM from the threshold, **ALTITUDE** in ft above sea level, as on the charts. Lines starting with `#` are comments; a missing file means no terrain. In the runway editor the same steps are in the field **Terrain / obstacles** (`9.4-11.1=3310; 11.1-13.8=3910`), saved in terrain.par with Save (only the runways whose terrain was changed; the other lines stay as they are; the old file is kept as terrain.par.bak). Note: like runways.par, the terrain.par of a new package replaces yours if you copy it over: keep a copy of your own.
 
-How it is drawn is chosen per profile in *Settings → Approach and DH → Terrain / obstacles*: **filled** from the ground up to each altitude (terrain, as on the ARTMACS display; default), a **stepped line** with the value written on each step (minimum altitudes of the segments, OCA; altitude with QNH, height with QFE, in ft or m), or **not drawn**. Colour in *Colours and lines → Terrain / obstacles*. With the LOG or the angular scale the steps follow the scale (the tops become curves). The data come from the person who prepared the runway (charts, an elevation profile): simulation only, not real terrain data. The package has an example for LIRN 24 (minimum altitudes of the ILS chart).
+How it is drawn is chosen per profile in *Settings → Approach and DH → Terrain / obstacles*: a **stepped line** with the value written on each step (minimum altitudes of the segments, OCA; altitude with QNH, height with QFE, in ft or m; default), **filled** from the ground up to each altitude (terrain, as on the ARTMACS display; ARTMACS-style), or **not drawn**. Colour in *Colours and lines → Terrain / obstacles*. With the LOG or the angular scale the steps follow the scale (the tops become curves). The data come from the person who prepared the runway (charts, an elevation profile): simulation only, not real terrain data. The package has an example for LIRN 24 (minimum altitudes of the ILS chart).
 
 ### 12.4 CRSCalculator: runway heading and magnetic variation
 

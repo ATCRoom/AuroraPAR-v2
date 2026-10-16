@@ -108,7 +108,7 @@ namespace AuroraPAR
         /// <summary>Line at the final approach altitude of the runway (see <see cref="Profile.ShowFapLine"/>).</summary>
         public bool ShowFapLine { get; set; }
         /// <summary>Terrain / obstacle profile of the runway (see <see cref="Profile.TerrainDisplay"/>).</summary>
-        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Filled;
+        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Steps;
     }
 
     /// <summary>
@@ -261,6 +261,7 @@ namespace AuroraPAR
             // Right click near a track (not only exactly on its small symbol) hides or shows its label.
             Canvas.MouseRightButtonUp += Canvas_MouseRightButtonUp;
             // Left click near a track selects it (deviation crosshair); again: back to the automatic choice.
+            Canvas.MouseLeftButtonDown += Canvas_MouseLeftButtonDown;
             Canvas.MouseLeftButtonUp += Canvas_MouseLeftButtonUp;
         }
 
@@ -394,9 +395,10 @@ namespace AuroraPAR
                     tracks[aircraft.Callsign] = track;
                 }
                 UpdateTrack(track, aircraft);
+                // Frame of the selected label: always 1 px (transparent when not selected), so the label never moves.
                 bool selected = aircraft.Callsign == Options.SelectedCallsign && Options.DeviationCrosshair;
-                track.Label.BorderThickness = new Thickness(selected ? 1 : 0);
-                if (selected) track.Label.BorderBrush = Options.Theme.Brush(StyleElement.DeviationCrosshair);
+                if (track.Label.BorderThickness.Left != 1) track.Label.BorderThickness = new Thickness(1);
+                track.Label.BorderBrush = selected ? Options.Theme.Brush(StyleElement.DeviationCrosshair) : Brushes.Transparent;
             }
             // Remove the tracks of aircraft no longer received from Aurora.
             foreach (string callsign in tracks.Keys.Where(c => !present.Contains(c)).ToList())
@@ -416,7 +418,7 @@ namespace AuroraPAR
         private const int NoisePixel = 2;
 
         /// <summary>
-        /// Primary video: receiver noise, sparse red specks inside the scan, new at every update of the traffic.
+        /// Primary video: receiver noise, sparse red specks beyond the antenna (side view: above the ground), new at every update of the traffic.
         /// </summary>
         private void UpdateNoise()
         {
@@ -448,7 +450,7 @@ namespace AuroraPAR
             {
                 int x = noiseRandom.Next(width);
                 int y = noiseRandom.Next(height);
-                // Screen to logical (the inverse of ToScreenX / ToScreenY), only inside the scan.
+                // Screen to logical (the inverse of ToScreenX / ToScreenY), only where noise can be.
                 double sx = (x + 0.5) * NoisePixel;
                 double sy = (y + 0.5) * NoisePixel;
                 double lx = (RunwayOnRight ? Canvas.ActualWidth - sx : sx) - XShift;
@@ -1062,6 +1064,7 @@ namespace AuroraPAR
                 e.Handled = true;
                 if (e.ClickCount == 2)
                 {
+                    CancelLabelClick();
                     track.Moved = false;
                     PositionLabel(track);
                     return;
@@ -1084,8 +1087,8 @@ namespace AuroraPAR
                 if (track.Label.IsMouseCaptured) track.Label.ReleaseMouseCapture();
                 dragging = null;
                 e.Handled = true;
-                // A click without dragging selects the aircraft (deviation crosshair).
-                if (clicked) TrackClicked?.Invoke(track.Callsign);
+                // A click without dragging selects the aircraft (deviation crosshair), unless it becomes a double click.
+                if (clicked) QueueLabelClick(track.Callsign);
             };
             track.Label.MouseRightButtonUp += (s, e) =>
             {
@@ -1172,17 +1175,65 @@ namespace AuroraPAR
         /// <summary>Maximum distance in pixels between a right click and a track for the click to apply to it.</summary>
         private const double TrackClickDistance = 20;
 
-        /// <summary>
-        /// Right click on the view: with a single track nearby its label is hidden or shown at once; with several
-        /// tracks nearby (close formation) or with labels hidden elsewhere, a menu lists them by callsign.
-        /// </summary>
         /// <summary>Called with the callsign of a track clicked (on its symbol, near it or on its label without dragging).</summary>
         public Action<string>? TrackClicked { get; set; }
 
+        /// <summary>Where the left button went down on the view itself (not on a label), for a click near a track.</summary>
+        private Point? canvasDown;
+
+        /// <summary>
+        /// A single click on a label, sent after the double-click time (a double click brings the label back to its
+        /// place and does not select).
+        /// </summary>
+        private System.Windows.Threading.DispatcherTimer? labelClickTimer;
+        private string? labelClickCallsign;
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetDoubleClickTime();
+        /// <summary>Double-click time of Windows (500 ms if it cannot be read).</summary>
+        private static double DoubleClickMs
+        {
+            get
+            {
+                try { return Math.Clamp(GetDoubleClickTime(), 200, 900); }
+                catch (Exception) { return 500; }
+            }
+        }
+
+        private void QueueLabelClick(string callsign)
+        {
+            labelClickCallsign = callsign;
+            if (labelClickTimer == null)
+            {
+                labelClickTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(DoubleClickMs) };
+                labelClickTimer.Tick += (s, e) =>
+                {
+                    labelClickTimer.Stop();
+                    if (labelClickCallsign != null) TrackClicked?.Invoke(labelClickCallsign);
+                    labelClickCallsign = null;
+                };
+            }
+            labelClickTimer.Stop();
+            labelClickTimer.Start();
+        }
+
+        private void CancelLabelClick()
+        {
+            labelClickTimer?.Stop();
+            labelClickCallsign = null;
+        }
+
+        private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            canvasDown = e.ClickCount == 1 ? e.GetPosition(Canvas) : null;
+        }
+
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (Options.Analog || TrackClicked == null) return;
+            Point? down = canvasDown;
+            canvasDown = null;
+            if (Options.Analog || TrackClicked == null || down is not Point start) return;
             Point click = e.GetPosition(Canvas);
+            if ((click - start).Length > 4) return;
             Track? nearest = tracks.Values
                 .Where(t => t.Symbol.Visibility == Visibility.Visible && (t.Position - click).Length <= TrackClickDistance)
                 .OrderBy(t => (t.Position - click).Length)
@@ -1192,6 +1243,10 @@ namespace AuroraPAR
             TrackClicked(nearest.Callsign);
         }
 
+        /// <summary>
+        /// Right click on the view: with a single track nearby its label is hidden or shown at once; with several
+        /// tracks nearby (close formation) or with labels hidden elsewhere, a menu lists them by callsign.
+        /// </summary>
         private void Canvas_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (Options.Analog) return;

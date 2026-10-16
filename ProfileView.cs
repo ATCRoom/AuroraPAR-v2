@@ -214,6 +214,8 @@ namespace AuroraPAR
             double beamUpper = Radar.ElevationUpper;
             double beamLower = Radar.ElevationLower;
             // Angular scale: no altitude lines (a scale in degrees on the side, and the fixed height lines).
+            // Terrain first: everything else (altitude lines, scan limits, glide path...) is drawn over it.
+            DrawTerrain();
             if (!Angular && (Options.ShowAltitudeLines || (Compressed && Options.ShowAltitudeScale))) DrawAltitudeLines(end, upper, lower);
             DrawFixedHeights(end, upper, lower);
             // Ground beyond the threshold.
@@ -249,7 +251,6 @@ namespace AuroraPAR
                 }
             }
             AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), H - Options.AntennaSymbol.Size / 2, Brush(StyleElement.Antenna));
-            DrawTerrain();
             // Glide path and its approach limits, all starting at the touchdown point.
             AddGlidePathLine(0, StyleElement.GlidePath);
             if (Options.LineEndCircles)
@@ -483,7 +484,7 @@ namespace AuroraPAR
             {
                 foreach ((double a, double b, double height, _) in steps)
                 {
-                    AddPolygon(Edge(a, b, height, true).Concat(Edge(a, b, 0, false)), StyleElement.Terrain);
+                    AddPolygon(Edge(a, b, height, true).Concat(Edge(a, b, 0, false)), StyleElement.Terrain, 0.7);
                 }
                 return;
             }
