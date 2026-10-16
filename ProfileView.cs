@@ -23,11 +23,11 @@ namespace AuroraPAR
 
         /// <summary>
         /// Deviation crosshair (option) of <paramref name="aircraft"/>, at the top on the runway side, beside the
-        /// information area (<paramref name="inset"/>: its width from the edge, pixels); null hides it.
+        /// information area (<paramref name="inset"/>: its width from the edge, pixels); with no aircraft the empty cross.
         /// </summary>
         public void SetCrosshair(Aircraft? aircraft, double inset = 0)
         {
-            if (aircraft == null || !Options.DeviationCrosshair || Options.Analog || Options.Theme.IsHidden(StyleElement.DeviationCrosshair)
+            if (!Options.DeviationCrosshair || Options.Analog || Options.Theme.IsHidden(StyleElement.DeviationCrosshair)
                 || Canvas.ActualWidth < 300 || Canvas.ActualHeight < 220)
             {
                 if (crosshair != null) crosshair.Visibility = Visibility.Collapsed;
@@ -39,17 +39,17 @@ namespace AuroraPAR
                 Panel.SetZIndex(crosshair, 13);
                 Canvas.Children.Add(crosshair);
             }
-            double distance = aircraft.DistanceFromTouchdown(Runway);
             crosshair.Stroke = Options.Theme.Brush(StyleElement.DeviationCrosshair);
             crosshair.Thickness = Options.Theme.Width(StyleElement.DeviationCrosshair);
             crosshair.DotBrush = Options.Theme.Brush(StyleElement.TrackInside);
             crosshair.TextBrush = Options.Theme.Brush(StyleElement.LabelText);
             crosshair.FontSize = Options.RangeMarks.TextSize;
             crosshair.Metres = Options.ScaleInMetres;
-            crosshair.VerticalFt = aircraft.Altitude - Runway.Elevation - Runway.GlidePathHeight(distance);
-            crosshair.LateralFt = aircraft.LateralOffset(Runway) * Runway.FeetPerNM;
+            // No aircraft: the empty cross (the option is on), no dot and no callsign.
+            crosshair.VerticalFt = aircraft == null ? double.NaN : aircraft.Altitude - Runway.Elevation - Runway.GlidePathHeight(aircraft.DistanceFromTouchdown(Runway));
+            crosshair.LateralFt = aircraft == null ? double.NaN : aircraft.LateralOffset(Runway) * Runway.FeetPerNM;
             // Primary video: no identity.
-            crosshair.Title = Options.PrimaryVideo ? "" : aircraft.Callsign;
+            crosshair.Title = Options.PrimaryVideo || aircraft == null ? "" : aircraft.Callsign;
             double fromEdge = Math.Max(LeftMargin, inset);
             Canvas.SetLeft(crosshair, RunwayOnRight ? Canvas.ActualWidth - crosshair.Width - fromEdge : fromEdge);
             Canvas.SetTop(crosshair, 4);
