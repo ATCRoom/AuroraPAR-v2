@@ -670,7 +670,7 @@ namespace AuroraPAR
         {
             if (clutterFor.Runway != Runway || clutterFor.Level != Options.GroundClutter)
             {
-                clutterSpecks = GroundClutter.Build(Runway, Options.GroundClutter, Runway.ClutterZones);
+                clutterSpecks = GroundClutter.Build(Runway, Options.GroundClutter);
                 clutterFor = (Runway, Options.GroundClutter);
             }
             double antennaAlong = Radar.AntennaFromRunwayEnd(Runway) - Runway.LengthNM;

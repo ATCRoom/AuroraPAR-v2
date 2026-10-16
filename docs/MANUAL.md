@@ -652,16 +652,9 @@ LIRN;24;9.4-11.1=3310;11.1-13.8=3910;13.8-19.0=5200
 
 How it is drawn is chosen per profile in *Settings → Approach and DH → Terrain / obstacles*: a **stepped line** with the value written on each step (minimum altitudes of the segments, OCA; altitude with QNH, height with QFE, in ft or m; default), **filled** from the ground up to each altitude (terrain, as on the ARTMACS display; ARTMACS-style), or **not drawn**. Modern display only (never on the analog scope). Colour in *Colours and lines → Terrain / obstacles*. With the LOG or the angular scale the steps follow the scale (the tops become curves). The data come from the person who prepared the runway (charts, an elevation profile): simulation only, not real terrain data. The package has an example for LIRN 24 (minimum altitudes of the ILS chart).
 
-#### Ground clutter: `clutter.par`
+#### Ground clutter
 
-*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground, buildings and hills, close to the radar as on a real PAR after the MTI (invented clutter: mostly within the first mile from the threshold, never beyond 2 NM, low on the ground and always well under the glide path), with a little flicker, in both views, only inside the scan limits. On the analog scope the beam paints them like the rain clutter (they light up when the beam passes, then fade, in the phosphor colour: there the *Ground clutter* colour is not used, only its *Show*; the antenna scan effect must be on). They are always the same for a runway: invented once from its name, or taken from **clutter.par** next to runways.par, one line per runway:
-
-```
-ICAO;RUNWAY;FROM-TO:LATERAL:STRENGTH[:TOP];...
-LIRN;24;1-1.5:R200-R500:3;2.2-3:L800-L300:2:600
-```
-
-**FROM-TO** in NM from the threshold, **LATERAL** in metres with L / R (left / right as seen landing; `L300-R300` across the centreline), **STRENGTH** 1 (light) to 3 (strong), **TOP** the top of the echoes in ft above the threshold (default 150 / 300 / 500 by strength). A runway in clutter.par gets only its zones. Key **M**: MTI filter on (default: the clutter weaker, as what is left on a real radar) / off (full). Colour: *Colours and lines → Ground clutter* (with *Show* per mode). The picture changes once a second (a look of the radar). FROM may be negative (between the antenna and the threshold): `-0.5-0.3`. Profiles with clutter: PAR2080 strong, ARTMACS-style (PRIMARY ONLY) and AN-APN-22 medium. Simulation only: not real data.
+*Settings → Approach and DH → Ground clutter* (Off by default; Light, Medium, Strong): fixed echoes of the ground and buildings close to the radar, as left on a real PAR after the MTI: mostly within the first mile from the threshold, never beyond 2 NM, low on the ground and always well under the glide path, with a little flicker, in both views and only inside the scan limits. They are invented from the runway name, so a runway always has the same ones (eye candy, not real data). On the analog scope the beam paints them like the rain clutter (they light up when the beam passes, then fade, in the phosphor colour: there the *Ground clutter* colour is not used, only its *Show*; the antenna scan effect must be on). The picture changes once a second (a look of the radar). Key **M**: MTI filter on (default: the clutter weaker) / off (full). Colour: *Colours and lines → Ground clutter* (with *Show* per mode). Profiles with clutter: PAR2080 strong, ARTMACS-style (PRIMARY ONLY) and AN-APN-22 medium.
 
 ### 12.4 CRSCalculator: runway heading and magnetic variation
 
