@@ -362,7 +362,7 @@ namespace AuroraPAR
         /// <summary>
         /// Lines that can be hidden (in each mode): all the lines but the range marks, which have their own table.
         /// </summary>
-        public static bool CanHide(StyleElement element) => IsLine(element)
+        public static bool CanHide(StyleElement element) => (IsLine(element) || element == StyleElement.GroundClutter)
             && element is not (StyleElement.MarkFive or StyleElement.MarkTwo or StyleElement.MarkOne or StyleElement.MarkHalf or StyleElement.MarkQuarter);
 
         public static string Name(StyleElement element) => element switch

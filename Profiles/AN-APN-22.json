@@ -148,6 +148,5 @@
       }
     }
   },
-  "LineEndCircles": true,
-  "GroundClutter": "Medium"
+  "LineEndCircles": true
 }

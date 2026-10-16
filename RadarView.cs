@@ -387,6 +387,7 @@ namespace AuroraPAR
                 CalculateScale();
                 DrawStatic();
                 staticValid = true;
+                staticVersion++;
             }
             HashSet<string> present = [];
             foreach (Aircraft aircraft in aircrafts)
@@ -421,6 +422,11 @@ namespace AuroraPAR
         /// <summary>Screen pixels per pixel of the noise picture.</summary>
         private const int NoisePixel = 2;
 
+        private (bool, GroundClutterLevel, bool, Runway?, Theme?, double, double, bool, double, int) videoState;
+        private double videoTime;
+        /// <summary>Counts the rebuilds of the static picture (scale, range, scan limits changed): the video layer follows.</summary>
+        private int staticVersion;
+
         /// <summary>Ground clutter of the runway in use (see <see cref="GroundClutter"/>), built again when the runway or the level changes.</summary>
         private List<ClutterSpeck> clutterSpecks = [];
         private (Runway? Runway, GroundClutterLevel Level) clutterFor;
@@ -433,12 +439,21 @@ namespace AuroraPAR
         private void UpdateNoise()
         {
             bool noise = Options.PrimaryVideo && !Options.Analog;
-            bool clutter = Options.GroundClutter != GroundClutterLevel.Off && !Options.Theme.IsHidden(StyleElement.GroundClutter);
+            // Analog scope: not yet (the beam would have to paint it, as the rain clutter of ClutterLayer).
+            bool clutter = Options.GroundClutter != GroundClutterLevel.Off && !Options.Analog && !Options.Theme.IsHidden(StyleElement.GroundClutter);
             if ((!noise && !clutter) || Canvas.ActualWidth <= 0 || Canvas.ActualHeight <= 0)
             {
                 if (noiseImage != null) noiseImage.Visibility = Visibility.Collapsed;
+                videoState = default;
                 return;
             }
+            // New picture once a second (a look of the radar), or at once when something it depends on changed;
+            // between them the same picture (no shimmering at the refresh rate of the screen).
+            var state = (noise, Options.GroundClutter, Options.Mti, Runway, Options.Theme, Canvas.ActualWidth, Canvas.ActualHeight, RunwayOnRight, XShift, staticVersion);
+            double now = Environment.TickCount64 / 1000.0;
+            if (state.Equals(videoState) && now - videoTime < 1) return;
+            videoState = state;
+            videoTime = now;
             int width = Math.Max(1, (int)(Canvas.ActualWidth / NoisePixel));
             int height = Math.Max(1, (int)(Canvas.ActualHeight / NoisePixel));
             if (noiseImage == null)
@@ -491,8 +506,15 @@ namespace AuroraPAR
             }
             Color color = Options.Theme.Brush(StyleElement.GroundClutter) is SolidColorBrush brush ? brush.Color : Colors.Olive;
             double strength = (color.A / 255.0) * (Options.Mti ? 0.35 : 1);
+            double antennaAlong = Radar.AntennaFromRunwayEnd(Runway) - Runway.LengthNM;
             foreach (ClutterSpeck speck in clutterSpecks)
             {
+                // Only what the antenna sees: inside the scan limits in azimuth and in elevation.
+                double fromAntenna = speck.AlongNM - antennaAlong;
+                if (fromAntenna <= 0) continue;
+                double azimuth = Math.Atan2(speck.LateralNM - Radar.AntennaOffsetNM, fromAntenna) * 180 / Math.PI;
+                double elevation = Math.Atan2(speck.HeightFt / Runway.FeetPerNM, fromAntenna) * 180 / Math.PI;
+                if (azimuth < -Radar.ScanLeft || azimuth > Radar.ScanRight || elevation > Radar.ScanUp || elevation < Radar.ScanDown) continue;
                 // A little flicker: not every speck at every look, and not always as bright.
                 if (noiseRandom.NextDouble() < 0.15) continue;
                 Point logical = WorldToLogical(speck.AlongNM, IsElevation ? speck.HeightFt : speck.LateralNM);

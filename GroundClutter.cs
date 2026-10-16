@@ -56,7 +56,7 @@ namespace AuroraPAR
                         specks.Add(new ClutterSpeck(along, lateral, height, strength * (0.5 + 0.5 * random.NextDouble())));
                     }
                 }
-                return specks;
+                return Capped(specks, random);
             }
             // Invented: patches of echoes, many near the antenna (middle of the runway), fewer and weaker farther out.
             double antennaAlong = -runway.LengthNM / 2;
@@ -81,7 +81,17 @@ namespace AuroraPAR
                     specks.Add(new ClutterSpeck(a, l, height, weight * (0.4 + 0.6 * random.NextDouble())));
                 }
             }
-            return specks;
+            return Capped(specks, random);
+        }
+
+        /// <summary>At most <see cref="MaxSpecks"/> (a random part of them), so a big clutter.par stays light to draw.</summary>
+        private const int MaxSpecks = 8000;
+
+        private static List<ClutterSpeck> Capped(List<ClutterSpeck> specks, Random random)
+        {
+            if (specks.Count <= MaxSpecks) return specks;
+            double keep = (double)MaxSpecks / specks.Count;
+            return specks.Where(_ => random.NextDouble() < keep).ToList();
         }
 
         private static (double, double) Gaussian(Random random)
@@ -141,7 +151,9 @@ namespace AuroraPAR
             {
                 string[] parts = raw.Split(':', StringSplitOptions.TrimEntries);
                 if (parts.Length is < 3 or > 4) { error = $"\"{raw}\": write FROM-TO:LATERAL:STRENGTH, e.g. 1-1.5:R200-R500:3"; return false; }
-                string[] along = parts[0].Split('-', StringSplitOptions.TrimEntries);
+                // FROM may be negative (towards the antenna): the separator is the first '-' after the first character.
+                int dash = parts[0].IndexOf('-', 1);
+                string[] along = dash < 0 ? [parts[0]] : [parts[0][..dash].Trim(), parts[0][(dash + 1)..].Trim()];
                 string[] lateral = parts[1].Split('-', StringSplitOptions.TrimEntries);
                 if (along.Length != 2 || !Number(along[0], out double from) || !Number(along[1], out double to) || from < -2 || to <= from || to > 40)
                 {

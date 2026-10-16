@@ -276,9 +276,6 @@
       "DeviationCrosshair": {
         "Color": "#E00000",
         "Width": 1
-      },
-      "GroundClutter": {
-        "Color": "#E00000"
       }
     }
   },
