@@ -39,6 +39,10 @@ Ready profiles made from pictures of real displays: the user sends pictures / li
 
 Last updates, newest first. When an item works in the test, delete it.
 
+- **(16 Oct) Phase 1 of the plan** (checklist group "fase 1"): *Reload bundled...* button (profile bar); distance text *Two decimals* (AN-TPN-31); labels *Numbers only* (ARTMACS-style); label editor sample in the unit / text style of the profile; km also on the analog range knob / keys / FIAR panel / RANGE readout and in the reminders (shown and typed in km, kept in NM); *Small circle at the far end of the glide path and of the centreline* (AN-APN-22); track smoothing Off / On (Strong removed → On); DH selector already advanced (manual list updated).
+
+- **Plan agreed 16 Oct (next phases):** 2 terrain.par; 3 deviation crosshair + primary red view; 4 weather cells (style 1 only, with ARTMACS-style) + ground clutter phase 1; 5 coordination dual relay + WebSocket; 6 log height scale (ARTMACS). Review agent before the builds of 3, 4, 5.
+
 
 
 
