@@ -24,7 +24,8 @@
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <TextBlock Text="Distance text:" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <RadioButton Name="DecimalRadio" GroupName="DistanceText" Content="Decimal (1.25NM)" Margin="0,0,16,0" VerticalAlignment="Center"/>
-                        <RadioButton Name="FractionsRadio" GroupName="DistanceText" Content="Fractions (1 1/4NM)" Margin="0,0,24,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="FractionsRadio" GroupName="DistanceText" Content="Fractions (1 1/4NM)" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <RadioButton Name="TwoDecimalsRadio" GroupName="DistanceText" Content="Two decimals (1.00NM)" Margin="0,0,24,0" VerticalAlignment="Center"/>
                         <TextBlock Text="Text size:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <ComboBox Name="TextSizeComboBox" Width="70" Height="22" VerticalAlignment="Center"/>
                     </StackPanel>

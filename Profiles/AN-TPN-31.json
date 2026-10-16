@@ -65,7 +65,7 @@
     "TextInMarkColour": true,
     "MarkAtZero": false,
     "TextSize": 11,
-    "TextFormat": "Decimal",
+    "TextFormat": "TwoDecimals",
     "Rows": [
       {
         "Range": 5,

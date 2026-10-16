@@ -411,6 +411,14 @@ namespace AuroraPAR
         public static implicit operator Distance(double distance) => new Distance(distance);
         /// <summary>The range list writes the ranges in km (rounded), as the distance unit of the profile.</summary>
         public static bool Kilometres { get; set; }
+        /// <summary>Unit of the range keys and readouts: KM or NM.</summary>
+        public static string UnitText => Kilometres ? "KM" : "NM";
+        /// <summary>A range (NM) as written on the range keys and readouts, in the unit of the profile (9.3, 19, 37 km).</summary>
+        public static string ValueText(double nm)
+        {
+            double value = Kilometres ? nm * DistanceUnits.KilometresPerNM : nm;
+            return value.ToString(Kilometres && value >= 10 ? "0" : "0.#", System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         public override string ToString()
         {

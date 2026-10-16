@@ -53,6 +53,7 @@ namespace AuroraPAR
         private readonly Readout tiltAzimuth = new(Cells);
         private readonly TextBlock pressureLabel = Label("QNH");
         private readonly TextBlock minimumLabel = Label("DA FT");
+        private readonly TextBlock rangeLabel = Label("RANGE NM");
         private readonly Lamp statusLamp = new();
         private readonly Lamp refreshLamp = new();
         private readonly Lamp tiltLamp = new();
@@ -86,7 +87,7 @@ namespace AuroraPAR
             stack.Children.Add(Row(Label("MAPt DIST"), missedApproach, "Missed approach point: distance in NM from the touchdown point where the glide path reaches the decision height (DH / OCH set with the DH knob). Compare it with the approach chart (MAPt / RPI DIST) to check runways.par; it is the distance for \"approach terminating at ...\"."));
             stack.Children.Add(Row(minimumLabel, minimum, "Minimum: altitude with QNH, height with QFE (set with the DH knob)."));
             stack.Children.Add(Row(pressureLabel, pressure, "Pressure setting: QNH, or QFE computed for the threshold elevation."));
-            stack.Children.Add(Row(Label("RANGE NM"), range, "Displayed range."));
+            stack.Children.Add(Row(rangeLabel, range, "Displayed range."));
             stack.Children.Add(Row(Label("EL TILT"), tiltElevation, "Antenna elevation tilt in degrees (U up, D down)."));
             stack.Children.Add(Row(Label("AZ TILT"), tiltAzimuth, "Antenna azimuth tilt in degrees (L left, R right): as seen by the pilot, or as seen from the runway when swapped in Settings."));
             stack.Children.Add(new Border
@@ -167,7 +168,8 @@ namespace AuroraPAR
             finalCourse.Text = data.FinalCourse;
             glideSlope.Text = Runway.FormatGlideSlope(data.GlideSlope);
             missedApproach.Text = data.MissedApproach;
-            range.Text = data.Range.ToString("0.#", CultureInfo.InvariantCulture);
+            rangeLabel.Text = "RANGE " + Distance.UnitText;
+            range.Text = Distance.ValueText(data.Range);
             tiltElevation.Text = Tilt(data.TiltElevation, "U", "D");
             tiltAzimuth.Text = Tilt(data.AzimuthSwapped ? -data.TiltAzimuth : data.TiltAzimuth, "R", "L");
             statusLamp.State = data.Connected ? LampState.Green : LampState.Red;

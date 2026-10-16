@@ -63,6 +63,7 @@ namespace AuroraPAR
             DeleteButton.Click += (s, e) => DeleteProfile();
             ImportButton.Click += (s, e) => ImportProfile();
             ExportButton.Click += (s, e) => ExportProfile();
+            ReloadBundledButton.Click += (s, e) => ReloadBundledProfiles();
             ModernRadio.Checked += (s, e) => SetProfileValue(p => p.DisplayMode == DisplayMode.Modern, p => p.DisplayMode = DisplayMode.Modern);
             AnalogRadio.Checked += (s, e) => SetProfileValue(p => p.DisplayMode == DisplayMode.Analog, p => p.DisplayMode = DisplayMode.Analog);
             RangeMilesCheck.Checked += (s, e) => SetProfileValue(p => p.RangeDefaultMiles, p => p.RangeDefaultMiles = true);
@@ -187,11 +188,11 @@ namespace AuroraPAR
                 SetProfileValue(p => p.ScanEffectSpeed == speed, p => p.ScanEffectSpeed = speed);
             };
             BuildAnalogControlFields();
-            SmoothingComboBox.ItemsSource = Enum.GetValues<TrackSmoothing>().Select(s => s.ToString()).ToList();
+            SmoothingComboBox.ItemsSource = new List<string> { "Off", "On" };
             SmoothingComboBox.SelectionChanged += (s, e) =>
             {
                 if (refreshing || SmoothingComboBox.SelectedIndex < 0) return;
-                TrackSmoothing smoothing = Enum.GetValues<TrackSmoothing>()[SmoothingComboBox.SelectedIndex];
+                TrackSmoothing smoothing = SmoothingComboBox.SelectedIndex == 0 ? TrackSmoothing.Off : TrackSmoothing.Light;
                 SetProfileValue(p => p.TrackSmoothing == smoothing, p => p.TrackSmoothing = smoothing);
             };
             BuildRadarFields();
@@ -242,7 +243,9 @@ namespace AuroraPAR
             DistanceKmRadio.Checked += (s, e) => SetProfileValue(p => p.DistanceUnit == DistanceUnit.Kilometres, p => p.DistanceUnit = DistanceUnit.Kilometres);
             FapLineCheck.Checked += (s, e) => SetProfileValue(p => p.ShowFapLine, p => p.ShowFapLine = true);
             FapLineCheck.Unchecked += (s, e) => SetProfileValue(p => !p.ShowFapLine, p => p.ShowFapLine = false);
-            CompactLabelsCheck.Checked += (s, e) => SetProfileValue(p => p.CompactLabels, p => p.CompactLabels = true);
+            CompactLabelsCheck.Checked += (s, e) => SetProfileValue(p => p.CompactLabels && !p.NumbersOnlyLabels, p => { p.CompactLabels = true; p.NumbersOnlyLabels = false; });
+            NumbersOnlyLabelsCheck.Checked += (s, e) => SetProfileValue(p => p.NumbersOnlyLabels && !p.CompactLabels, p => { p.NumbersOnlyLabels = true; p.CompactLabels = false; });
+            NumbersOnlyLabelsCheck.Unchecked += (s, e) => SetProfileValue(p => !p.NumbersOnlyLabels, p => p.NumbersOnlyLabels = false);
             CompactLabelsCheck.Unchecked += (s, e) => SetProfileValue(p => !p.CompactLabels, p => p.CompactLabels = false);
             FixedHeightsBox.LostFocus += (s, e) => ApplyFixedHeights();
             FixedHeightsBox.KeyDown += (s, e) =>
@@ -390,6 +393,7 @@ namespace AuroraPAR
                 DistanceNmRadio.IsChecked = Active.DistanceUnit == DistanceUnit.NauticalMiles;
                 DistanceKmRadio.IsChecked = Active.DistanceUnit == DistanceUnit.Kilometres;
                 CompactLabelsCheck.IsChecked = Active.CompactLabels;
+                NumbersOnlyLabelsCheck.IsChecked = Active.NumbersOnlyLabels;
                 FapLineCheck.IsChecked = Active.ShowFapLine;
                 bool metres = Active.AltitudeScaleUnit == LengthUnit.Metres;
                 FixedHeightsUnit.Text = metres ? "m" : "ft";
@@ -402,7 +406,7 @@ namespace AuroraPAR
                 ScaleFeetRadio.IsChecked = Active.AltitudeScaleUnit == LengthUnit.Feet;
                 ScaleMetresRadio.IsChecked = Active.AltitudeScaleUnit == LengthUnit.Metres;
                 HistoryCheck.IsChecked = Active.HistoryEnabled;
-                SmoothingComboBox.SelectedIndex = Array.IndexOf(Enum.GetValues<TrackSmoothing>(), Active.TrackSmoothing);
+                SmoothingComboBox.SelectedIndex = Active.TrackSmoothing == TrackSmoothing.Off ? 0 : 1;
                 ScanEffectCheck.IsChecked = Active.ScanEffect;
                 ScanEffectSpeedComboBox.SelectedIndex = Array.IndexOf(Enum.GetValues<ScanEffectSpeed>(), Active.ScanEffectSpeed);
                 HistoryDotsBox.Text = Active.HistoryDots.ToString(CultureInfo.InvariantCulture);
@@ -502,6 +506,47 @@ namespace AuroraPAR
             {
                 MessageBox.Show(this, $"Cannot import the profile:\n{ex.Message}", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        /// <summary>
+        /// The profiles that come with the program again: same name (any case) = replaced in place, the others added.
+        /// The user's own profiles and all the other settings stay as they are; the active profile keeps its name.
+        /// </summary>
+        private void ReloadBundledProfiles()
+        {
+            List<Profile> bundled = SettingsStore.ReadBundledProfiles();
+            if (bundled.Count == 0)
+            {
+                MessageBox.Show(this, $"No profiles found in {SettingsStore.BundledProfilesPath}.", "Aurora PAR", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            List<string> replaced = [];
+            List<string> added = [];
+            foreach (Profile profile in bundled)
+            {
+                (settings.Profiles.Any(p => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase)) ? replaced : added).Add(profile.Name);
+            }
+            string text = "Reload the profiles that come with the program?\n\n";
+            if (replaced.Count > 0) text += "Replaced (your changes to them are lost):\n  " + string.Join("\n  ", replaced) + "\n\n";
+            if (added.Count > 0) text += "Added:\n  " + string.Join("\n  ", added) + "\n\n";
+            text += "Your other profiles and all the other settings are not changed.";
+            if (MessageBox.Show(this, text, "Reload bundled profiles", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+            string activeName = settings.ActiveProfile;
+            foreach (Profile profile in bundled)
+            {
+                int index = settings.Profiles.FindIndex(p => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase));
+                if (index >= 0)
+                {
+                    if (string.Equals(settings.Profiles[index].Name, activeName, StringComparison.OrdinalIgnoreCase)) activeName = profile.Name;
+                    settings.Profiles[index] = profile;
+                }
+                else
+                {
+                    settings.Profiles.Add(profile);
+                }
+            }
+            settings.ActiveProfile = activeName;
+            Commit();
         }
 
         private void ExportProfile()
@@ -741,6 +786,8 @@ namespace AuroraPAR
             builderAdvanced = false;
             AddCheckRow("Threshold as a tick like the DH (instead of its symbol): side view from the ground up by the length of the vertical DH line, azimuth view by the length of the DH azimuth line; style of the DH lines",
                 p => p.ThresholdTick, (p, v) => p.ThresholdTick = v);
+            AddCheckRow("Small circle at the far end of the glide path and of the centreline (as on the AN/APN-22)",
+                p => p.LineEndCircles, (p, v) => p.LineEndCircles = v);
         }
 
         private void AddSymbolRow(string label, Func<Profile, SymbolSetting> get, SymbolShape[] shapes)

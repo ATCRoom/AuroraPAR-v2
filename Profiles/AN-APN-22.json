@@ -147,5 +147,6 @@
         "HiddenAnalog": true
       }
     }
-  }
+  },
+  "LineEndCircles": true
 }

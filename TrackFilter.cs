@@ -4,7 +4,9 @@ namespace AuroraPAR
     internal enum TrackSmoothing
     {
         Off,
+        /// <summary>On (the name is kept for the saved profiles).</summary>
         Light,
+        /// <summary>No longer offered (16 Oct: little difference from Light); profiles with it get Light.</summary>
         Strong
     }
 

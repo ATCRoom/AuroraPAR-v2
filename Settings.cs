@@ -473,12 +473,16 @@ namespace AuroraPAR
         public const int MaxFixedHeightLines = 5;
         /// <summary>Label text without spaces, as on the PAR-E: D:4.45KM, A3M (above the glide path), R23M, ID:56.</summary>
         public bool CompactLabels { get; set; }
+        /// <summary>Label values as numbers only, without units, signed deviations (ARTMACS: 414 12.8 +53); wins over <see cref="CompactLabels"/>.</summary>
+        public bool NumbersOnlyLabels { get; set; }
         /// <summary>
         /// Threshold drawn as a tick like the DH ones (instead of its symbol), as on the PAR-E: in the side view from the
         /// ground up by the length of the DH vertical line, in the azimuth view across the centreline by the length of
         /// the DH azimuth line; style of the DH lines.
         /// </summary>
         public bool ThresholdTick { get; set; }
+        /// <summary>Small circle at the far end of the glide path (side view) and of the centreline (azimuth view), as on the AN/APN-22.</summary>
+        public bool LineEndCircles { get; set; }
         /// <summary>
         /// Line at the final approach altitude of the runway (FAP ALT in runways.par), written e.g. FAP600M where it
         /// starts, with the style of the fixed height lines; a runway without FAP ALT has none.
@@ -575,7 +579,7 @@ namespace AuroraPAR
             HistoryDots = Math.Clamp(HistoryDots, MinHistoryDots, MaxHistoryDots);
             HistoryInterval = double.IsNaN(HistoryInterval) ? 2 : Math.Clamp(HistoryInterval, MinHistoryInterval, MaxHistoryInterval);
             if (!Enum.IsDefined(ScanEffectSpeed)) ScanEffectSpeed = ScanEffectSpeed.Normal;
-            if (!Enum.IsDefined(TrackSmoothing)) TrackSmoothing = TrackSmoothing.Light;
+            if (!Enum.IsDefined(TrackSmoothing) || TrackSmoothing == TrackSmoothing.Strong) TrackSmoothing = TrackSmoothing.Light;
             if (!Enum.IsDefined(DisplayMode)) DisplayMode = DisplayMode.Modern;
             if (!Enum.IsDefined(RangeControl)) RangeControl = AnalogRangeControl.Knob;
             DisplayRanges = [.. Ranges.Of(DisplayRanges)];
@@ -955,6 +959,33 @@ namespace AuroraPAR
         /// Settings of a first start (no settings file yet): the profiles that come with the program (Profiles folder,
         /// in name order, the first one active), or the default profile when there are none.
         /// </summary>
+        /// <summary>The profiles that come with the program (damaged files skipped), normalized; empty if none.</summary>
+        public static List<Profile> ReadBundledProfiles()
+        {
+            List<Profile> profiles = [];
+            try
+            {
+                if (!Directory.Exists(BundledProfilesPath)) return profiles;
+                foreach (string file in Directory.GetFiles(BundledProfilesPath, "*.json").Order(StringComparer.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        Profile profile = ImportProfile(file);
+                        if (!profiles.Any(p => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase))) profiles.Add(profile);
+                    }
+                    catch (Exception)
+                    {
+                        // A damaged file: skipped.
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Folder not readable: nothing.
+            }
+            return profiles;
+        }
+
         private static AppSettings NewSettings()
         {
             AppSettings settings = new();

@@ -34,7 +34,9 @@ namespace AuroraPAR
 
         public string ToolTip()
         {
-            string distance = Distance.ToString("0.0#", CultureInfo.InvariantCulture) + " NM";
+            string distance = AuroraPAR.Distance.Kilometres
+                ? (Distance * DistanceUnits.KilometresPerNM).ToString("0.0#", CultureInfo.InvariantCulture) + " km"
+                : Distance.ToString("0.0#", CultureInfo.InvariantCulture) + " NM";
             return string.IsNullOrWhiteSpace(Note) ? distance : $"{distance} – {Note.Trim()}";
         }
 

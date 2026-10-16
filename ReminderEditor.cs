@@ -65,7 +65,7 @@ namespace AuroraPAR
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
             }
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            string[] headers = ["Distance NM", "Show", "Symbol", "Size", "Line", "Width", "Colour", "Note (optional)", ""];
+            string[] headers = [AuroraPAR.Distance.Kilometres ? "Distance km" : "Distance NM", "Show", "Symbol", "Size", "Line", "Width", "Colour", "Note (optional)", ""];
             for (int c = 0; c < headers.Length; c++)
             {
                 Add(new TextBlock { Text = headers[c], FontWeight = FontWeights.SemiBold, Foreground = Brushes.DimGray, Margin = new Thickness(0, 0, 0, 4) }, 0, c);
@@ -95,20 +95,25 @@ namespace AuroraPAR
                 changed();
             }
 
+            // Shown and typed in the distance unit of the profile; kept in NM.
+            double perNM = AuroraPAR.Distance.Kilometres ? DistanceUnits.KilometresPerNM : 1;
+            string shown = (reminder.Distance * perNM).ToString("0.0#", CultureInfo.InvariantCulture);
             TextBox distance = new()
             {
-                Text = reminder.Distance.ToString("0.0#", CultureInfo.InvariantCulture),
+                Text = shown,
                 Width = 60,
                 Height = 22,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 HorizontalContentAlignment = HorizontalAlignment.Right,
-                ToolTip = "Distance from the touchdown point, NM (Enter to apply)"
+                ToolTip = $"Distance from the touchdown point, {(perNM == 1 ? "NM" : "km")} (Enter to apply)"
             };
             void ApplyDistance()
             {
-                if (double.TryParse(distance.Text.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                    && value > 0 && value <= DistanceReminder.MaxDistance)
+                // Unchanged text: nothing (a value rounded for the display is not saved again).
+                if (distance.Text.Trim() == shown) { distance.ClearValue(TextBox.BackgroundProperty); return; }
+                if (double.TryParse(distance.Text.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double typed)
+                    && typed / perNM is double value && value > 0 && value <= DistanceReminder.MaxDistance)
                 {
                     distance.ClearValue(TextBox.BackgroundProperty);
                     if (value != reminder.Distance)

@@ -240,6 +240,12 @@ namespace AuroraPAR
             (double centreSplit, LineDash centreDash) = FinalSegmentOf(StyleElement.Centerline);
             AddLateralLine(0, Math.Min(centreSplit, displayEnd), _ => 0, StyleElement.Centerline, centreDash);
             AddLateralLine(Math.Min(centreSplit, displayEnd), displayEnd, _ => 0, StyleElement.Centerline);
+            if (Options.LineEndCircles)
+            {
+                double fromEnd = Runway.LengthNM - Runway.TouchdownNM;
+                double s = BackFromEnd(d => XAt(fromEnd + d), displayEnd, EndCircleSize / 2 + 1);
+                AddEndCircle(XAt(fromEnd + s), LateralY(fromEnd + s, 0), StyleElement.Centerline);
+            }
             (double limitSplit, LineDash limitDash) = FinalSegmentOf(StyleElement.ApproachLimits);
             // The approach limits may end before the end of the range (as on the PAR-E, at 10 km).
             double limitsEnd = Options.ApproachLimitsTo > 0 ? Math.Min(displayEnd, Options.ApproachLimitsTo) : displayEnd;

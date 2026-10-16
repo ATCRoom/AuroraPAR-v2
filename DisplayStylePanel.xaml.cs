@@ -51,6 +51,7 @@ namespace AuroraPAR
             BuildRangeMarks();
             DecimalRadio.IsChecked = Active.RangeMarks.TextFormat == DistanceTextFormat.Decimal;
             FractionsRadio.IsChecked = Active.RangeMarks.TextFormat == DistanceTextFormat.Fractions;
+            TwoDecimalsRadio.IsChecked = Active.RangeMarks.TextFormat == DistanceTextFormat.TwoDecimals;
             AllTextButton.Click += (s, e) =>
             {
                 int mode = AllTextCombo.SelectedIndex;
@@ -69,6 +70,7 @@ namespace AuroraPAR
             };
             DecimalRadio.Checked += (s, e) => SetTextFormat(DistanceTextFormat.Decimal);
             FractionsRadio.Checked += (s, e) => SetTextFormat(DistanceTextFormat.Fractions);
+            TwoDecimalsRadio.Checked += (s, e) => SetTextFormat(DistanceTextFormat.TwoDecimals);
             List<int> sizes = Enumerable.Range(RangeMarkSettings.MinTextSize, RangeMarkSettings.MaxTextSize - RangeMarkSettings.MinTextSize + 1).ToList();
             TextSizeComboBox.ItemsSource = sizes.Select(px => $"{px} px").ToList();
             TextSizeComboBox.SelectedIndex = Math.Max(0, sizes.IndexOf((int)Math.Round(Active.RangeMarks.TextSize)));

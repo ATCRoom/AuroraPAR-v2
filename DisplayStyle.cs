@@ -68,7 +68,9 @@ namespace AuroraPAR
         /// <summary>1.25NM</summary>
         Decimal,
         /// <summary>1 1/4NM</summary>
-        Fractions
+        Fractions,
+        /// <summary>Always two decimals: 1.00NM, 1.25NM (as on the AN/TPN-31).</summary>
+        TwoDecimals
     }
 
     /// <summary>How the range marks are drawn.</summary>
@@ -255,7 +257,7 @@ namespace AuroraPAR
                 string text = fraction.Length == 0 ? number : whole > 0 ? number + " " + fraction : fraction;
                 return text + unit;
             }
-            return distance.ToString("0.##", CultureInfo.InvariantCulture) + unit;
+            return distance.ToString(TextFormat == DistanceTextFormat.TwoDecimals ? "0.00" : "0.##", CultureInfo.InvariantCulture) + unit;
         }
     }
 

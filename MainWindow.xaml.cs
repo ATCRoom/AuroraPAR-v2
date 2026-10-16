@@ -412,7 +412,7 @@ namespace AuroraPAR
         private void BuildKnobs()
         {
             rangeKnob.Positions = Ranges.Values.Length;
-            rangeKnob.LabelFor = i => Ranges.Values[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+            rangeKnob.LabelFor = i => Distance.ValueText(Ranges.Values[i]);
             rangeKnob.Turned += steps =>
             {
                 DistanceComboBox.SelectedIndex = Math.Clamp(DistanceComboBox.SelectedIndex + steps, 0, DistanceComboBox.Items.Count - 1);
@@ -466,26 +466,25 @@ namespace AuroraPAR
         {
             Profile profile = settings.Active;
             string ranges = string.Join(",", Ranges.Values);
-            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.ShowCourseSelector}|{profile.BrightnessControl}|{profile.RainClutter}";
+            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.ShowCourseSelector}|{profile.BrightnessControl}|{profile.RainClutter}|{profile.DistanceUnit}";
             if (layout == analogControlsLayout) return;
             analogControlsLayout = layout;
             KnobPanel.Children.Clear();
             // The range knob may be inside a frame (FIAR keys): free it before it is placed again.
             if (rangeKnob.Parent is Panel knobParent) knobParent.Children.Remove(rangeKnob);
             analogKeys.Clear();
-            System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
             switch (profile.RangeControl)
             {
                 case AnalogRangeControl.RangeKeys:
-                    AddKeyGroup("RANGE NM", Ranges.Values.Select((value, i) => (
-                        value.ToString(invariant), $"Range {value.ToString(invariant)} NM",
+                    AddKeyGroup("RANGE " + Distance.UnitText, Ranges.Values.Select((value, i) => (
+                        Distance.ValueText(value), $"Range {Distance.ValueText(value)} {DistanceUnits.Name(profile.DistanceUnit)}",
                         (Action)(() => SetRangeIndex(i)), (Func<bool>?)(() => DistanceComboBox.SelectedIndex == i))).ToArray(), latching: true, scaleKeys: true);
                     break;
                 case AnalogRangeControl.PanelKeys:
                     AddRangePanel(profile);
                     break;
                 case AnalogRangeControl.StepKeys:
-                    AddKeyGroup("RANGE NM",
+                    AddKeyGroup("RANGE " + Distance.UnitText,
                     [
                         ("<", "Range down (smaller) (key Page down).", () => SetRangeIndex(DistanceComboBox.SelectedIndex - 1), null),
                         // FIAR style: always PREF (the preferred range is set in Settings).
@@ -709,7 +708,6 @@ namespace AuroraPAR
         /// </summary>
         private void AddRangePanel(Profile profile)
         {
-            System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
             StackPanel group = new() { Margin = new Thickness(0, 4, 0, 6) };
             TextBlock title = new() { Text = "RANGE", Style = (Style)FindResource("EngravedLabel"), HorizontalAlignment = HorizontalAlignment.Center };
             title.Foreground = PanelEngravingBrush;
@@ -719,11 +717,11 @@ namespace AuroraPAR
             for (int i = 0; i < Ranges.Values.Length; i++)
             {
                 int index = i;
-                string value = Ranges.Values[i].ToString(invariant);
+                string value = Distance.ValueText(Ranges.Values[i]);
                 Grid face = new();
                 StackPanel lines = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) };
                 lines.Children.Add(new TextBlock { Text = value, FontSize = value.Length > 2 ? 13 : 15, HorizontalAlignment = HorizontalAlignment.Center });
-                lines.Children.Add(new TextBlock { Text = "NM", FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, -3, 0, 0) });
+                lines.Children.Add(new TextBlock { Text = Distance.UnitText, FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, -3, 0, 0) });
                 face.Children.Add(lines);
                 if (i == preferred)
                 {
@@ -742,7 +740,7 @@ namespace AuroraPAR
                     Content = face,
                     HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     VerticalContentAlignment = VerticalAlignment.Stretch,
-                    ToolTip = $"Range {value} NM" + (i == preferred ? " (preferred range, Settings → Range and scale)." : ".") + " Keys Page up / Page down / End.",
+                    ToolTip = $"Range {value} {DistanceUnits.Name(profile.DistanceUnit)}" + (i == preferred ? " (preferred range, Settings → Range and scale)." : ".") + " Keys Page up / Page down / End.",
                     Style = (Style)FindResource("PanelKey"),
                     Width = PanelKeyWidth,
                     Height = PanelKeyHeight,
@@ -833,6 +831,7 @@ namespace AuroraPAR
             Ranges.Values = values;
             distances = values.Select(v => (Distance)v).ToArray();
             rangeKnob.Positions = values.Length;
+            rangeKnob.Title = "RANGE " + Distance.UnitText;
             rangeKnob.InvalidateVisual();
             DistanceComboBox.ItemsSource = distances;
             DistanceComboBox.SelectedIndex = IndexOfDistance(current);
@@ -1273,18 +1272,13 @@ namespace AuroraPAR
         }
 
         /// <summary>
-        /// Key S: track smoothing Off → Light → Strong → Off... for this session (to compare); the profile setting
+        /// Key S: track smoothing On / Off for this session (to compare); the profile setting
         /// is not changed and comes back at the next start or profile switch.
         /// </summary>
         private void ToggleSmoothing()
         {
-            sessionSmoothing = Smoothing switch
-            {
-                TrackSmoothing.Off => TrackSmoothing.Light,
-                TrackSmoothing.Light => TrackSmoothing.Strong,
-                _ => TrackSmoothing.Off
-            };
-            string text = $"TRACK SMOOTHING {Smoothing.ToString().ToUpperInvariant()}";
+            sessionSmoothing = Smoothing == TrackSmoothing.Off ? TrackSmoothing.Light : TrackSmoothing.Off;
+            string text = Smoothing == TrackSmoothing.Off ? "TRACK SMOOTHING OFF" : "TRACK SMOOTHING ON";
             ShowBanner(viewOptions.Analog ? text + " (MODERN DISPLAY ONLY)" : text);
             Redraw();
         }
@@ -2336,11 +2330,13 @@ namespace AuroraPAR
             viewOptions.DistanceKnee = profile.CompressedScale ? profile.CompressionKnee : 0;
             viewOptions.DistanceUnit = profile.DistanceUnit;
             viewOptions.CompactLabels = profile.CompactLabels;
+            viewOptions.NumbersOnlyLabels = profile.NumbersOnlyLabels;
             viewOptions.ApproachLimitsTo = profile.ApproachLimitsTo;
             viewOptions.AzimuthApproachLimits = profile.AzimuthApproachLimits;
             viewOptions.FixedHeights = profile.FixedHeightLines.ToArray();
             viewOptions.Angular = profile.AngularNow;
             viewOptions.ThresholdTick = profile.ThresholdTick;
+            viewOptions.LineEndCircles = profile.LineEndCircles;
             viewOptions.ShowFapLine = profile.ShowFapLine;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";

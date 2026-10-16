@@ -14,12 +14,43 @@ namespace AuroraPAR
         private readonly Action commit;
 
         /// <summary>
-        /// Example values shown in the preview.
+        /// Example values shown in the preview, in the distance unit and label text of the profile.
         /// </summary>
-        private static string Sample(LabelField field) => field switch
+        private string Sample(LabelField field)
+        {
+            bool km = Active.DistanceUnit == DistanceUnit.Kilometres;
+            if (Active.NumbersOnlyLabels)
+            {
+                return field switch
+                {
+                    LabelField.DistanceFromTouchdown => km ? "11.5" : "6.2",
+                    LabelField.Altitude => "2060",
+                    LabelField.GroundSpeed => "140",
+                    LabelField.VerticalSpeed => "-750",
+                    LabelField.GlidePathDeviation => "+85",
+                    LabelField.CenterlineDeviation => "+35",
+                    _ => NormalSample(field, km)
+                };
+            }
+            if (Active.CompactLabels)
+            {
+                return field switch
+                {
+                    LabelField.DistanceFromTouchdown => km ? "D:11.48KM" : "D:6.20NM",
+                    LabelField.Altitude => "A2060FT",
+                    LabelField.GlidePathDeviation => "A85FT",
+                    LabelField.CenterlineDeviation => "R35FT",
+                    LabelField.TrackId => "ID:42",
+                    _ => NormalSample(field, km)
+                };
+            }
+            return NormalSample(field, km);
+        }
+
+        private static string NormalSample(LabelField field, bool km) => field switch
         {
             LabelField.Callsign => "AZA123",
-            LabelField.DistanceFromTouchdown => "6.2 NM",
+            LabelField.DistanceFromTouchdown => km ? "11.48 km" : "6.2 NM",
             LabelField.Altitude => "A 2060 ft",
             LabelField.GroundSpeed => "140 Kts",
             LabelField.VerticalSpeed => "-750 ft/min",

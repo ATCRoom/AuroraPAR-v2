@@ -354,7 +354,43 @@ namespace AuroraPAR
         /// Text of a field for an aircraft. Heights, deviations and vertical speed in feet (ft, ft/min) or metres (m, m/s).
         /// </summary>
         public static string Format(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options) =>
-            options.CompactLabels ? FormatCompact(field, aircraft, runway, options) : FormatNormal(field, aircraft, runway, options);
+            options.NumbersOnlyLabels ? FormatNumbers(field, aircraft, runway, options)
+            : options.CompactLabels ? FormatCompact(field, aircraft, runway, options) : FormatNormal(field, aircraft, runway, options);
+
+        /// <summary>
+        /// Numbers only, as on the ARTMACS display: 12.8 (distance), 414 (ground speed), 1250 (altitude or height),
+        /// +53 / -20 (above / below the glide path), +75 / -40 (right / left of the centreline), -700 (vertical speed),
+        /// in the units of the profile; callsign, SSR code and track ID as usual.
+        /// </summary>
+        private static string FormatNumbers(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options)
+        {
+            bool metres = options.ScaleInMetres;
+            string Signed(double feet) => Number(metres ? feet * MetresPerFoot : feet, "+0;-0;0");
+            switch (field)
+            {
+                case LabelField.DistanceFromTouchdown:
+                    {
+                        double nm = aircraft.DistanceFromTouchdown(runway);
+                        return Number(options.DistanceUnit == DistanceUnit.Kilometres ? nm * DistanceUnits.KilometresPerNM : nm, "0.0");
+                    }
+                case LabelField.Altitude:
+                    {
+                        double feet = options.Qfe ? aircraft.Altitude - runway.Elevation : aircraft.Altitude;
+                        return Number(metres ? feet * MetresPerFoot : feet, "0");
+                    }
+                case LabelField.GroundSpeed:
+                    return Number(aircraft.Speed, "0");
+                case LabelField.VerticalSpeed:
+                    if (aircraft.VerticalSpeedFpm is not double fpm) return "";
+                    return metres ? Number(fpm * MetresPerFoot / 60, "+0.0;-0.0;0.0") : Number(Math.Round(fpm / 10) * 10, "+0;-0;0");
+                case LabelField.GlidePathDeviation:
+                    return Signed(aircraft.Altitude - runway.Elevation - runway.GlidePathHeight(aircraft.DistanceFromTouchdown(runway)));
+                case LabelField.CenterlineDeviation:
+                    return Signed(aircraft.LateralOffset(runway) * Runway.FeetPerNM);
+                default:
+                    return FormatNormal(field, aircraft, runway, options);
+            }
+        }
 
         private static string FormatNormal(LabelField field, Aircraft aircraft, Runway runway, ViewOptions options)
         {

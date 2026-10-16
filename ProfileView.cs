@@ -213,6 +213,12 @@ namespace AuroraPAR
             AddSymbol(Options.AntennaSymbol, XAt(AntennaNM), H - Options.AntennaSymbol.Size / 2, Brush(StyleElement.Antenna));
             // Glide path and its approach limits, all starting at the touchdown point.
             AddGlidePathLine(0, StyleElement.GlidePath);
+            if (Options.LineEndCircles)
+            {
+                double gpEnd = Runway.TouchdownNM + Runway.Distance;
+                double s = BackFromEnd(X, gpEnd, EndCircleSize / 2 + 1);
+                AddEndCircle(X(s), Y(s, Runway.GlidePathHeight(s, 0)), StyleElement.GlidePath);
+            }
             // The approach limits may end before the end of the range (as on the PAR-E, at 10 km).
             double limitsTo = Options.ApproachLimitsTo > 0 ? Options.ApproachLimitsTo : double.MaxValue;
             AddGlidePathLine(-Radar.ApproachBelow, StyleElement.ApproachLimits, limitsTo);

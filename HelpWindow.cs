@@ -40,7 +40,7 @@ namespace AuroraPAR
                 ("A", "Modern / analog display (unless locked in the profile)"),
                 ("P / Shift+P", "Next / previous profile"),
                 ("C", "Linear / log distance scale"),
-                ("S", "Track smoothing Off → Light → Strong (this session only)"),
+                ("S", "Track smoothing On / Off (this session only)"),
                 ("L", "Hide / show all labels")
             ]),
             ("Labels (modern display)", [

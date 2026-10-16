@@ -262,5 +262,6 @@
     }
   },
   "AltitudeLinesIn": "LogOnly",
-  "DistanceScaleLock": "LinOnly"
+  "DistanceScaleLock": "LinOnly",
+  "NumbersOnlyLabels": true
 }

@@ -82,6 +82,8 @@ namespace AuroraPAR
         public DistanceUnit DistanceUnit { get; set; } = DistanceUnit.NauticalMiles;
         /// <summary>Label text without spaces, as on the PAR-E (see <see cref="Profile.CompactLabels"/>).</summary>
         public bool CompactLabels { get; set; }
+        /// <summary>Label values as numbers only (see <see cref="Profile.NumbersOnlyLabels"/>).</summary>
+        public bool NumbersOnlyLabels { get; set; }
         /// <summary>Approach limit lines up to this distance from the touchdown (NM); 0 = to the end of the range.</summary>
         public double ApproachLimitsTo { get; set; }
         /// <summary>Approach limit lines in the azimuth view (see <see cref="Profile.AzimuthApproachLimits"/>).</summary>
@@ -95,6 +97,8 @@ namespace AuroraPAR
         public bool Angular { get; set; }
         /// <summary>Threshold drawn as a tick like the DH (see <see cref="Profile.ThresholdTick"/>).</summary>
         public bool ThresholdTick { get; set; }
+        /// <summary>Circle at the far end of the glide path and of the centreline (see <see cref="Profile.LineEndCircles"/>).</summary>
+        public bool LineEndCircles { get; set; }
         /// <summary>Line at the final approach altitude of the runway (see <see cref="Profile.ShowFapLine"/>).</summary>
         public bool ShowFapLine { get; set; }
     }
@@ -1611,6 +1615,33 @@ namespace AuroraPAR
         /// <summary>
         /// Adds a static symbol of the library centred on a logical point.
         /// </summary>
+        /// <summary>Diameter of the circle at the far end of the glide path / centreline, in pixels.</summary>
+        protected const double EndCircleSize = 8;
+
+        /// <summary>
+        /// Distance (same unit as <paramref name="end"/>) whose logical x is <paramref name="pixels"/> before the x of
+        /// <paramref name="end"/>: where a symbol at the end of a line stays whole inside the view.
+        /// </summary>
+        protected static double BackFromEnd(Func<double, double> xOf, double end, double pixels)
+        {
+            double xEnd = xOf(end);
+            double lo = 0, hi = end;
+            for (int i = 0; i < 40; i++)
+            {
+                double mid = (lo + hi) / 2;
+                if (Math.Abs(xEnd - xOf(mid)) > pixels) lo = mid; else hi = mid;
+            }
+            return hi;
+        }
+
+        /// <summary>Circle at the far end of a line (option <see cref="ViewOptions.LineEndCircles"/>), in the style of the line.</summary>
+        protected void AddEndCircle(double x, double y, StyleElement element)
+        {
+            if (!Options.LineEndCircles || Options.Theme.IsHidden(element)) return;
+            if (y < EndCircleSize / 2 || y > Canvas.ActualHeight - EndCircleSize / 2) return;
+            AddSymbol(new SymbolSetting { Shape = SymbolShape.Circle, Size = EndCircleSize }, x, y, Brush(element));
+        }
+
         protected void AddSymbol(SymbolSetting symbol, double x, double y, Brush brush)
         {
             if (symbol.Shape == SymbolShape.None) return;
