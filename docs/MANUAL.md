@@ -247,6 +247,7 @@ A label with no fields shows only the track symbol.
 | S | Track smoothing On / Off for this session, to compare (modern display; the setting of the profile is not changed and comes back at the next start or profile switch) |
 | V | Primary video / normal video (modern display, this session): everything red, no labels, receiver noise (specks) beyond the antenna, as the primary picture of ARTMACS |
 | X | Deviation crosshair on / off (modern display; saved in the profile, as the box in Settings) |
+| O | Terrain / obstacles (terrain.par): stepped line → filled → hidden, for this session (the profile setting comes back at the next start or profile switch) |
 | Joystick / gamepad | Test aircraft and antenna tilt (see *Joystick* in 5.1) |
 
 Keys are ignored while you are typing in a text box (e.g. the DH box).

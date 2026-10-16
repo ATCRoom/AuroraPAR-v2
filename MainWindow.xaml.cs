@@ -124,6 +124,8 @@ namespace AuroraPAR
         private TrackSmoothing? sessionSmoothing;
         /// <summary>Key V: primary video (all red, no labels, noise) in the modern display, this session.</summary>
         private bool primaryVideo;
+        /// <summary>Key O: terrain drawing for this session (null: as in the profile).</summary>
+        private TerrainDisplay? sessionTerrain;
         /// <summary>Distance of the information area from the edge of the side view (the crosshair goes beside it).</summary>
         private double infoMargin = 4;
 
@@ -1103,6 +1105,7 @@ namespace AuroraPAR
             }
             // Key S was for the profile in use: the next one starts with its own smoothing.
             sessionSmoothing = null;
+            sessionTerrain = null;
             int index = profiles.IndexOf(settings.Active);
             Profile next = profiles[((index + direction) % profiles.Count + profiles.Count) % profiles.Count];
             settings.ActiveProfile = next.Name;
@@ -1302,6 +1305,25 @@ namespace AuroraPAR
             if (!viewOptions.DeviationCrosshair) viewOptions.SelectedCallsign = null;
             ShowBanner(viewOptions.DeviationCrosshair ? "DEVIATION CROSSHAIR ON" : "DEVIATION CROSSHAIR OFF");
             Redraw();
+        }
+
+        /// <summary>Key O: terrain / obstacles stepped line → filled → hidden, for this session (the profile is not changed).</summary>
+        private void ToggleTerrain()
+        {
+            sessionTerrain = viewOptions.TerrainDisplay switch
+            {
+                TerrainDisplay.Steps => TerrainDisplay.Filled,
+                TerrainDisplay.Filled => TerrainDisplay.Off,
+                _ => TerrainDisplay.Steps
+            };
+            viewOptions.TerrainDisplay = sessionTerrain.Value;
+            ShowBanner(sessionTerrain switch
+            {
+                TerrainDisplay.Steps => "TERRAIN: STEPS",
+                TerrainDisplay.Filled => "TERRAIN: FILLED",
+                _ => "TERRAIN: OFF"
+            } + (runway.Terrain.Count == 0 ? " (NO TERRAIN FOR THIS RUNWAY)" : ""));
+            InvalidateViews();
         }
 
         /// <summary>Key V: primary video (all red, no labels, receiver noise) / normal video, modern display, this session.</summary>
@@ -2270,6 +2292,7 @@ namespace AuroraPAR
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
                 case Key.V when modifiers == 0: TogglePrimaryVideo(); break;
                 case Key.X when modifiers == 0: ToggleCrosshair(); break;
+                case Key.O when modifiers == 0: ToggleTerrain(); break;
                 // 1–5 = lights of the coordination panel, 0 = Reset (only if the panel is open).
                 case >= Key.D0 and <= Key.D9 or >= Key.NumPad0 and <= Key.NumPad9 when modifiers == 0:
                     if (coordinationWindow == null || !coordinationWindow.HandleKey(e.Key)) return;
@@ -2389,7 +2412,7 @@ namespace AuroraPAR
             viewOptions.ThresholdTick = profile.ThresholdTick;
             viewOptions.LineEndCircles = profile.LineEndCircles;
             viewOptions.ShowFapLine = profile.ShowFapLine;
-            viewOptions.TerrainDisplay = profile.TerrainDisplay;
+            viewOptions.TerrainDisplay = sessionTerrain ?? profile.TerrainDisplay;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
             LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";
