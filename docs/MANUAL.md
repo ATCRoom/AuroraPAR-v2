@@ -488,7 +488,7 @@ Analog, from the photos of the **AN/APN-22** scopes at Tempelhof (1986, U.S. Nat
 
 From a picture of the U.S. Army **AN/TPN-31** ATNAVICS display: almost black background, NM with LOG only, green lines every NM written 1.00, 2.00… and dashed every ½ NM over the whole height, green glide path and centreline, thick near-white scan limits, lower approach limit only and no limits in the azimuth view, short cyan DH tick, white tracks with dotted history, antenna on the right.
 
-**Getting them back.** If you already had settings before a new version, add the new profiles with *Settings → Import...* from the `Profiles` folder, or all at once with **Reload bundled...** ([section 10.1](#101-profiles)).
+**Getting them back.** If you already had settings before a new version, add the new profiles with *Settings → Import...* from the `Profiles` folder, or all at once with **Reload bundled...** ([section 10.1](#101-profiles)). **Reload bundled overwrites** the profiles with the same name: your changes to them are lost. Customize a **Duplicate** of a bundled profile, not the profile itself.
 
 ---
 
@@ -508,7 +508,9 @@ A profile holds all the display options, so that different controllers or differ
 
 - Select the active profile from the list; **Rename**, **Duplicate**, **Delete**.
 - **Export...** saves the profile as a `.json` file to share with other controllers; **Import...** loads one (it never overwrites: a profile with the same name is added with a new name).
-- **Reload bundled...** reads again the profiles that come with the program (the `Profiles` folder): after a list and a confirmation, the ones with the same name are replaced (your changes to them are lost) and the missing ones added. Your own profiles and all the other settings are not touched. Useful after an update that changed the bundled profiles.
+- **Reload bundled...** reads again the profiles that come with the program (the `Profiles` folder) and adds the missing ones. Useful after an update that changed the bundled profiles.
+
+> **Warning — Reload bundled overwrites.** A profile with the **same name** as a bundled one (Default, PAR2000, PAR2080, ARTMACS-style…) is **replaced by the original version**: **all the changes you made to it are lost**, with no way back. The window lists the profiles that will be overwritten and asks for a confirmation (Cancel is the default). To keep your changes, **Duplicate** the profile (or **Export** it) under another name before reloading, and work on your own copy: profiles with other names, and all the other settings, are never touched.
 
 ### 10.2 Display
 

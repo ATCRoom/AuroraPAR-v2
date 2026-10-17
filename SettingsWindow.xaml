@@ -50,7 +50,7 @@
                 <Button Name="ImportButton" Content="Import..." Padding="10,0" Height="24" Margin="4,0,0,0"/>
                 <Button Name="ExportButton" Content="Export..." Padding="10,0" Height="24" Margin="4,0,0,0"/>
                 <Button Name="ReloadBundledButton" Content="Reload bundled..." Padding="10,0" Height="24" Margin="4,0,0,0"
-                        ToolTip="Read again the profiles that come with the program (Profiles folder next to AuroraPAR.exe): the ones with the same name are replaced, the missing ones added. Your other profiles and settings are not touched."/>
+                        ToolTip="Read again the profiles that come with the program (Profiles folder next to AuroraPAR.exe): the missing ones are added, and the ones with the same name are OVERWRITTEN: all your changes to them are lost. Duplicate a profile under another name to keep your changes. Profiles with other names and the other settings are not touched."/>
                 <TextBlock Text="All the settings below are saved in this profile" Foreground="#555" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
         </Border>

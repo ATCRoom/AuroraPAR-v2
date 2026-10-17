@@ -527,10 +527,17 @@ namespace AuroraPAR
                 (settings.Profiles.Any(p => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase)) ? replaced : added).Add(profile.Name);
             }
             string text = "Reload the profiles that come with the program?\n\n";
-            if (replaced.Count > 0) text += "Replaced (your changes to them are lost):\n  " + string.Join("\n  ", replaced) + "\n\n";
+            if (replaced.Count > 0)
+            {
+                text += "WARNING: these profiles will be OVERWRITTEN with the original version of the program.\n"
+                    + "ALL the changes you made to them (colours, lines, labels, options...) will be LOST, with no way back:\n  "
+                    + string.Join("\n  ", replaced) + "\n\n"
+                    + "To keep your changes: press Cancel, Duplicate (or Export) the profile under another name, then reload.\n\n";
+            }
             if (added.Count > 0) text += "Added:\n  " + string.Join("\n  ", added) + "\n\n";
-            text += "Your other profiles and all the other settings are not changed.";
-            if (MessageBox.Show(this, text, "Reload bundled profiles", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+            text += "Profiles with other names and all the other settings are not changed.";
+            if (MessageBox.Show(this, text, "Reload bundled profiles", MessageBoxButton.OKCancel,
+                    replaced.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Question, MessageBoxResult.Cancel) != MessageBoxResult.OK) return;
             string activeName = settings.ActiveProfile;
             foreach (Profile profile in bundled)
             {
