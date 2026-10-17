@@ -480,7 +480,7 @@ The PRI picture of ARTMACS: everything red, lines every km over the whole height
 
 ![AN-APN-22 profile](images/profiles/profile-an-apn-22.png)
 
-Analog, from the photos of the **AN/APN-22** scopes at Tempelhof (1986, U.S. National Archives): white phosphor, angles with a strong LOG and heights with LIN, antenna on the right of the runway, a line every NM without text, no limit lines, small circles at the end of the glide path and centreline, rain and ground clutter, FIAR keys.
+Analog, from the photos of the **AN/APN-22** scopes at Tempelhof (1986, U.S. National Archives): white phosphor, angles with a strong LOG and heights with LIN, antenna on the right of the runway, a line every NM without text, no limit lines, small circles at the end of the glide path and centreline, narrow beam moved with the tilt knobs, rain and ground clutter, FIAR keys.
 
 ### AN-TPN-31
 

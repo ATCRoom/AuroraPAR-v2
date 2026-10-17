@@ -25,7 +25,11 @@
   "ScanDown": -1,
   "ScanLeft": 10,
   "ScanRight": 10,
-  "BeamEnabled": false,
+  "BeamEnabled": true,
+  "BeamElevation": 4,
+  "BeamAzimuth": 12,
+  "BeamElevationNeutralAuto": true,
+  "BeamAzimuthNeutral": 0,
   "RainClutter": true,
   "EchoGrowth": 2,
   "TrackSymbol": {
