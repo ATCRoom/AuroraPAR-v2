@@ -95,14 +95,26 @@ footer p{margin:0 0 8px;max-width:60em}
 .tools figcaption b,.phone figcaption b{color:var(--fg)}
 .phone{margin-top:26px;max-width:760px}
 @media (prefers-reduced-motion:reduce){.th img{transition:none}}
-.fb{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;margin-top:30px}
-.fbc{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:22px;text-decoration:none;color:var(--fg);min-width:0}
-.fbc h3{font-size:25px;text-transform:uppercase}
-.fbc p{margin:0;color:var(--muted);font-size:16px;flex:1}
-.fbc .go{font:600 15px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--phos)}
-.fbc:hover{border-color:var(--phos-dim)}
-.fbc:hover .go{text-decoration:underline;text-underline-offset:3px}
-.fbc:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.form{display:grid;gap:18px;margin-top:30px;max-width:820px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:24px}
+.form [hidden]{display:none!important}
+.types{border:0;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;min-width:0}
+.types legend{font:500 13px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--phos-dim);margin-bottom:12px;padding:0}
+.type{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:4px;padding:14px;cursor:pointer;min-width:0}
+.type input{accent-color:var(--phos);margin-top:5px}
+.type span{color:var(--muted);font-size:15px;line-height:1.4}
+.type b{display:block;color:var(--fg);font:600 20px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+.type:has(input:checked){border-color:var(--phos)}
+.type:has(input:focus-visible){outline:2px solid var(--amber);outline-offset:2px}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px}
+.fld{display:grid;gap:6px;font-size:14px;color:var(--muted);min-width:0}
+.fld input,.fld select,.fld textarea{font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;width:100%;min-width:0}
+.fld textarea{resize:vertical}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--phos-dim);outline-offset:0;border-color:var(--phos-dim)}
+.files input{padding:8px;font-size:14px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.send{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.send .btn{border:0;cursor:pointer}
+.status{font:400 14px/1.4 var(--mono);color:var(--amber)}
 </style>
 
 <div class="wrap">
@@ -247,25 +259,42 @@ footer p{margin:0 0 8px;max-width:60em}
 <section id="feedback">
   <div class="eyebrow">Bugs, ideas, profiles</div>
   <h2>Help shape it</h2>
-  <p class="sub">Reports and requests go to the GitHub issues of the project (a free GitHub account is needed). Pick the form that fits.</p>
-  <div class="fb">
-    <a class="fbc" href="https://github.com/altanico/AuroraPAR-v2/issues/new?template=bug_report.yml">
-      <h3>Bug report</h3>
-      <p>Something does not work as it should in AuroraPAR, AuroraCoord, CRSCalculator or the phone panel. Say which build, which profile, and what you saw; add a screenshot.</p>
-      <span class="go">Report a bug</span>
-    </a>
-    <a class="fbc" href="https://github.com/altanico/AuroraPAR-v2/issues/new?template=feature_request.yml">
-      <h3>Feature request</h3>
-      <p>An idea for a new function or a better way to do something on the approach. Pictures of a real radar that does it help a lot.</p>
-      <span class="go">Suggest a feature</span>
-    </a>
-    <a class="fbc" href="https://github.com/altanico/AuroraPAR-v2/issues/new?template=profile_request.yml">
-      <h3>Profile request</h3>
-      <p>Ask to change one of the bundled profiles, or to recreate the display of a radar system that is not there yet. Detailed documentation is the key: screenshots, photos or manuals of the real display.</p>
-      <span class="go">Request a profile</span>
-    </a>
-  </div>
-  <p class="note">Please share only material you are allowed to share, and keep real callsigns of other members and personal folder names out of screenshots.</p>
+  <p class="sub">Found a bug, have an idea, or want the display of a radar you know? Send it here: no account needed. For a profile, detailed documentation is the key: screenshots, photos or manuals of the real display.</p>
+  <form class="form" id="fb-form" action="https://formsubmit.co/FORM_CODE" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="_subject" id="fb-subject" value="AuroraPAR: request from the website">
+    <input type="hidden" name="_template" value="table">
+    <input type="hidden" name="_next" id="fb-next" value="">
+    <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <fieldset class="types">
+      <legend>What is it about?</legend>
+      <label class="type"><input type="radio" name="Type" value="Bug report" id="t-bug" checked><span><b>Bug report</b>Something does not work as it should.</span></label>
+      <label class="type"><input type="radio" name="Type" value="Feature request" id="t-feat"><span><b>Feature request</b>A new function or a better way.</span></label>
+      <label class="type"><input type="radio" name="Type" value="Profile request" id="t-prof"><span><b>Profile request</b>Change a profile, or recreate a radar system.</span></label>
+    </fieldset>
+    <div class="row2">
+      <label class="fld">Name or IVAO nickname<input type="text" name="Name" id="fb-name" required maxlength="80"></label>
+      <label class="fld">Email, for the answer<input type="email" name="email" id="fb-email" required maxlength="120"></label>
+    </div>
+    <div class="row2" data-for="bug">
+      <label class="fld">Program<select name="Program" id="fb-program"><option>AuroraPAR</option><option>AuroraCoord</option><option>CRSCalculator</option><option>Phone coordination panel</option></select></label>
+      <label class="fld">Build date (Releases page)<input type="text" name="Version" id="fb-version" maxlength="40" placeholder="e.g. 2026-10-16"></label>
+    </div>
+    <div class="row2" data-for="prof">
+      <label class="fld">Request<select name="Profile request" id="fb-kind"><option>Change an existing profile</option><option>Create the profile of a radar system</option></select></label>
+      <label class="fld">Profile or radar system<input type="text" name="Profile or system" id="fb-system" maxlength="80" placeholder="e.g. PAR-E, or GCA-2000"></label>
+    </div>
+    <label class="fld" data-for="bug">Profile and display in use<input type="text" name="Profile in use" id="fb-profile" maxlength="80" placeholder="e.g. PAR2090, modern display, LOG scale"></label>
+    <label class="fld"><span id="fb-desc-label">What happened: what you did, what you expected, what you saw</span><textarea name="Description" id="fb-desc" rows="7" required maxlength="5000"></textarea></label>
+    <div class="fld files">
+      <span id="fb-files-label">Screenshots or files (optional, up to 10 MB in total)</span>
+      <input type="file" name="attachment1" id="fb-file1" accept="image/*,.pdf,.json,.log,.txt,.par">
+      <input type="file" name="attachment2" id="fb-file2" accept="image/*,.pdf,.json,.log,.txt,.par">
+      <input type="file" name="attachment3" id="fb-file3" accept="image/*,.pdf,.json,.log,.txt,.par">
+    </div>
+    <p class="note">Share only material you are allowed to share, and keep real callsigns of other members and personal folder names (C:\Users\yourname) out of screenshots. Your email is used only to answer you.</p>
+    <div class="send"><button class="btn" type="submit" id="fb-send">Send</button><span class="status" id="fb-status" role="status"></span></div>
+  </form>
+  <p class="note">Have a GitHub account? You can also open an <a href="https://github.com/altanico/AuroraPAR-v2/issues/new/choose">issue on GitHub</a>.</p>
 </section>
 
 </main>
@@ -276,6 +305,41 @@ footer p{margin:0 0 8px;max-width:60em}
   <p>MIT license · Source on <a href="https://github.com/altanico/AuroraPAR-v2">GitHub</a> · Profile pictures reproduce the look of real radars for simulation only.</p>
 </footer>
 </div>
+<script>
+(function(){
+  var form=document.getElementById('fb-form'); if(!form) return;
+  var desc={bug:'What happened: what you did, what you expected, what you saw',
+            feat:'Your idea: what AuroraPAR should do, and how you would use it on an approach',
+            prof:'What should change, or what the real display looks like (colours, lines, labels, units, scales, console)'};
+  var files={bug:'Screenshots or files (optional, up to 10 MB in total)',
+             feat:'Pictures of a radar that does it (optional, up to 10 MB in total)',
+             prof:'Documentation: screenshots, photos or manuals of the real display (at least one, up to 10 MB in total)'};
+  function kind(){return document.getElementById('t-prof').checked?'prof':document.getElementById('t-feat').checked?'feat':'bug';}
+  function update(){
+    var k=kind();
+    form.querySelectorAll('[data-for]').forEach(function(el){
+      var on=el.getAttribute('data-for')===k; el.hidden=!on;
+      el.querySelectorAll('input,select,textarea').forEach(function(i){i.disabled=!on;});
+    });
+    document.getElementById('fb-system').required=(k==='prof');
+    document.getElementById('fb-file1').required=(k==='prof');
+    document.getElementById('fb-desc-label').textContent=desc[k];
+    document.getElementById('fb-files-label').textContent=files[k];
+    var v=form.querySelector('input[name="Type"]:checked').value;
+    document.getElementById('fb-subject').value='AuroraPAR: '+v;
+  }
+  form.querySelectorAll('input[name="Type"]').forEach(function(r){r.addEventListener('change',update);});
+  update();
+  form.addEventListener('submit',function(e){
+    var st=document.getElementById('fb-status');
+    if(form.action.indexOf('FORM_CODE')>=0){e.preventDefault();st.textContent='The form is not active yet: it works once the site is online.';return;}
+    var size=0;['fb-file1','fb-file2','fb-file3'].forEach(function(id){var f=document.getElementById(id).files[0];if(f)size+=f.size;});
+    if(size>10*1024*1024){e.preventDefault();st.textContent='The files are larger than 10 MB in total: send fewer or smaller ones.';return;}
+    try{document.getElementById('fb-next').value=new URL('thanks.html',location.href).href;}catch(_){}
+    st.textContent='Sending...';
+  });
+})();
+</script>
 <script>
 (function(){
   var img=document.getElementById('gal-img'),nm=document.getElementById('gal-name'),tx=document.getElementById('gal-text');
