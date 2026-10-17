@@ -1,4 +1,5 @@
 <title>AuroraPAR v2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -15,7 +16,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--fg);font:400 17px/1.6 var(--body);padding-inline:20px;padding-block:0}
+body{background:var(--bg);color:var(--fg);font:400 17px/1.6 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
 .wrap{max-width:1040px;margin:0 auto}
 a{color:var(--phos);text-underline-offset:3px}
 a:focus-visible,.btn:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
@@ -71,12 +72,36 @@ footer{border-top:1px solid var(--line);padding-block:34px 56px;color:var(--mute
 footer p{margin:0 0 8px;max-width:60em}
 @media (min-width:900px){.hero{grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center}}
 .shots{display:grid;gap:22px;margin-top:26px}.shots figure{margin:0}.shots img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px}.shots figcaption{margin-top:8px;font-size:14px;opacity:.8}@media (min-width:900px){.shots{grid-template-columns:1fr 1fr}.shots .wide{grid-column:1/-1}}
+.key{font:500 14px/1 var(--mono);border:1px solid var(--phos-dim);border-radius:3px;padding:2px 6px;color:var(--phos)}
+.gal{display:grid;gap:16px;margin-top:30px}
+.gal-main{margin:0;min-width:0}
+.gal-main img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px;background:#000}
+.gal-main figcaption{margin-top:10px;color:var(--muted);font-size:16px;min-height:3.2em}
+.gal-main figcaption b{color:var(--fg);font-family:var(--display);font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin-right:8px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,108px),1fr));gap:10px}
+.th{all:unset;cursor:pointer;display:grid;gap:6px;min-width:0}
+.th img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:left top;display:block;border:1px solid var(--line);border-radius:4px;opacity:.65;transition:opacity .2s,border-color .2s}
+.th span{font:500 12px/1.2 var(--mono);color:var(--muted);letter-spacing:.03em;overflow-wrap:anywhere}
+.th:hover img{opacity:1}
+.th[aria-pressed="true"] img{opacity:1;border-color:var(--phos)}
+.th[aria-pressed="true"] span{color:var(--phos)}
+.th:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+@media (min-width:900px){.gal{grid-template-columns:minmax(0,3fr) minmax(0,1fr);align-items:start}.thumbs{grid-template-columns:1fr 1fr}}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:22px;margin-top:30px;align-items:start}
+.tools figure,.phone{margin:0;min-width:0}
+.tools img,.phone img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px}
+.tools img{max-height:520px;object-fit:contain;object-position:left top;background:var(--panel)}
+.tools figcaption,.phone figcaption{margin-top:10px;color:var(--muted);font-size:15px}
+.tools figcaption b,.phone figcaption b{color:var(--fg)}
+.phone{margin-top:26px;max-width:760px}
+@media (prefers-reduced-motion:reduce){.th img{transition:none}}
 </style>
 
 <div class="wrap">
 <header class="top">
   <a class="brand" href="#top">Aurora<b>PAR</b> v2</a>
   <nav aria-label="Main">
+    <a href="#profiles">Profiles</a>
     <a href="#features">Features</a>
     <a href="#screens">Screenshots</a>
     <a href="#start">Get started</a>
@@ -89,7 +114,7 @@ footer p{margin:0 0 8px;max-width:60em}
   <div>
     <div class="eyebrow">Precision approach radar for IVAO Aurora</div>
     <h1 style="margin-top:16px">Talk them<br>down on the <span>scope</span></h1>
-    <p class="lead">A fork of <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR by bornac1</a>: a Precision Approach Radar display for the Aurora ATC client, with elevation and azimuth views, a console-style analog mode, a coordination light panel and test traffic to practise with.</p>
+    <p class="lead">A fork of <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR by bornac1</a>: a Precision Approach Radar display for the Aurora ATC client, with elevation and azimuth views, a console-style analog mode, a coordination light panel and test traffic to practise with. Highly customizable: make it look like the radar you know, or start from one of nine ready-made profiles.</p>
     <div class="cta">
       <a class="btn" href="https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build">Download for Windows</a>
       <a class="btn ghost" href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Read the manual</a>
@@ -148,6 +173,30 @@ footer p{margin:0 0 8px;max-width:60em}
   </figure>
 </div>
 
+<section id="profiles">
+  <div class="eyebrow">Highly customizable</div>
+  <h2>One program, many radars</h2>
+  <p class="sub">Colours, lines, symbols, labels, units, scales, antenna position, console keys: almost everything on the screen is yours to set, and saved in a profile you can share. Nine profiles come with the program, from a plain modern display to old analog scopes. Press <span class="key">P</span> to switch between them.</p>
+  <div class="gal">
+    <figure class="gal-main">
+      <img id="gal-img" src="images/profile-default.png" alt="Default profile" width="1308" height="1035">
+      <figcaption><b id="gal-name">Default</b> <span id="gal-text">A plain modern display, the starting point for your own.</span></figcaption>
+    </figure>
+    <div class="thumbs">
+      <button type="button" class="th" aria-pressed="true" data-img="profile-default.png" data-name="Default" data-text="A plain modern display, the starting point for your own."><img src="images/profile-default.png" alt="" loading="lazy"><span>Default</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-par2000.png" data-name="PAR2000" data-text="In the colours of the UK PAR 2000: range ticks on the horizon and on the glide path, lower approach limit only, safety limits."><img src="images/profile-par2000.png" alt="" loading="lazy"><span>PAR2000</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-par2080.png" data-name="PAR2080" data-text="Analog console with FIAR keys and drum readouts, narrow beam moved with a joystick, strong ground clutter."><img src="images/profile-par2080.png" alt="" loading="lazy"><span>PAR2080</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-par2090.png" data-name="PAR2090" data-text="Modern display with keys per range, framed labels and the antenna beside the runway."><img src="images/profile-par2090.png" alt="" loading="lazy"><span>PAR2090</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-par-e.png" data-name="PAR-E" data-text="The ELDIS PAR-E: angles seen from the antenna, kilometres in cyan and magenta, compact labels."><img src="images/profile-par-e.png" alt="" loading="lazy"><span>PAR-E</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-artmacs.png" data-name="ARTMACS-style" data-text="After the ARTMACS simulator: metres, numbers-only labels, terrain filled in orange and the deviation crosshair."><img src="images/profile-artmacs.png" alt="" loading="lazy"><span>ARTMACS-style</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-artmacs-primary.png" data-name="ARTMACS-style (primary only)" data-text="Primary video only: everything red, echoes with a trail, receiver noise and ground clutter, no labels."><img src="images/profile-artmacs-primary.png" alt="" loading="lazy"><span>ARTMACS primary</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-an-apn-22.png" data-name="AN-APN-22" data-text="From photos of the AN/APN-22 scopes at Tempelhof, 1986: white phosphor, a strong log scale, rain and ground clutter."><img src="images/profile-an-apn-22.png" alt="" loading="lazy"><span>AN-APN-22</span></button>
+      <button type="button" class="th" aria-pressed="false" data-img="profile-an-tpn-31.png" data-name="AN-TPN-31" data-text="After the U.S. Army AN/TPN-31 ATNAVICS: log scale only, distances written 1.00, 2.00, thick scan limits."><img src="images/profile-an-tpn-31.png" alt="" loading="lazy"><span>AN-TPN-31</span></button>
+    </div>
+  </div>
+  <p class="note">The profiles reproduce the look of each radar from photos and screenshots, as far as AuroraPAR can draw it. Not certified copies of real equipment.</p>
+</section>
+
 <section id="features">
   <div class="eyebrow">What it does</div>
   <h2>Built for the approach</h2>
@@ -176,7 +225,12 @@ footer p{margin:0 0 8px;max-width:60em}
     <article class="f">
       <svg viewBox="0 0 54 54" fill="none" stroke="#5df08a" stroke-width="2"><path d="M8 14H46M8 27H46M8 40H46"/><circle cx="18" cy="14" r="3.5" fill="#070b09"/><circle cx="34" cy="27" r="3.5" fill="#070b09"/><circle cx="24" cy="40" r="3.5" fill="#070b09"/></svg>
       <h3>Yours to customise</h3>
-      <p>Profiles, colours, line styles, symbols, labels, decision height marks, ranges up to 40 NM. Switch between profiles with one key.</p>
+      <p>Every colour, line style and width, custom track symbols, label layouts, NM or km, feet or metres, linear, log or angular scales, ranges up to 40 NM. Export a profile and share it.</p>
+    </article>
+    <article class="f">
+      <svg viewBox="0 0 54 54" fill="none" stroke="#5df08a" stroke-width="2"><path d="M4 44H50"/><path d="M26 44V32H34V26H44V44" stroke="#e8b64a"/><path d="M4 44L50 12"/><path d="M14 18V30M8 24H20" stroke-opacity=".7"/></svg>
+      <h3>Terrain, clutter, crosshair</h3>
+      <p>Minimum altitudes or terrain under the approach from a simple text file, ground clutter near the antenna with an MTI switch, and an ILS-style deviation crosshair for the selected aircraft.</p>
     </article>
     <article class="f">
       <svg viewBox="0 0 54 54" fill="none" stroke="#5df08a" stroke-width="2"><rect x="10" y="8" width="34" height="38" rx="2"/><path d="M17 18H37M17 26H37M17 34H29"/></svg>
@@ -190,20 +244,33 @@ footer p{margin:0 0 8px;max-width:60em}
   <div class="eyebrow">Screenshots</div>
   <h2>See it at work</h2>
   <div class="shots">
-    <figure class="wide"><img src="images/par2090-modern.png" alt="Modern display: elevation and azimuth views of LIRF 16L with two aircraft on the glide path" loading="lazy"><figcaption>Modern display: elevation above, azimuth below, with the two aircraft on the glide path.</figcaption></figure>
-    <figure><img src="images/modern-log.png" alt="Log distance scale: the last miles larger, altitudes written along the upper scan limit" loading="lazy"><figcaption>Log distance scale: the last miles larger, so the traffic stays in view without changing the range.</figcaption></figure>
-    <figure><img src="images/analog-fiar.png" alt="Analog console with the FIAR range panel" loading="lazy"><figcaption>Analog console with FIAR keys: readouts, range panel, tilt and brightness.</figcaption></figure>
+    <figure class="wide"><img src="images/terrain-steps.png" alt="Main window: elevation and azimuth views of LIRN 24 with terrain steps and two test aircraft" loading="lazy"><figcaption>The main window: elevation above, azimuth below, the terrain of LIRN 24 under the approach and two test aircraft on final.</figcaption></figure>
+    <figure><img src="images/analog-fiar.png" alt="Analog console with the FIAR range panel" loading="lazy"><figcaption>Analog console: phosphor scope lit by the sweeping beam, FIAR keys, readouts, range panel.</figcaption></figure>
+    <figure><img src="images/modern-log.png" alt="Log distance scale: the last miles larger" loading="lazy"><figcaption>Log distance scale: the last miles larger, so the traffic stays in view without changing the range.</figcaption></figure>
+    <figure><img src="images/crosshair.png" alt="Deviation crosshair in metres with the ARTMACS-style profile" loading="lazy"><figcaption>Deviation crosshair, as on ARTMACS: click a track to follow it.</figcaption></figure>
+    <figure><img src="images/settings-colours.png" alt="Settings window, Colours and lines" loading="lazy"><figcaption>Settings: colour, line style and width of every element, shown or hidden separately in the modern and analog display.</figcaption></figure>
   </div>
+</section>
+
+<section id="tools">
+  <div class="eyebrow">Around the scope</div>
+  <h2>Practise, coordinate, prepare</h2>
+  <div class="tools">
+    <figure><img src="images/test-traffic.png" alt="Test traffic window" loading="lazy"><figcaption><b>Test traffic.</b> Add aircraft on final or on an intercept, give headings and rates as a controller, or fly them with a stick or a real joystick. Wind and gusts included.</figcaption></figure>
+    <figure><img src="images/coordination.png" alt="Coordination light panel with its options" loading="lazy"><figcaption><b>Coordination panel.</b> Five lights and a reset between radar and tower, paired automatically by callsign. The tower runs the small AuroraCoord program.</figcaption></figure>
+    <figure><img src="images/crs-calculator.png" alt="CRSCalculator with the result for LIRF 16L" loading="lazy"><figcaption><b>CRSCalculator.</b> Runway heading, length and magnetic variation from the two thresholds, written straight into the runways file.</figcaption></figure>
+  </div>
+  <figure class="phone"><img src="images/phone-panel.png" alt="Coordination panel in a phone browser, landscape" loading="lazy"><figcaption>The same light panel on a phone or tablet, in the browser: scan a QR code and it opens set up.</figcaption></figure>
 </section>
 
 <section id="start">
   <div class="eyebrow">Get started</div>
   <h2>Up and running in minutes</h2>
   <ol class="steps">
-    <li><h3>Download</h3><p>Get the zip from the Releases page, check the SHA-256 and unzip it anywhere.</p></li>
-    <li><h3>Open Aurora</h3><p>Start Aurora and connect. AuroraPAR reads the traffic and the airport from it.</p></li>
+    <li><h3>Download</h3><p>Get the zip from the Releases page, check the SHA-256 and unzip it anywhere. Nothing to install.</p></li>
+    <li><h3>Open Aurora</h3><p>Start Aurora, allow 3rd party software access and set the traffic refresh to 0.5 s. AuroraPAR reads the traffic and the airport from it.</p></li>
     <li><h3>Pick the runway</h3><p>Choose the airport and runway. Add yours to <span class="mono">runways.par</span> with the CRSCalculator if it is not there.</p></li>
-    <li><h3>Control</h3><p>Try it first with test traffic (key T), then use it on the network.</p></li>
+    <li><h3>Control</h3><p>Pick a profile with P, try it with test traffic (key T), then use it on the network.</p></li>
   </ol>
   <div class="cta"><a class="btn" href="https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build">Download</a><a class="btn ghost" href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Manual</a></div>
 </section>
@@ -212,6 +279,20 @@ footer p{margin:0 0 8px;max-width:60em}
 
 <footer>
   <p>AuroraPAR v2 is a third-party add-on for IVAO's Aurora ATC software, made by IVAO members for their own use. It is not made, endorsed or supported by IVAO. For flight simulation only: not to be used for real navigation or air traffic control.</p>
-  <p>MIT license · Source on <a href="https://github.com/altanico/AuroraPAR-v2">GitHub</a> · Design preview</p>
+  <p>Based on <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR</a> by bornac1: all credit for the original program goes to him.</p>
+  <p>MIT license · Source on <a href="https://github.com/altanico/AuroraPAR-v2">GitHub</a> · Profile pictures reproduce the look of real radars for simulation only.</p>
 </footer>
 </div>
+<script>
+(function(){
+  var img=document.getElementById('gal-img'),nm=document.getElementById('gal-name'),tx=document.getElementById('gal-text');
+  document.querySelectorAll('.th').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.th').forEach(function(o){o.setAttribute('aria-pressed','false')});
+      b.setAttribute('aria-pressed','true');
+      img.src='images/'+b.dataset.img; img.alt=b.dataset.name+' profile';
+      nm.textContent=b.dataset.name; tx.textContent=b.dataset.text;
+    });
+  });
+})();
+</script>
