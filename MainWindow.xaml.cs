@@ -122,8 +122,6 @@ namespace AuroraPAR
         private readonly TrackFilter trackFilter = new();
         /// <summary>Key S: track smoothing chosen for this session (not saved), to compare; null: the profile's.</summary>
         private TrackSmoothing? sessionSmoothing;
-        /// <summary>Key O: terrain drawing for this session (null: as in the profile).</summary>
-        private TerrainDisplay? sessionTerrain;
         /// <summary>Distance of the information area from the edge of the side view (the crosshair goes beside it).</summary>
         private double infoMargin = 4;
 
@@ -1103,7 +1101,6 @@ namespace AuroraPAR
             }
             // Key S was for the profile in use: the next one starts with its own smoothing.
             sessionSmoothing = null;
-            sessionTerrain = null;
             int index = profiles.IndexOf(settings.Active);
             Profile next = profiles[((index + direction) % profiles.Count + profiles.Count) % profiles.Count];
             settings.ActiveProfile = next.Name;
@@ -1313,7 +1310,7 @@ namespace AuroraPAR
             Redraw();
         }
 
-        /// <summary>Key O: terrain / obstacles stepped line → filled → hidden, for this session (the profile is not changed).</summary>
+        /// <summary>Key O: terrain / obstacles stepped line → filled → hidden, saved in the profile (as the box in Settings).</summary>
         private void ToggleTerrain()
         {
             if (viewOptions.Analog)
@@ -1321,14 +1318,15 @@ namespace AuroraPAR
                 ShowBanner("TERRAIN (MODERN DISPLAY ONLY)");
                 return;
             }
-            sessionTerrain = viewOptions.TerrainDisplay switch
+            settings.Active.TerrainDisplay = settings.Active.TerrainDisplay switch
             {
                 TerrainDisplay.Steps => TerrainDisplay.Filled,
                 TerrainDisplay.Filled => TerrainDisplay.Off,
                 _ => TerrainDisplay.Steps
             };
-            viewOptions.TerrainDisplay = sessionTerrain.Value;
-            ShowBanner(sessionTerrain switch
+            SettingsStore.Save(settings);
+            viewOptions.TerrainDisplay = settings.Active.TerrainDisplay;
+            ShowBanner(viewOptions.TerrainDisplay switch
             {
                 TerrainDisplay.Steps => "TERRAIN: STEPS",
                 TerrainDisplay.Filled => "TERRAIN: FILLED",
@@ -2411,7 +2409,7 @@ namespace AuroraPAR
             viewOptions.ThresholdTick = profile.ThresholdTick;
             viewOptions.LineEndCircles = profile.LineEndCircles;
             viewOptions.ShowFapLine = profile.ShowFapLine;
-            viewOptions.TerrainDisplay = sessionTerrain ?? profile.TerrainDisplay;
+            viewOptions.TerrainDisplay = profile.TerrainDisplay;
             PrefButton.Content = profile.PreferredRangeText;
             LinButton.Tag = profile.CompressedScale ? "Unlit" : "Lit";
             LogButton.Tag = profile.CompressedScale ? "Lit" : "Unlit";
