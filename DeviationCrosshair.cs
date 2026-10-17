@@ -36,7 +36,7 @@ namespace AuroraPAR
         }
 
         private string Value(double feet) =>
-            (Metres ? Math.Round(feet * 0.3048) : feet).ToString("+0;-0;0", CultureInfo.InvariantCulture);
+            (Metres ? Math.Truncate(feet * 0.3048) : feet).ToString("+0;-0;0", CultureInfo.InvariantCulture);
 
         private FormattedText Text(string text) =>
             new(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), FontSize, TextBrush,
