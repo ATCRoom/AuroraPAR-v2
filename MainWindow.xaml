@@ -326,8 +326,8 @@
                         <Button Name="TiltDownButton" Content="EL ▼" Margin="1,0,0,0"/>
                     </UniformGrid>
                     <UniformGrid Columns="2" Height="26" Margin="0,2,0,0">
-                        <Button Name="TiltLeftButton" Content="AZ L" Margin="0,0,1,0"/>
-                        <Button Name="TiltRightButton" Content="AZ R" Margin="1,0,0,0"/>
+                        <Button Name="TiltLeftButton" Content="AZ ◀" Margin="0,0,1,0" ToolTip="Azimuth tilt left (key ←; Settings → Radar: as seen by the pilot, or from the runway)"/>
+                        <Button Name="TiltRightButton" Content="AZ ▶" Margin="1,0,0,0" ToolTip="Azimuth tilt right (key →; Settings → Radar: as seen by the pilot, or from the runway)"/>
                     </UniformGrid>
                     <Button Name="TiltNeutralButton" Content="Neutral" Height="26" Margin="0,2,0,0"/>
                 </StackPanel>

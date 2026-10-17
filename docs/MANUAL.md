@@ -92,7 +92,7 @@ All profiles and options are in one file:
 | **6** | **GP (°)** | Glide path of the approach: one key per published angle of the runway (when it has more than one), and below a box with the angle in use, where a free angle can be typed (Enter; unpublished approach, orange) ([section 5.3](#53-glide-path-several-approaches-and-unpublished-angle)). |
 | | **DH** box with **−** / **+** (hidden by default, so not numbered: *Settings → Approach and DH → DH selector*) | Decision height for this session ([section 5.2](#52-decision-height-and-course)). |
 | **7** | **BRT** with **−** / **+** | Brightness of the radar picture, 10–150% (also with the mouse wheel over it); saved in the profile. Up to 100% the picture is dimmed; above 100% the colours are made brighter and lighter, for dim monitors. |
-| **8** | **Antenna tilt** | EL ▲ / EL ▼, AZ L / AZ R, Neutral ([section 5.1](#51-antenna-tilt)). |
+| **8** | **Antenna tilt** | EL ▲ / EL ▼, AZ ◀ / AZ ▶, Neutral ([section 5.1](#51-antenna-tilt)). |
 | **9** | **Hide labels (L)** | Hides / shows all labels. |
 | **10** | **Analog (A)** | Switches to the analog scope ([section 6](#6-analog-mode)). |
 | **11** | **Settings...** | Profiles and options ([section 10](#10-settings-and-customization)). |
@@ -239,7 +239,7 @@ On the old PAR the antenna beam was narrow, and the antenna was tilted to point 
 
 The tilt moves the **beam** inside the scan limits; the glide path, centreline and approach limits do not move.
 
-- Buttons **EL ▲ / EL ▼ / AZ L / AZ R / Neutral**, or the arrow keys and Home.
+- Buttons **EL ▲ / EL ▼ / AZ ◀ / AZ ▶ / Neutral** (◀ / ▶ = left / right as seen by the pilot, or from the runway with *Azimuth: swap left and right*), or the arrow keys and Home.
 - Step **2°** by default (*Settings → Radar*). The beam stops where it reaches a scan limit: the narrower the beam, the more it can be tilted; a beam as wide as the scan limits cannot be tilted at all. The range can differ up and down (and left and right): the EL/AZ TILT knobs have their 0 where the neutral position is.
 - The neutral position is the beam centre set in the profile (*Elevation / Azimuth centre in neutral*). The elevation centre is **automatic** by default: the glide path angle of the approach in use (published or free), so the beam is centred on the glide path by itself, also when the approach changes. (The glide path starts at the touchdown point and the beam at the antenna, so seen from the antenna the glide path is a little steeper near the runway; the GP angle is a good centre for the whole approach.)
 - While tilted, an orange reminder is shown (`EL TILT 2.0 UP`, `AZ TILT 2.0 L`).
