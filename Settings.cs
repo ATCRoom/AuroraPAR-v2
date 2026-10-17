@@ -963,13 +963,13 @@ namespace AuroraPAR
         public static bool IsPortable => File.Exists(PortablePath);
         public static string FilePath => IsPortable ? PortablePath : UserPath;
 
+        /// <summary>True when <see cref="Load"/> found no settings file (first start: the bundled profiles were taken).</summary>
+        public static bool FirstStart { get; private set; }
+
         /// <summary>
         /// Loads the settings. A missing or empty file gives the defaults. A damaged file is kept as
         /// "...json.bad" (so nothing is lost) and the defaults are used.
         /// </summary>
-        /// <summary>True when <see cref="Load"/> found no settings file (first start: the bundled profiles were taken).</summary>
-        public static bool FirstStart { get; private set; }
-
         public static AppSettings Load()
         {
             string path = FilePath;
@@ -995,10 +995,6 @@ namespace AuroraPAR
         /// <summary>Folder of the profiles that come with the program (first start: they are the profiles).</summary>
         public static string BundledProfilesPath => Path.Combine(AppContext.BaseDirectory, "Profiles");
 
-        /// <summary>
-        /// Settings of a first start (no settings file yet): the profiles that come with the program (Profiles folder,
-        /// in name order, the first one active), or the default profile when there are none.
-        /// </summary>
         /// <summary>The profiles that come with the program (damaged files skipped), normalized; empty if none.</summary>
         public static List<Profile> ReadBundledProfiles()
         {
@@ -1026,6 +1022,10 @@ namespace AuroraPAR
             return profiles;
         }
 
+        /// <summary>
+        /// Settings of a first start (no settings file yet): the profiles that come with the program (Profiles folder,
+        /// in name order, the Default one active), or the default profile when there are none.
+        /// </summary>
         private static AppSettings NewSettings()
         {
             AppSettings settings = new();

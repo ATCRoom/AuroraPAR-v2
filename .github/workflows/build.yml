@@ -39,6 +39,7 @@ jobs:
             publish/runways.par
             publish/terrain.par
             publish/MANUAL.md
+            publish/Profiles/
             publish/Profiles/*.json
 
       - name: Build AuroraCoord (standalone coordination panel)

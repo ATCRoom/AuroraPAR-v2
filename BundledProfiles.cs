@@ -4,11 +4,14 @@ using System.Text.Json;
 
 namespace AuroraPAR
 {
-    /// <summary>What the program knows of a bundled profile: the version last taken and how it was then (hash).</summary>
+    /// <summary>
+    /// What the program knows of a bundled profile: the version last taken and the profile as it was then (JSON), to
+    /// see later whether the user changed it. Empty snapshot: the user's own profile with that name (never replaced).
+    /// </summary>
     internal sealed class BundledProfileRecord
     {
         public int Version { get; set; }
-        public string Hash { get; set; } = "";
+        public string Snapshot { get; set; } = "";
     }
 
     /// <summary>Profiles added or updated at the start by <see cref="BundledProfiles.Sync"/>, to tell the user.</summary>
@@ -28,7 +31,8 @@ namespace AuroraPAR
     /// package. At every start: a bundled profile the user never had is added; a newer version replaces the user's
     /// profile only if the user never changed it (same hash as when it was taken), otherwise the user's profile is
     /// kept and the new version is added beside it as "Name (updated)". A bundled profile the user deleted or renamed
-    /// is not brought back. Brightness is not counted as a change (it is moved with the knob every day).
+    /// is not brought back. What the keys change while working (brightness, A, C, X, O) is not counted as a change and is
+    /// kept on an update.
     /// </summary>
     internal static class BundledProfiles
     {
@@ -47,13 +51,15 @@ namespace AuroraPAR
                         // A bundled profile never seen: added (on a first start they are all there already).
                         settings.Profiles.Add(bundled.Clone());
                         if (!firstStart) result.Added.Add(bundled.Name);
-                        settings.BundledProfiles[key] = new() { Version = bundled.BundledVersion, Hash = Hash(bundled) };
+                        settings.BundledProfiles[key] = Record(bundled);
                     }
                     else
                     {
-                        // Taken before this check existed: whether it was changed is not known, so it is kept as it is;
-                        // from now on its changes are followed.
-                        settings.BundledProfiles[key] = new() { Version = bundled.BundledVersion, Hash = Hash(settings.Profiles[index]) };
+                        // Taken before this check existed (or the user's own profile with the same name): followed from
+                        // now on only if it is exactly the bundled one; otherwise it is the user's and never replaced.
+                        settings.BundledProfiles[key] = Hash(settings.Profiles[index]) == Hash(bundled)
+                            ? Record(bundled)
+                            : new() { Version = bundled.BundledVersion, Snapshot = "" };
                     }
                     result.Changed = true;
                     continue;
@@ -67,15 +73,14 @@ namespace AuroraPAR
                     continue;
                 }
                 Profile mine = settings.Profiles[index];
-                if (Hash(mine) == record.Hash)
+                if (Unchanged(mine, record))
                 {
-                    // Never changed by the user: replaced by the new version (the brightness stays).
+                    // Never changed by the user: replaced by the new version (what the keys change stays as the user left it).
                     Profile updated = bundled.Clone();
                     updated.Name = mine.Name;
-                    updated.BrightnessModern = mine.BrightnessModern;
-                    updated.BrightnessAnalog = mine.BrightnessAnalog;
+                    KeepUserToggles(mine, updated);
                     settings.Profiles[index] = updated;
-                    settings.BundledProfiles[key] = new() { Version = bundled.BundledVersion, Hash = Hash(updated) };
+                    settings.BundledProfiles[key] = Record(bundled);
                     result.Updated.Add(mine.Name);
                 }
                 else
@@ -96,13 +101,47 @@ namespace AuroraPAR
         {
             foreach (Profile profile in bundled)
             {
-                settings.BundledProfiles[profile.Name.ToLowerInvariant()] = new() { Version = profile.BundledVersion, Hash = Hash(profile) };
+                settings.BundledProfiles[profile.Name.ToLowerInvariant()] = Record(profile);
             }
         }
 
+        private static BundledProfileRecord Record(Profile bundled) =>
+            new() { Version = bundled.BundledVersion, Snapshot = JsonSerializer.Serialize(bundled, SettingsStore.JsonOptions) };
+
         /// <summary>
-        /// Fingerprint of a profile's options, without its name, its bundled version and the brightness. Taken on a
-        /// normalized copy read back from JSON, so a profile saved and loaded again gives the same value.
+        /// The user's profile is still the one taken (snapshot read again with the code of today, so a new version of
+        /// the program that adds options does not make every profile look changed).
+        /// </summary>
+        private static bool Unchanged(Profile mine, BundledProfileRecord record)
+        {
+            if (string.IsNullOrEmpty(record.Snapshot)) return false;
+            try
+            {
+                Profile? taken = JsonSerializer.Deserialize<Profile>(record.Snapshot, SettingsStore.JsonOptions);
+                return taken != null && Hash(taken) == Hash(mine);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>What the keys and knobs change while working (brightness, A, C, X, O): kept on an update.</summary>
+        private static void KeepUserToggles(Profile from, Profile to)
+        {
+            to.BrightnessModern = from.BrightnessModern;
+            to.BrightnessAnalog = from.BrightnessAnalog;
+            to.DisplayMode = from.DisplayMode;
+            to.CompressedScale = from.CompressedScale;
+            to.DeviationCrosshair = from.DeviationCrosshair;
+            to.TerrainDisplay = from.TerrainDisplay;
+            to.ApplyScaleLock();
+        }
+
+        /// <summary>
+        /// Fingerprint of a profile's options, without its name, its bundled version and what the keys and knobs change
+        /// while working (brightness, display mode, LIN / LOG, crosshair, terrain). Taken on a normalized copy read
+        /// back from JSON, so a profile saved and loaded again gives the same value.
         /// </summary>
         public static string Hash(Profile profile)
         {
@@ -112,6 +151,10 @@ namespace AuroraPAR
             copy.BundledVersion = 0;
             copy.BrightnessModern = 100;
             copy.BrightnessAnalog = 100;
+            copy.DisplayMode = DisplayMode.Modern;
+            copy.CompressedScale = false;
+            copy.DeviationCrosshair = false;
+            copy.TerrainDisplay = TerrainDisplay.Off;
             string json = JsonSerializer.Serialize(copy, SettingsStore.JsonOptions);
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
         }
