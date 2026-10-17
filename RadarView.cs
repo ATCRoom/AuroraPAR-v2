@@ -112,7 +112,7 @@ namespace AuroraPAR
         /// <summary>Line at the final approach altitude of the runway (see <see cref="Profile.ShowFapLine"/>).</summary>
         public bool ShowFapLine { get; set; }
         /// <summary>Terrain / obstacle profile of the runway (see <see cref="Profile.TerrainDisplay"/>).</summary>
-        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Steps;
+        public TerrainDisplay TerrainDisplay { get; set; } = TerrainDisplay.Off;
     }
 
     /// <summary>
