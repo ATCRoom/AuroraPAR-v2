@@ -65,7 +65,7 @@ namespace AuroraPAR
             new("glideslope", "Glide slope (°)", "usually 3.0"),
             new("tch", "Threshold crossing height (ft)", "usually 50"),
             new("dh", "Decision height (ft)", "height above the threshold"),
-            new("range", "Default range (NM)", "1, 2.5, 5, 10, 15 or 20 (the closest is used)"),
+            new("range", "Default range (NM)", "the closest of the ranges offered in the profile is used"),
             new("touchdown", "Touchdown from threshold (m)", "optional: empty = automatic"),
             new("magvar", "Magnetic variation", "optional, e.g. 3E or 2W: empty = default in Settings"),
             new("fapalt", "Final App. Altitude (FAP ALT, ft)", "optional, altitude as on the chart: drawn as a line when the profile shows it"),
