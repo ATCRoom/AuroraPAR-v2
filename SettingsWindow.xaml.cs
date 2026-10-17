@@ -788,7 +788,7 @@ namespace AuroraPAR
                 p => p.ThresholdTick, (p, v) => p.ThresholdTick = v);
             AddCheckRow("Small circle at the far end of the glide path and of the centreline (as on the AN/APN-22)",
                 p => p.LineEndCircles, (p, v) => p.LineEndCircles = v);
-            AddChoiceRow("Terrain / obstacles (terrain.par)", ["Filled from the ground (terrain, as on ARTMACS)", "Stepped line with the altitude (minimum altitudes, OCA; default)", "Not drawn"],
+            AddChoiceRow("Terrain / obstacles (terrain.par)", ["Filled from the ground (terrain, as on ARTMACS)", "Stepped line with the altitude (minimum altitudes, OCA)", "Not drawn (default)"],
                 p => (int)p.TerrainDisplay, (p, i) => p.TerrainDisplay = (TerrainDisplay)i,
                 "Profile under the approach of the runway, from terrain.par next to runways.par (field Terrain / obstacles of the runway editor). Colour in Colours and lines → Terrain / obstacles.");
             AddCheckRow("Deviation crosshair of the selected aircraft in the side view, as on ARTMACS (±500 ft up / down, ±1000 ft left / right; click a track to select it; key X on / off)",
