@@ -60,7 +60,7 @@ namespace AuroraPAR
             grid.Children.Clear();
             grid.RowDefinitions.Clear();
             grid.ColumnDefinitions.Clear();
-            foreach (double width in new double[] { 70, 76, 140, 54, 86, 56, 240, 200, 30 })
+            foreach (double width in new double[] { 86, 76, 156, 54, 86, 56, 240, 200, 30 })
             {
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
             }
