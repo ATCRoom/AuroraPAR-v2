@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: User manual
+    url: https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md
+    about: Many questions are answered in the manual (Troubleshooting is section 12).

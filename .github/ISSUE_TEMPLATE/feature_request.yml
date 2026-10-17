@@ -1,0 +1,17 @@
+name: Feature request
+description: An idea for a new function or a change to an existing one.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What you would like AuroraPAR to do, and how you would use it on an approach.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference
+      description: Pictures, manuals or descriptions of a real radar that does it, if any.

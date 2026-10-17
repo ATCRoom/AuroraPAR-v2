@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in AuroraPAR, AuroraCoord or CRSCalculator does not work as it should.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for the report. Please do not post real callsigns of other members or personal paths (C:\\Users\\yourname\\...) in screenshots."
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Date of the build you downloaded (Releases page), or the zip name.
+    validations:
+      required: true
+  - type: dropdown
+    id: program
+    attributes:
+      label: Program
+      options: [AuroraPAR, AuroraCoord, CRSCalculator, Phone coordination panel]
+    validations:
+      required: true
+  - type: input
+    id: profile
+    attributes:
+      label: Profile and display
+      description: e.g. PAR2090, modern display, LOG scale
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw instead. Airport and runway if it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or files
+      description: Drag images here. For coordination problems attach the log (%AppData%\AuroraPAR\coord-AuroraPAR.log).

@@ -95,6 +95,14 @@ footer p{margin:0 0 8px;max-width:60em}
 .tools figcaption b,.phone figcaption b{color:var(--fg)}
 .phone{margin-top:26px;max-width:760px}
 @media (prefers-reduced-motion:reduce){.th img{transition:none}}
+.fb{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;margin-top:30px}
+.fbc{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:22px;text-decoration:none;color:var(--fg);min-width:0}
+.fbc h3{font-size:25px;text-transform:uppercase}
+.fbc p{margin:0;color:var(--muted);font-size:16px;flex:1}
+.fbc .go{font:600 15px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--phos)}
+.fbc:hover{border-color:var(--phos-dim)}
+.fbc:hover .go{text-decoration:underline;text-underline-offset:3px}
+.fbc:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 </style>
 
 <div class="wrap">
@@ -105,6 +113,7 @@ footer p{margin:0 0 8px;max-width:60em}
     <a href="#features">Features</a>
     <a href="#screens">Screenshots</a>
     <a href="#start">Get started</a>
+    <a href="#feedback">Feedback</a>
     <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Manual</a>
   </nav>
 </header>
@@ -114,7 +123,7 @@ footer p{margin:0 0 8px;max-width:60em}
   <div>
     <div class="eyebrow">Precision approach radar for IVAO Aurora</div>
     <h1 style="margin-top:16px">Talk them<br>down on the <span>scope</span></h1>
-    <p class="lead">A fork of <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR by bornac1</a>: a Precision Approach Radar display for the Aurora ATC client, with elevation and azimuth views, a console-style analog mode, a coordination light panel and test traffic to practise with. Highly customizable: make it look like the radar you know, or start from one of nine ready-made profiles.</p>
+    <p class="lead">A fork of <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR by bornac1</a>: a Precision Approach Radar display for the Aurora ATC client, with elevation and azimuth views, a console-style analog mode, a coordination light panel and test traffic to practise with. Tracks that glide smoothly across the scope, and highly customizable: make it look like the radar you know, or start from one of nine ready-made profiles.</p>
     <div class="cta">
       <a class="btn" href="https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build">Download for Windows</a>
       <a class="btn ghost" href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Read the manual</a>
@@ -157,6 +166,11 @@ footer p{margin:0 0 8px;max-width:60em}
   <h2>Built for the approach</h2>
   <p class="sub">Everything a PAR controller looks at, on one screen, with the settings to make it look and behave like the radar you know.</p>
   <div class="feat">
+    <article class="f">
+      <svg viewBox="0 0 54 54" fill="none" stroke="#5df08a" stroke-width="2"><path d="M4 42C16 40 28 30 50 12" stroke="#e8b64a"/><g fill="#5df08a" stroke="none" fill-opacity=".45"><circle cx="10" cy="41" r="1.6"/><circle cx="17" cy="39" r="1.6"/><circle cx="24" cy="35" r="1.6"/><circle cx="31" cy="30" r="1.6"/></g><circle cx="39" cy="22" r="4.5"/><path d="M33 22H45M39 16V28"/></svg>
+      <h3>Tracks that glide</h3>
+      <p>Track drawing rebuilt from scratch: the symbol moves on every frame with the speed, course and descent of the aircraft and is pulled gently towards each new position from Aurora. No more jumps every update: the tracks flow across the scope with an incredibly smooth feel, while the history dots stay on the real positions.</p>
+    </article>
     <article class="f">
       <svg viewBox="0 0 54 54" fill="none" stroke="#5df08a" stroke-width="2"><path d="M4 40H50"/><path d="M4 40L50 14" stroke="#e8b64a"/><path d="M4 48H50" stroke-opacity=".4"/><circle cx="30" cy="27" r="4"/></svg>
       <h3>Two views, like the real thing</h3>
@@ -228,6 +242,30 @@ footer p{margin:0 0 8px;max-width:60em}
     <li><h3>Control</h3><p>Pick a profile with P, try it with test traffic (key T), then use it on the network.</p></li>
   </ol>
   <div class="cta"><a class="btn" href="https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build">Download</a><a class="btn ghost" href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Manual</a></div>
+</section>
+
+<section id="feedback">
+  <div class="eyebrow">Bugs, ideas, profiles</div>
+  <h2>Help shape it</h2>
+  <p class="sub">Reports and requests go to the GitHub issues of the project (a free GitHub account is needed). Pick the form that fits.</p>
+  <div class="fb">
+    <a class="fbc" href="https://github.com/altanico/AuroraPAR-v2/issues/new?template=bug_report.yml">
+      <h3>Bug report</h3>
+      <p>Something does not work as it should in AuroraPAR, AuroraCoord, CRSCalculator or the phone panel. Say which build, which profile, and what you saw; add a screenshot.</p>
+      <span class="go">Report a bug</span>
+    </a>
+    <a class="fbc" href="https://github.com/altanico/AuroraPAR-v2/issues/new?template=feature_request.yml">
+      <h3>Feature request</h3>
+      <p>An idea for a new function or a better way to do something on the approach. Pictures of a real radar that does it help a lot.</p>
+      <span class="go">Suggest a feature</span>
+    </a>
+    <a class="fbc" href="https://github.com/altanico/AuroraPAR-v2/issues/new?template=profile_request.yml">
+      <h3>Profile request</h3>
+      <p>Ask to change one of the bundled profiles, or to recreate the display of a radar system that is not there yet. Detailed documentation is the key: screenshots, photos or manuals of the real display.</p>
+      <span class="go">Request a profile</span>
+    </a>
+  </div>
+  <p class="note">Please share only material you are allowed to share, and keep real callsigns of other members and personal folder names out of screenshots.</p>
 </section>
 
 </main>

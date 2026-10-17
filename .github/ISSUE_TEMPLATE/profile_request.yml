@@ -1,0 +1,38 @@
+name: Profile request
+description: Change a bundled profile, or create the profile of a radar system that is not there yet.
+title: "[Profile] "
+labels: ["profile"]
+body:
+  - type: markdown
+    attributes:
+      value: "A profile can only be as faithful as its sources. Requests with clear screenshots, photos or documentation of the real display get done first. Share only material you are allowed to share."
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request
+      options:
+        - Change an existing profile
+        - Create a new profile of a radar system
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Profile or radar system
+      description: e.g. "PAR-E: wrong colour of the 5 km lines", or "GCA-2000"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What should change, or what the real display looks like
+      description: Colours, lines, labels, units, scales, symbols, console. The more precise, the better.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Documentation
+      description: Screenshots, photos, manuals or links to the real display (drag images here).
+    validations:
+      required: true

@@ -773,6 +773,8 @@ A heading taken from the runway number or from the magnetic value on a chart is 
 | The final course differs from the chart | Check the runway heading (true) and the magnetic variation of the runway. |
 | Elevation tail looks like steps | Real altitude updates arrive every few seconds; set one dot every 3 s. |
 
+**Bugs, ideas and profiles.** Report a problem or ask for something new in the [GitHub issues](https://github.com/altanico/AuroraPAR-v2/issues/new/choose) of the project (free GitHub account): *Bug report*, *Feature request*, or *Profile request* to change a bundled profile or to recreate the display of another radar system. For a profile, attach screenshots, photos or documentation of the real display: the more detailed, the more faithful the profile.
+
 ---
 
 ## 13. Quick reference
