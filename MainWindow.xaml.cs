@@ -470,7 +470,7 @@ namespace AuroraPAR
         {
             Profile profile = settings.Active;
             string ranges = string.Join(",", Ranges.Values);
-            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.ShowCourseSelector}|{profile.BrightnessControl}|{profile.RainClutter}|{profile.DistanceUnit}";
+            string layout = $"{profile.KeyStyle}|{profile.RangeControl}|{profile.PreferredRangeText}|{ranges}|{profile.PreferredRange}|{profile.TiltControl}|{profile.BeamEnabled}|{profile.DhControl}|{profile.ShowDhSelector}|{profile.ShowCourseSelector}|{profile.BrightnessControl}|{profile.RainClutter}|{profile.DistanceUnit}";
             if (layout == analogControlsLayout) return;
             analogControlsLayout = layout;
             KnobPanel.Children.Clear();
@@ -522,7 +522,8 @@ namespace AuroraPAR
                     }
                     break;
             }
-            switch (profile.TiltControl)
+            // No tilt controls without the narrow antenna beam (Settings → Radar).
+            if (profile.BeamEnabled) switch (profile.TiltControl)
             {
                 case AnalogTiltControl.Keys:
                     AddKeyGroup("EL TILT",
@@ -1437,7 +1438,8 @@ namespace AuroraPAR
             // No LIN | LOG keys when the profile allows only one scale.
             ScalePanel.Visibility = analog || settings.Active.DistanceScaleLock != DistanceScaleLock.Both ? Visibility.Collapsed : Visibility.Visible;
             PrefButton.Visibility = modern;
-            TiltPanel.Visibility = modern;
+            // No tilt controls without the narrow antenna beam (Settings → Radar): nothing to move.
+            TiltPanel.Visibility = analog || !settings.Active.BeamEnabled ? Visibility.Collapsed : Visibility.Visible;
             BrightnessPanel.Visibility = modern;
             DhDownButton.Visibility = modern;
             DhUpButton.Visibility = modern;
@@ -2318,16 +2320,10 @@ namespace AuroraPAR
 
         private void TiltAntenna(int elevationSteps, int azimuthSteps)
         {
-            // Beam off (advanced function not in use): the controls stay, a hint says how to turn it on.
+            // Beam off (advanced function not in use): no tilt controls; the keys and the joystick give a reminder.
             if (!radar.BeamEnabled)
             {
-                FrameworkElement analogTarget = settings.Active.TiltControl switch
-                {
-                    AnalogTiltControl.Knobs => elevationSteps != 0 ? elevationKnob : azimuthKnob,
-                    AnalogTiltControl.Joystick => tiltStick,
-                    _ => KnobPanel
-                };
-                ShowTiltHint(viewOptions.Analog ? analogTarget : TiltPanel);
+                ShowBanner("ANTENNA TILT OFF (SETTINGS → RADAR → NARROW ANTENNA BEAM)");
                 return;
             }
             if (radar.Tilt(elevationSteps, azimuthSteps))
@@ -2335,35 +2331,6 @@ namespace AuroraPAR
                 InvalidateViews();
             }
             UpdateKnobs();
-        }
-
-        private System.Windows.Controls.ToolTip? tiltHint;
-        private System.Windows.Threading.DispatcherTimer? tiltHintTimer;
-
-        /// <summary>Shows for a few seconds, next to the tilt control used, how to turn the antenna tilt on.</summary>
-        private void ShowTiltHint(FrameworkElement target)
-        {
-            tiltHint ??= new System.Windows.Controls.ToolTip
-            {
-                Content = "Antenna tilt: turn on the antenna beam to use it\n(Settings → Radar → Narrow antenna beam moved by the tilt).",
-                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
-            };
-            if (viewOptions.Analog) tiltHint.Style = AnalogToolTipStyle;
-            else tiltHint.ClearValue(StyleProperty);
-            tiltHint.IsOpen = false;
-            tiltHint.PlacementTarget = target;
-            tiltHint.IsOpen = true;
-            if (tiltHintTimer == null)
-            {
-                tiltHintTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3.5) };
-                tiltHintTimer.Tick += (s, e) =>
-                {
-                    tiltHintTimer.Stop();
-                    if (tiltHint != null) tiltHint.IsOpen = false;
-                };
-            }
-            tiltHintTimer.Stop();
-            tiltHintTimer.Start();
         }
 
         private void NeutralAntenna()

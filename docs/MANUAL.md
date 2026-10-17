@@ -92,7 +92,7 @@ All profiles and options are in one file:
 | **6** | **GP (°)** | Glide path of the approach: one key per published angle of the runway (when it has more than one), and below a box with the angle in use, where a free angle can be typed (Enter; unpublished approach, orange) ([section 5.3](#53-glide-path-several-approaches-and-unpublished-angle)). |
 | | **DH** box with **−** / **+** (hidden by default, so not numbered: *Settings → Approach and DH → DH selector*) | Decision height for this session ([section 5.2](#52-decision-height-and-course)). |
 | **7** | **BRT** with **−** / **+** | Brightness of the radar picture, 10–150% (also with the mouse wheel over it); saved in the profile. Up to 100% the picture is dimmed; above 100% the colours are made brighter and lighter, for dim monitors. |
-| **8** | **Antenna tilt** | EL ▲ / EL ▼, AZ ◀ / AZ ▶, Neutral ([section 5.1](#51-antenna-tilt)). |
+| **8** | **Antenna tilt** | EL ▲ / EL ▼, AZ ◀ / AZ ▶, Neutral; shown only with the narrow antenna beam on ([section 5.1](#51-antenna-tilt)). |
 | **9** | **Hide labels (L)** | Hides / shows all labels. |
 | **10** | **Analog (A)** | Switches to the analog scope ([section 6](#6-analog-mode)). |
 | **11** | **Settings...** | Profiles and options ([section 10](#10-settings-and-customization)). |
@@ -232,7 +232,7 @@ Optional (*Settings → Approach and DH → Deviation crosshair*, key **X**). At
 
 ### 5.1 Antenna tilt
 
-On the old PAR the antenna beam was narrow, and the antenna was tilted to point it where the aircraft was. This is an **advanced function**, off in a new profile: the radar then sees everything inside the scan limits (default −1° to +10° in elevation, ±15° in azimuth) and the tilt controls only show a hint on how to turn it on. Turn it on with *Settings → Radar → Narrow antenna beam moved by the tilt*: the beam is then set a few degrees narrower than the scan limits (4° in elevation, 6° in azimuth), so the tilt works at once; then set it as you like. With the beam on, AuroraPAR has two sets of lines:
+On the old PAR the antenna beam was narrow, and the antenna was tilted to point it where the aircraft was. This is an **advanced function**, off in a new profile: the radar then sees everything inside the scan limits (default −1° to +10° in elevation, ±15° in azimuth) and the tilt controls are **not shown** (buttons in the modern display, knobs, keys or joystick on the analog console; the arrow keys only show a reminder). Turn it on with *Settings → Radar → Narrow antenna beam moved by the tilt*: the beam is then set a few degrees narrower than the scan limits (4° in elevation, 6° in azimuth), so the tilt works at once; then set it as you like. With the beam on, AuroraPAR has two sets of lines:
 
 - the **scan limits**: the physical limits, as far as the antenna can look; they never move;
 - the **antenna beam**: what the antenna looks at now, with its own width in elevation and azimuth (*Settings → Radar → Antenna beam*). Only the traffic inside the beam is seen (each view with its own beam: leaving the elevation beam a track disappears from the elevation view only, and the other way round), and the range marks are thicker inside it (as on the real scopes).
