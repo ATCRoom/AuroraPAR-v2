@@ -553,6 +553,7 @@ namespace AuroraPAR
                 }
             }
             settings.ActiveProfile = activeName;
+            BundledProfiles.Reloaded(settings, bundled);
             Commit();
         }
 

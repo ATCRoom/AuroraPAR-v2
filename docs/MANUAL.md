@@ -38,7 +38,14 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
    - this manual.
 3. Run `AuroraPAR.exe`. The program is not signed with a paid certificate, so the first time Windows may show **"Windows protected your PC"** (SmartScreen): click **More info → Run anyway**. The SHA-256 of each zip is on the download page (`SHA256SUMS.txt`), to check that the file is the original one.
 
-To update, download the new build and replace the files. Your settings are stored elsewhere ([section 1.4](#14-where-the-settings-are-stored)) and are kept. If you edited `runways.par` or `terrain.par`, keep your copy: the files of the new package replace them.
+**Version.** The version of the program is in the title bar (e.g. *Aurora PAR 0.9.0*); the **Keys** window (F1) also shows the date and commit of the build. Tell it when you report a problem.
+
+**Updating.** The program does not update itself yet: download the new build from the same page and replace the files in your folder.
+
+- **Your settings and profiles are kept**: they are stored elsewhere ([section 1.4](#14-where-the-settings-are-stored)).
+- **Bundled profiles are updated at the first start of the new version, without losing your changes**: a new profile is added; a profile improved in the new version replaces yours **only if you never changed it**; if you changed it, yours is kept as it is and the new version is added beside it as *Name (updated)* (e.g. *PAR2080 (updated)*). A window tells you what was added or updated. A bundled profile you deleted or renamed is not brought back. Changing only the brightness does not count as a change.
+- **`runways.par` and `terrain.par` are replaced** by those of the new package: if you added runways or terrain, keep a copy of your files before and put them back after (or copy only the new program over them).
+- **Reload bundled...** ([section 10.1](#101-profiles)) is still there to go back to the original bundled profiles, overwriting your changes.
 
 ### 1.2 Connecting to Aurora
 

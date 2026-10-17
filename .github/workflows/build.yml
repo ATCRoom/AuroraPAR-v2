@@ -25,6 +25,7 @@ jobs:
         run: >
           dotnet publish AuroraPAR.csproj -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:BuildCommit=${{ github.sha }}
           -o publish
 
       - name: Add the user manual
@@ -85,8 +86,9 @@ jobs:
           $zips | ForEach-Object { '{0}  {1}' -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_ } | Set-Content SHA256SUMS.txt
           $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')
           $short = '${{ github.sha }}'.Substring(0, 7)
-          $notes = "Test build of $date UTC (commit $short). Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
+          $version = (Select-Xml -Path AuroraPAR.csproj -XPath '//Version').Node.InnerText
+          $notes = "AuroraPAR $version, test build of $date UTC (commit $short). Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
           gh release delete test-build --yes --cleanup-tag 2>$null
           $global:LASTEXITCODE = 0
-          gh release create test-build $zips SHA256SUMS.txt --prerelease --target '${{ github.sha }}' --title "Test build ($date UTC)" --notes $notes
+          gh release create test-build $zips SHA256SUMS.txt --prerelease --target '${{ github.sha }}' --title "AuroraPAR $version - test build ($date UTC)" --notes $notes
           if ($LASTEXITCODE -ne 0) { throw 'Release not created' }

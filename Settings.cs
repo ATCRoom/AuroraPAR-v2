@@ -786,6 +786,13 @@ namespace AuroraPAR
         public const int MaxRangeKeyText = 5;
 
         /// <summary>
+        /// Version of a profile that comes with the program (Profiles folder): raised every time the bundled profile is
+        /// changed, so the program can offer the new one at the next start (see <see cref="BundledProfiles"/>). 0 for the
+        /// user's own profiles.
+        /// </summary>
+        public int BundledVersion { get; set; }
+
+        /// <summary>
         /// Deep copy (through JSON, so it stays correct when nested settings are added).
         /// </summary>
         public Profile Clone()
@@ -842,6 +849,8 @@ namespace AuroraPAR
         public bool ShowAdvancedSettings { get; set; }
         /// <summary>Joystick or gamepad: test aircraft and antenna tilt.</summary>
         public JoystickSettings Joystick { get; set; } = new();
+        /// <summary>Bundled profiles already taken (by lower-case name): version and fingerprint, see <see cref="BundledProfiles"/>.</summary>
+        public Dictionary<string, BundledProfileRecord> BundledProfiles { get; set; } = [];
 
         /// <summary>Reminders of a runway (created empty if needed).</summary>
         public List<DistanceReminder> RemindersOf(string runway)
@@ -887,6 +896,7 @@ namespace AuroraPAR
             Coordination.Normalize();
             Joystick ??= new();
             Joystick.Normalize();
+            BundledProfiles ??= [];
             foreach (string key in RunwayReminders.Keys.ToList())
             {
                 if (RunwayReminders[key] == null || RunwayReminders[key].Count == 0) RunwayReminders.Remove(key);
@@ -957,9 +967,13 @@ namespace AuroraPAR
         /// Loads the settings. A missing or empty file gives the defaults. A damaged file is kept as
         /// "...json.bad" (so nothing is lost) and the defaults are used.
         /// </summary>
+        /// <summary>True when <see cref="Load"/> found no settings file (first start: the bundled profiles were taken).</summary>
+        public static bool FirstStart { get; private set; }
+
         public static AppSettings Load()
         {
             string path = FilePath;
+            FirstStart = !File.Exists(path) || new FileInfo(path).Length == 0;
             AppSettings? settings = null;
             try
             {

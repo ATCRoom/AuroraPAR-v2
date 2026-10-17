@@ -7,7 +7,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>AuroraPAR.ico</ApplicationIcon>
+    <!-- Version of the program, shown in the title bar and in the Keys window. Raise it at every release. -->
+    <Version>0.9.0</Version>
   </PropertyGroup>
+
+  <!-- Date and commit of the build (the commit is given by the GitHub build: -p:BuildCommit=...), read by AppInfo. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>BuildDate</_Parameter1>
+      <_Parameter2>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd"))</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Commit</_Parameter1>
+      <_Parameter2>$(BuildCommit)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
 
   <ItemGroup>
     <Resource Include="AuroraPAR.ico" />

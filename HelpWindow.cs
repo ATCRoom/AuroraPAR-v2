@@ -85,7 +85,7 @@ namespace AuroraPAR
     {
         internal ShortcutsWindow()
         {
-            Title = "AuroraPAR — keys and mouse";
+            Title = $"AuroraPAR {AppInfo.FullVersion} — keys and mouse";
             SizeToContent = SizeToContent.WidthAndHeight;
             ResizeMode = ResizeMode.NoResize;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;

@@ -155,10 +155,17 @@ namespace AuroraPAR
             WidthM = 60,
             Distance = 10
         };
+        /// <summary>What the start did with the bundled profiles (told to the user once the window is shown).</summary>
+        private readonly BundledSyncResult bundledSync;
+
         public MainWindow()
         {
             InitializeComponent();
             settings = SettingsStore.Load();
+            // Bundled profiles of a new version: added / updated without losing the user's changes (message once loaded).
+            bundledSync = BundledProfiles.Sync(settings, SettingsStore.FirstStart);
+            if (bundledSync.Changed) SettingsStore.Save(settings);
+            Title = $"Aurora PAR {AppInfo.Version}";
             RestoreWindowPlacement();
             this.Loaded += MainWindow_Loaded;
             DistanceComboBox.ItemsSource = distances;
@@ -1721,6 +1728,11 @@ namespace AuroraPAR
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            if (BundledProfiles.Message(bundledSync) is string news)
+            {
+                Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(this, news, "AuroraPAR " + AppInfo.Version + " - profiles", MessageBoxButton.OK, MessageBoxImage.Information)),
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
             StartAuroraConnectionHint();
             try
             {
