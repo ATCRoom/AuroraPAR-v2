@@ -199,7 +199,7 @@ Each track has a **label** in each view. Its content is configurable (*Settings 
 
 | Field | Example |
 |---|---|
-| Callsign | `AZA123` |
+| Callsign | `TEST1` |
 | Distance from touchdown | `6.2 NM` |
 | Altitude (QNH) / height (QFE) | `A 2060 ft` / `H 1900 ft` |
 | Ground speed | `140 Kts` |

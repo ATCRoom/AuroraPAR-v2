@@ -49,7 +49,7 @@ namespace AuroraPAR
 
         private static string NormalSample(LabelField field, bool km) => field switch
         {
-            LabelField.Callsign => "AZA123",
+            LabelField.Callsign => "TEST1",
             LabelField.DistanceFromTouchdown => km ? "11.48 km" : "6.2 NM",
             LabelField.Altitude => "A 2060 ft",
             LabelField.GroundSpeed => "140 Kts",
