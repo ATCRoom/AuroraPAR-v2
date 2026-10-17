@@ -26,18 +26,19 @@ namespace AuroraPAR
         private static string? Metadata(string key) =>
             Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == key)?.Value;
 
+        /// <summary>Time of the build (UTC), or null.</summary>
+        public static DateTime? BuildTime =>
+            DateTime.TryParse(Metadata("BuildTime"), System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out DateTime time) ? time : null;
+
         /// <summary>Build date (UTC, yyyy-MM-dd), or empty.</summary>
-        public static string BuildDate => Metadata("BuildDate") ?? "";
+        public static string BuildDate => BuildTime?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+
+        /// <summary>Full commit of the build (GitHub builds), or empty (local builds).</summary>
+        public static string FullCommit => Metadata("Commit") ?? "";
 
         /// <summary>Short commit of the build, or empty (local builds).</summary>
-        public static string Commit
-        {
-            get
-            {
-                string? commit = Metadata("Commit");
-                return string.IsNullOrEmpty(commit) ? "" : commit[..Math.Min(7, commit.Length)];
-            }
-        }
+        public static string Commit => FullCommit[..Math.Min(7, FullCommit.Length)];
 
         /// <summary>e.g. "2.0.0-beta (build 2026-10-17, a1b2c3d)".</summary>
         public static string FullVersion

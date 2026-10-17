@@ -1733,6 +1733,12 @@ namespace AuroraPAR
                 Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(this, news, "AuroraPAR v2 (" + AppInfo.Version + ") - profiles", MessageBoxButton.OK, MessageBoxImage.Information)),
                     System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
+            // New version notice (once a day, in the background; silent without internet).
+            _ = Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                await UpdateCheck.RunAsync(this, settings);
+            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             StartAuroraConnectionHint();
             try
             {

@@ -40,7 +40,7 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
 
 **Version.** The version of the program is in the title bar (e.g. *AuroraPAR v2 (2.0.0-beta)*); the **Keys** window (F1) also shows the date and commit of the build. Tell it when you report a problem.
 
-**Updating.** The program does not update itself yet: download the new build from the same page and replace the files in your folder.
+**Updating.** At the start (at most once a day, if there is an internet connection) AuroraPAR checks whether a newer build has been published and, if so, offers to open the download page (*Yes*: open it, *No*: remind me tomorrow, *Cancel*: not again for this version). It does not install anything by itself: download the new zip and replace the files in your folder. (To turn the check off, set `"CheckForUpdates": false` in the settings file, [section 1.4](#14-where-the-settings-are-stored).)
 
 - **Your settings and profiles are kept**: they are stored elsewhere ([section 1.4](#14-where-the-settings-are-stored)).
 - **Bundled profiles are updated at the first start of the new version, without losing your changes**: a new profile is added; a profile improved in the new version replaces yours **only if you never changed it**; if you changed it, yours is kept as it is and the new version is added beside it as *Name (updated)* (e.g. *PAR2080 (updated)*). A window tells you what was added or updated. A bundled profile you deleted or renamed is not brought back. What you change with the keys and knobs while working (brightness, A, C, X, O) does not count as a change, and it is kept when the profile is updated. A profile of your own that has the same name as a new bundled one is never replaced.

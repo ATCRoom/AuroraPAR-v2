@@ -851,6 +851,12 @@ namespace AuroraPAR
         public JoystickSettings Joystick { get; set; } = new();
         /// <summary>Bundled profiles already taken (by lower-case name): version and fingerprint, see <see cref="BundledProfiles"/>.</summary>
         public Dictionary<string, BundledProfileRecord> BundledProfiles { get; set; } = [];
+        /// <summary>New version notice at the start (once a day); false: never asked (see <see cref="UpdateCheck"/>).</summary>
+        public bool CheckForUpdates { get; set; } = true;
+        /// <summary>Last time GitHub was asked for a new version (UTC).</summary>
+        public DateTime? LastUpdateCheck { get; set; }
+        /// <summary>Commit of the published build the user chose not to be told about again.</summary>
+        public string? SkippedRelease { get; set; }
 
         /// <summary>Reminders of a runway (created empty if needed).</summary>
         public List<DistanceReminder> RemindersOf(string runway)
