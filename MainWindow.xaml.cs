@@ -165,7 +165,7 @@ namespace AuroraPAR
             // Bundled profiles of a new version: added / updated without losing the user's changes (message once loaded).
             bundledSync = BundledProfiles.Sync(settings, SettingsStore.FirstStart);
             if (bundledSync.Changed) SettingsStore.Save(settings);
-            Title = $"Aurora PAR {AppInfo.Version}";
+            Title = $"AuroraPAR v2 ({AppInfo.Version})";
             RestoreWindowPlacement();
             this.Loaded += MainWindow_Loaded;
             DistanceComboBox.ItemsSource = distances;
@@ -1730,7 +1730,7 @@ namespace AuroraPAR
         {
             if (BundledProfiles.Message(bundledSync) is string news)
             {
-                Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(this, news, "AuroraPAR " + AppInfo.Version + " - profiles", MessageBoxButton.OK, MessageBoxImage.Information)),
+                Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(this, news, "AuroraPAR v2 (" + AppInfo.Version + ") - profiles", MessageBoxButton.OK, MessageBoxImage.Information)),
                     System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
             StartAuroraConnectionHint();

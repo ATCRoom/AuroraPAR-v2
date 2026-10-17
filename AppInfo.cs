@@ -7,13 +7,19 @@ namespace AuroraPAR
     {
         private static readonly Assembly Assembly = typeof(AppInfo).Assembly;
 
-        /// <summary>e.g. "0.9.0".</summary>
+        /// <summary>e.g. "2.0.0-beta" (the Version of the csproj).</summary>
         public static string Version
         {
             get
             {
-                Version? v = Assembly.GetName().Version;
-                return v == null ? "?" : $"{v.Major}.{v.Minor}.{v.Build}";
+                string? text = Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                if (string.IsNullOrEmpty(text))
+                {
+                    Version? v = Assembly.GetName().Version;
+                    return v == null ? "?" : $"{v.Major}.{v.Minor}.{v.Build}";
+                }
+                int plus = text.IndexOf('+');
+                return plus >= 0 ? text[..plus] : text;
             }
         }
 
@@ -33,7 +39,7 @@ namespace AuroraPAR
             }
         }
 
-        /// <summary>e.g. "0.9.0 (build 2026-10-17, a1b2c3d)".</summary>
+        /// <summary>e.g. "2.0.0-beta (build 2026-10-17, a1b2c3d)".</summary>
         public static string FullVersion
         {
             get

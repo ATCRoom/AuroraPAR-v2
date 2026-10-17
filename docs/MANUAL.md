@@ -38,7 +38,7 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
    - this manual.
 3. Run `AuroraPAR.exe`. The program is not signed with a paid certificate, so the first time Windows may show **"Windows protected your PC"** (SmartScreen): click **More info → Run anyway**. The SHA-256 of each zip is on the download page (`SHA256SUMS.txt`), to check that the file is the original one.
 
-**Version.** The version of the program is in the title bar (e.g. *Aurora PAR 0.9.0*); the **Keys** window (F1) also shows the date and commit of the build. Tell it when you report a problem.
+**Version.** The version of the program is in the title bar (e.g. *AuroraPAR v2 (2.0.0-beta)*); the **Keys** window (F1) also shows the date and commit of the build. Tell it when you report a problem.
 
 **Updating.** The program does not update itself yet: download the new build from the same page and replace the files in your folder.
 

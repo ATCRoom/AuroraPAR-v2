@@ -7,8 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>AuroraPAR.ico</ApplicationIcon>
-    <!-- Version of the program, shown in the title bar and in the Keys window. Raise it at every release. -->
-    <Version>0.9.0</Version>
+    <!-- Version of the program, shown in the title bar and in the Keys window. Raise it at every release (2.0.0 for the final one). -->
+    <Version>2.0.0-beta</Version>
   </PropertyGroup>
 
   <!-- Date and commit of the build (the commit is given by the GitHub build: -p:BuildCommit=...), read by AppInfo. -->

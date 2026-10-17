@@ -88,8 +88,8 @@ jobs:
           $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')
           $short = '${{ github.sha }}'.Substring(0, 7)
           $version = (Select-Xml -Path AuroraPAR.csproj -XPath '//Version').Node.InnerText
-          $notes = "AuroraPAR $version, test build of $date UTC (commit $short). Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
+          $notes = "AuroraPAR v2 ($version), test build of $date UTC (commit $short). Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
           gh release delete test-build --yes --cleanup-tag 2>$null
           $global:LASTEXITCODE = 0
-          gh release create test-build $zips SHA256SUMS.txt --prerelease --target '${{ github.sha }}' --title "AuroraPAR $version - test build ($date UTC)" --notes $notes
+          gh release create test-build $zips SHA256SUMS.txt --prerelease --target '${{ github.sha }}' --title "AuroraPAR v2 ($version) - test build ($date UTC)" --notes $notes
           if ($LASTEXITCODE -ne 0) { throw 'Release not created' }
