@@ -645,7 +645,7 @@ An optional profile of the terrain or of the minimum altitudes under the approac
 
 ```
 ICAO;RUNWAY;FROM-TO=ALTITUDE;FROM-TO=ALTITUDE;...
-LIRN;24;9.4-11.1=3310;11.1-13.8=3910;13.8-19.0=5200
+LIRN;24;9.4-11.1=3000;11.1-13.8=3500;13.8-19.0=4300
 ```
 
 **RUNWAY** is the first word of the designator in runways.par (`24`, `16L`). **FROM-TO** are distances in NM from the threshold, **ALTITUDE** in ft above sea level, as on the charts. Lines starting with `#` are comments; a missing file means no terrain. In the runway editor the same steps are in the field **Terrain / obstacles** (`9.4-11.1=3310; 11.1-13.8=3910`), saved in terrain.par with Save (only the runways whose terrain was changed; the other lines stay as they are; the old file is kept as terrain.par.bak). Note: like runways.par, the terrain.par of a new package replaces yours if you copy it over: keep a copy of your own.
