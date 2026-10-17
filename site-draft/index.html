@@ -43,7 +43,7 @@ nav a:hover{color:var(--phos)}
 .note{font:400 13px/1.5 var(--mono);color:var(--muted);margin-top:14px;max-width:46em}
 
 .scope{background:#050806;border:1px solid var(--line);border-radius:6px;padding:10px;position:relative;overflow:hidden}
-.scope svg{display:block;width:100%;height:auto}
+.scope img{display:block;width:100%;height:auto;border-radius:3px}
 .scope .cap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 12px/1.4 var(--mono);color:var(--muted);padding:8px 4px 2px}
 .sweep{transform-origin:40px 232px;animation:sweep 6s linear infinite}
 @keyframes sweep{0%{transform:rotate(-1.2deg)}50%{transform:rotate(4.6deg)}100%{transform:rotate(-1.2deg)}}
@@ -122,54 +122,9 @@ footer p{margin:0 0 8px;max-width:60em}
     <p class="note">Test build for Windows 64-bit. Free, open source (MIT). A third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. For flight simulation only, never for real navigation.</p>
   </div>
 
-  <figure class="scope" style="margin:0" aria-label="Drawing of the two PAR views: elevation above, azimuth below, with an aircraft on the glide path">
-    <svg viewBox="0 0 520 440" role="img" aria-hidden="true">
-      <defs>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <radialGradient id="blob"><stop offset="0" stop-color="#5df08a" stop-opacity=".55"/><stop offset="1" stop-color="#5df08a" stop-opacity="0"/></radialGradient>
-        <clipPath id="ce"><polygon points="40,232 504,42 504,148"/></clipPath>
-        <clipPath id="ca"><polygon points="40,360 504,318 504,402"/></clipPath>
-      </defs>
-      <!-- elevation view -->
-      <rect x="8" y="14" width="504" height="236" fill="none" stroke="#1b2a22"/>
-      <g stroke="#14241b">
-        <path d="M108 14V250M176 14V250M244 14V250M312 14V250M380 14V250M448 14V250"/>
-      </g>
-      <path d="M40 232H504" stroke="#5df08a" stroke-width="2" filter="url(#glow)"/>
-      <path d="M40 232L504 92" stroke="#e8b64a" stroke-width="2" filter="url(#glow)"/>
-      <path d="M40 232L504 42M40 232L504 148" stroke="#2a7a45" stroke-dasharray="5 4"/>
-      <path d="M40 232L504 62M40 232L504 128" stroke="#1f5e36"/>
-      <g clip-path="url(#ce)" filter="url(#glow)">
-        <ellipse cx="190" cy="196" rx="26" ry="9" fill="url(#blob)"/>
-        <ellipse cx="262" cy="160" rx="34" ry="12" fill="url(#blob)"/>
-        <ellipse cx="338" cy="140" rx="22" ry="8" fill="url(#blob)"/>
-        <ellipse cx="420" cy="110" rx="36" ry="13" fill="url(#blob)"/>
-        <g fill="#5df08a"><circle cx="150" cy="208" r="1.3"/><circle cx="226" cy="178" r="1.3"/><circle cx="298" cy="150" r="1.3"/><circle cx="372" cy="124" r="1.3"/><circle cx="458" cy="86" r="1.3"/><circle cx="404" cy="132" r="1.3"/><circle cx="318" cy="170" r="1.3"/><circle cx="248" cy="196" r="1.3"/></g>
-      </g>
-      <g stroke="#5df08a" fill="none" filter="url(#glow)">
-        <circle cx="300" cy="145" r="6" stroke-width="2"/><path d="M291 145H309M300 136V154"/>
-      </g>
-      <path class="sweep" d="M40 232L504 92" stroke="#5df08a" stroke-opacity=".55" stroke-width="1.5"/>
-      <g font-family="IBM Plex Mono,monospace" font-size="10" fill="#5e7a69">
-        <text x="104" y="246">1</text><text x="172" y="246">2</text><text x="240" y="246">3</text><text x="308" y="246">4</text><text x="376" y="246">5</text><text x="444" y="246">6 NM</text>
-        <text x="16" y="30">ELEVATION</text>
-      </g>
-      <!-- azimuth view -->
-      <rect x="8" y="270" width="504" height="160" fill="none" stroke="#1b2a22"/>
-      <g stroke="#14241b"><path d="M108 270V430M176 270V430M244 270V430M312 270V430M380 270V430M448 270V430"/></g>
-      <path d="M40 350H504" stroke="#e8b64a" stroke-width="2" filter="url(#glow)"/>
-      <path d="M40 350L504 304M40 350L504 396" stroke="#2a7a45" stroke-dasharray="5 4"/>
-      <g clip-path="url(#ca)" filter="url(#glow)">
-        <ellipse cx="236" cy="345" rx="40" ry="8" fill="url(#blob)"/>
-        <ellipse cx="410" cy="336" rx="44" ry="12" fill="url(#blob)"/>
-        <g fill="#5df08a"><circle cx="160" cy="352" r="1.3"/><circle cx="300" cy="356" r="1.3"/><circle cx="352" cy="344" r="1.3"/><circle cx="470" cy="360" r="1.3"/></g>
-      </g>
-      <g stroke="#5df08a" fill="none" filter="url(#glow)">
-        <circle cx="300" cy="347" r="6" stroke-width="2"/><path d="M291 347H309M300 338V356"/>
-      </g>
-      <text x="16" y="286" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5e7a69">AZIMUTH</text>
-    </svg>
-    <figcaption class="cap"><span>Drawing: analog scope, rain clutter, aircraft on the glide path</span><span>not a screenshot</span></figcaption>
+  <figure class="scope" style="margin:0">
+    <img src="images/profile-par2080.png" alt="AuroraPAR in analog mode, PAR2080 profile: phosphor scope with elevation and azimuth views, drum readouts and FIAR keys" width="1405" height="1042">
+    <figcaption class="cap"><span>Real screenshot: analog console, PAR2080 profile, test traffic on final to LIRN 24</span></figcaption>
   </figure>
 </div>
 
