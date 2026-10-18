@@ -65,7 +65,7 @@ namespace AuroraPAR
         public CoordinationSound Sound { get; set; } = CoordinationSound.EveryPress;
 
         /// <summary>The panel for phones and tablets (a web page, see docs/coord).</summary>
-        public const string PhonePanelUrl = "https://altanico.github.io/AuroraPAR-v2/coord/";
+        public const string PhonePanelUrl = "https://atcroom.github.io/AuroraPAR-v2/coord/";
 
         /// <summary>
         /// Link that opens the phone panel already set: airport, role, colours and engraved texts.

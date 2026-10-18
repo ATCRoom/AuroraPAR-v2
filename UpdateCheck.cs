@@ -7,13 +7,13 @@ namespace AuroraPAR
 {
     /// <summary>
     /// New version notice: at the start, at most once a day, asks GitHub for the published build (Releases) and, when
-    /// it is newer than this one, offers to open the download page. Nothing is downloaded or installed: the user
+    /// it is newer than this one, offers to open its page (Releases). Nothing is downloaded or installed: the user
     /// replaces the files as usual. Silent when there is no internet, no answer, or a build made outside GitHub.
     /// </summary>
     internal static class UpdateCheck
     {
-        /// <summary>The published build (the GitHub API follows the repository if it is moved, e.g. to ATCRoom).</summary>
-        private const string ReleaseApi = "https://api.github.com/repos/altanico/AuroraPAR-v2/releases/tags/test-build";
+        /// <summary>The most recent release (versions and pre-releases), newest first.</summary>
+        private const string ReleaseApi = "https://api.github.com/repos/ATCRoom/AuroraPAR-v2/releases?per_page=1";
 
         private sealed record Release(string Name, string Commit, DateTime Published, string Page);
 
@@ -59,7 +59,8 @@ namespace AuroraPAR
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("AuroraPAR/" + AppInfo.Version.Replace(' ', '-'));
                 http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
                 using JsonDocument json = JsonDocument.Parse(await http.GetStringAsync(ReleaseApi));
-                JsonElement root = json.RootElement;
+                if (json.RootElement.ValueKind != JsonValueKind.Array || json.RootElement.GetArrayLength() == 0) return null;
+                JsonElement root = json.RootElement[0];
                 string name = root.GetProperty("name").GetString() ?? "";
                 string commit = root.GetProperty("target_commitish").GetString() ?? "";
                 string page = root.GetProperty("html_url").GetString() ?? "";

@@ -30,7 +30,7 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
 
 ### 1.1 Installation
 
-1. Open the **[Test build](https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build)** page on GitHub (Releases; no GitHub account needed) and download **AuroraPAR-win-x64.zip**. The same page has **AuroraCoord** (the coordination panel for the tower, [section 8](#8-coordination-panel)) and **CRSCalculator** (runway headings, [section 11.5](#115-crscalculator-runway-heading-and-magnetic-variation)).
+1. Open the **[AuroraPAR website](https://atcroom.github.io/AuroraPAR-v2/)** and press **Download**, or go straight to the **[Releases](https://github.com/ATCRoom/AuroraPAR-v2/releases)** page on GitHub (no GitHub account needed), and download **AuroraPAR-win-x64.zip** of the latest version. The same page has **AuroraCoord** (the coordination panel for the tower, [section 8](#8-coordination-panel)) and **CRSCalculator** (runway headings, [section 11.5](#115-crscalculator-runway-heading-and-magnetic-variation)).
 2. Unzip it into a folder of your choice. It contains:
    - `AuroraPAR.exe` — the program (Windows 64-bit, nothing else to install);
    - `runways.par` — the runway database, and `terrain.par` — the optional terrain profiles (keep them **next to** `AuroraPAR.exe`);
@@ -388,7 +388,7 @@ The airport is the same as in the modern display (ICAO box and runway keys there
 
 The **Coordination** button opens a small panel for **voiceless coordination** between the radar (PAR / approach) and the tower, as on the light panels of real PAR rooms.
 
-**For the tower: AuroraCoord.** The tower controller does not need the PAR display: download **AuroraCoord-win-x64.zip** (same *Test build* page as AuroraPAR) and run `AuroraCoord.exe`, a small program with only this panel. It works with the panel inside AuroraPAR (and two AuroraCoord can also work together). It needs Aurora running on the same PC, like AuroraPAR. Its options are saved in `%AppData%\AuroraPAR\AuroraCoord.settings.json` (or in a file with that name next to `AuroraCoord.exe`, portable mode).
+**For the tower: AuroraCoord.** The tower controller does not need the PAR display: download **AuroraCoord-win-x64.zip** (same Releases page as AuroraPAR) and run `AuroraCoord.exe`, a small program with only this panel. It works with the panel inside AuroraPAR (and two AuroraCoord can also work together). It needs Aurora running on the same PC, like AuroraPAR. Its options are saved in `%AppData%\AuroraPAR\AuroraCoord.settings.json` (or in a file with that name next to `AuroraCoord.exe`, portable mode).
 
 | | |
 |---|---|
@@ -421,7 +421,7 @@ Example: at 12 NM the radar presses white (flashing, alert in the tower), the to
 
 ![The same panel on a phone, in landscape](images/phone-panel.png)
 
-**On a phone or tablet:** the same panel also runs in the browser of a phone or tablet, with nothing to install: <https://altanico.github.io/AuroraPAR-v2/coord/>. Use it instead of the window on the PC, or as an **extra panel** next to it (same role as the PC: pressing on the phone or on the PC is the same).
+**On a phone or tablet:** the same panel also runs in the browser of a phone or tablet, with nothing to install: <https://atcroom.github.io/AuroraPAR-v2/coord/>. Use it instead of the window on the PC, or as an **extra panel** next to it (same role as the PC: pressing on the phone or on the PC is the same).
 
 - **Quickest:** in the panel on the PC, *Options* → **Open on phone / tablet...** shows a **QR code**. Scan it with the phone camera: the phone panel opens already set with the airport, the role, the colours and the texts of the PC panel. *Copy link* gives the same link, to send it by message.
 - **By hand:** open the address above; the first time it asks for the airport and the role (Radar, Tower, Monitor), and the panel code if your group uses one. The **⚙** button in the top right corner changes them, with the colour and the engraved text of each button.
@@ -782,7 +782,7 @@ A heading taken from the runway number or from the magnetic value on a chart is 
 | The final course differs from the chart | Check the runway heading (true) and the magnetic variation of the runway. |
 | Elevation tail looks like steps | Real altitude updates arrive every few seconds; set one dot every 3 s. |
 
-**Bugs, ideas and profiles.** Report a problem or ask for something new in the [GitHub issues](https://github.com/altanico/AuroraPAR-v2/issues/new/choose) of the project (free GitHub account): *Bug report*, *Feature request*, or *Profile request* to change a bundled profile or to recreate the display of another radar system. For a profile, attach screenshots, photos or documentation of the real display: the more detailed, the more faithful the profile.
+**Questions, bugs, ideas and profiles.** Use the contact form of the [website](https://atcroom.github.io/AuroraPAR-v2/#feedback) (no account needed), or the [GitHub issues](https://github.com/ATCRoom/AuroraPAR-v2/issues/new/choose) of the project if you have a GitHub account: *Bug report*, *Feature request*, or *Profile request* to change a bundled profile or to recreate the display of another radar system. For a profile, attach screenshots, photos or documentation of the real display: the more detailed, the more faithful the profile.
 
 ---
 

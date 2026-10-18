@@ -10,7 +10,7 @@ namespace AuroraPAR
     internal static class Help
     {
         /// <summary>User manual. Changes with the move to ATCRoom (see TODO.md, migration).</summary>
-        public const string ManualUrl = "https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md";
+        public const string ManualUrl = "https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/MANUAL.md";
 
         /// <summary>
         /// All the keyboard and mouse shortcuts, by group. The one list shown by the Keys window: when a key is added

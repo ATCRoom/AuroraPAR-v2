@@ -1,6 +1,6 @@
 # Builds AuroraPAR on GitHub's Windows machines at every push.
 # The ready-to-run programs are attached to each run as artifacts (Actions tab -> latest run -> Artifacts; a GitHub
-# account is needed to download them). A push to master also refreshes the public pre-release "Test build"
+# account is needed to download them). A push to master also publishes the release of the current version
 # (Releases page, no account needed). They do not require .NET to be installed.
 name: Build
 
@@ -15,9 +15,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.x'
 
@@ -31,7 +31,7 @@ jobs:
       - name: Add the user manual
         run: Copy-Item docs/MANUAL.md publish/MANUAL.md
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: AuroraPAR-win-x64
           path: |
@@ -48,7 +48,7 @@ jobs:
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           -o publish-coord
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: AuroraCoord-win-x64
           path: publish-coord/AuroraCoord.exe
@@ -68,14 +68,15 @@ jobs:
           if (Test-Path $report) { Get-Content $report }
           if ($p.ExitCode -ne 0) { throw 'CRSCalculator self-test failed' }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: CRSCalculator-win-x64
           path: publish-crs/CRSCalculator.exe
 
-      # Public download without a GitHub account: one pre-release "Test build" (tag test-build), replaced at every push
-      # to master, with the three programs as zip files and their SHA-256.
-      - name: Publish the test build (Releases)
+      # Public download without a GitHub account: one release per version (tag v<Version of the csproj>, e.g. v2.0.0-beta),
+      # replaced at every push to master while the version stays the same; a version with a suffix (-beta) is a
+      # pre-release. The three programs as zip files, with their SHA-256. AuroraPAR checks the newest release at start.
+      - name: Publish the release of this version (Releases)
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -88,8 +89,12 @@ jobs:
           $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')
           $short = '${{ github.sha }}'.Substring(0, 7)
           $version = (Select-Xml -Path AuroraPAR.csproj -XPath '//Version').Node.InnerText
-          $notes = "AuroraPAR v2 ($version), test build of $date UTC (commit $short). Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
+          $tag = "v$version"
+          $pre = if ($version.Contains('-')) { '--prerelease' } else { '--latest' }
+          $notes = "AuroraPAR v2 $version, build of $date UTC (commit $short). Website: https://atcroom.github.io/AuroraPAR-v2/ - Third-party add-on for IVAO's Aurora software, not made, endorsed or supported by IVAO. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway). Your settings and profiles are kept."
+          # The old single test build is retired.
           gh release delete test-build --yes --cleanup-tag 2>$null
+          gh release delete $tag --yes --cleanup-tag 2>$null
           $global:LASTEXITCODE = 0
-          gh release create test-build $zips SHA256SUMS.txt --prerelease --target '${{ github.sha }}' --title "AuroraPAR v2 ($version) - test build ($date UTC)" --notes $notes
+          gh release create $tag $zips SHA256SUMS.txt $pre --target '${{ github.sha }}' --title "AuroraPAR v2 $version (build $date UTC)" --notes $notes
           if ($LASTEXITCODE -ne 0) { throw 'Release not created' }
