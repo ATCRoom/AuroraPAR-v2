@@ -303,7 +303,7 @@ footer p{margin:0 0 8px;max-width:60em}
   <div class="eyebrow">Contact, bugs, ideas, profiles</div>
   <h2>Get in touch</h2>
   <p class="sub">A question, a bug, an idea, or the display of a radar you know? Send it here: no account needed. For quick answers, see the <a href="#faq">FAQ</a> first. For a profile, detailed documentation is the key: screenshots, photos or manuals of the real display.</p>
-  <form class="form" id="fb-form" action="https://formsubmit.co/FORM_CODE" method="POST" enctype="multipart/form-data">
+  <form class="form" id="fb-form" action="https://formsubmit.co/9f4701d0f2bb2c8409636e3a59ca6677" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="_subject" id="fb-subject" value="AuroraPAR: request from the website">
     <input type="hidden" name="_template" value="table">
     <input type="hidden" name="_next" id="fb-next" value="">
@@ -379,7 +379,6 @@ footer p{margin:0 0 8px;max-width:60em}
   document.querySelectorAll('.to-support').forEach(function(a){a.addEventListener('click',function(){document.getElementById('t-help').checked=true;update();});});
   form.addEventListener('submit',function(e){
     var st=document.getElementById('fb-status');
-    if(form.action.indexOf('FORM_CODE')>=0){e.preventDefault();st.textContent='The form is not active yet: it works once the site is online.';return;}
     var size=0;['fb-file1','fb-file2','fb-file3'].forEach(function(id){var f=document.getElementById(id).files[0];if(f)size+=f.size;});
     if(size>10*1024*1024){e.preventDefault();st.textContent='The files are larger than 10 MB in total: send fewer or smaller ones.';return;}
     try{document.getElementById('fb-next').value=new URL('thanks.html',location.href).href;}catch(_){}
