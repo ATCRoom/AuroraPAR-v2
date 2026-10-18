@@ -80,7 +80,6 @@ namespace AuroraPAR
         private readonly Button[] turnButtons = new Button[3];
         private readonly Canvas pad = new() { Width = PadSize, Height = PadSize, Background = Frozen(Color.FromRgb(0x22, 0x24, 0x22)), Cursor = Cursors.Hand };
         private readonly Ellipse knob = new() { Width = KnobSize, Height = KnobSize, Fill = Frozen(Color.FromRgb(0x70, 0xD0, 0x70)), Stroke = Brushes.Black, IsHitTestVisible = false };
-        private readonly CheckBox freezeCheck = new() { Content = "Freeze", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), ToolTip = "Holds the aircraft where it is (to explain a situation to the student); it keeps its instructions." };
         private readonly TextBox renameBox = new() { Width = 70, Height = 22, VerticalContentAlignment = VerticalAlignment.Center };
         private readonly GroupBox controlPanel;
 
@@ -448,11 +447,8 @@ namespace AuroraPAR
             columns.Children.Add(manualGroup);
             control.Children.Add(columns);
 
-            // Service: freeze, rename, joystick settings.
+            // Service: rename, joystick settings. (Freeze of one aircraft: frozen 18 Oct, still in the engine.)
             WrapPanel service = new() { Margin = new Thickness(0, 2, 0, 0) };
-            service.Children.Add(freezeCheck);
-            freezeCheck.Checked += (s, e) => SetFrozen(true);
-            freezeCheck.Unchecked += (s, e) => SetFrozen(false);
             service.Children.Add(Caption("Callsign"));
             service.Children.Add(renameBox);
             Button rename = SmallButton("Rename");
@@ -763,12 +759,6 @@ namespace AuroraPAR
             bridge.Engine.SetSpeed(callsign, speed);
         }
 
-        private void SetFrozen(bool frozen)
-        {
-            if (updating || SelectedCallsign is not string callsign) return;
-            bridge.Engine.SetFrozen(callsign, frozen);
-        }
-
         private void Rename()
         {
             if (SelectedCallsign is not string callsign) return;
@@ -990,7 +980,6 @@ namespace AuroraPAR
                     if (!altitudeBox.IsKeyboardFocused) altitudeBox.Text = (Math.Round(target / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
                     if (!speedBox.IsKeyboardFocused) speedBox.Text = state.TargetSpeedKt.ToString("0", CultureInfo.InvariantCulture);
                     renameBox.Text = state.Callsign;
-                    freezeCheck.IsChecked = state.Frozen;
                     int index = Array.FindIndex(VerticalRates, r => Math.Abs(r - state.SelectedVerticalRateFpm) < 1);
                     if (index >= 0) altitudeRateBox.SelectedIndex = index;
                 }

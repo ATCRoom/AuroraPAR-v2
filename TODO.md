@@ -38,6 +38,7 @@ Ready profiles made from pictures of real displays: the user sends pictures / li
 
 Ideas kept but stopped on purpose (not for now); they come back only when the user says so.
 
+- **Instructor: Freeze of one aircraft (frozen 18 Oct).** Holds one simulated aircraft where it is while the others fly on (park it, or show a situation). Taken out of the Instructor window: a track stopping in mid-air is not realistic for the student, and orbits / extended downwind (modes) do the "park" job credibly. Still in the engine (`SimEngine.SetFrozen`, self-tested), so it costs little to bring back. Pause (whole simulation) stays.
 - **Weather radar (frozen 16 Oct: not needed for our purposes now).** Design agreed and mock-ups made (16 Oct, scratchpad `wx/`): one 3D cell model for both views and the analog scope, manual / random cells, key W, polarisation CLEAR/RAIN, display styles per profile (only style 1, hatched contours with ARTMACS-style, for a start). Full notes in *Profiles from photos* (ARTMACS weather picture).
 - **External controls — FROZEN until the keypad arrives** (mini keypad, 9 keys + 3 knobs, programmable with its own software, onboard memory). Agreed plan:
   - Large knob = RANGE (press: back to a chosen start range); small knob 1 = EL TILT, small knob 2 = AZ TILT (press: tilt back to zero).
