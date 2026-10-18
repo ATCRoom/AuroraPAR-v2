@@ -115,6 +115,16 @@ footer p{margin:0 0 8px;max-width:60em}
 .send{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .send .btn{border:0;cursor:pointer}
 .status{font:400 14px/1.4 var(--mono);color:var(--amber)}
+.faq{display:grid;gap:10px;margin-top:26px;max-width:860px}
+.qa{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.qa summary{cursor:pointer;list-style:none;padding:16px 48px 16px 18px;font:600 20px/1.25 var(--display);letter-spacing:.02em;color:var(--fg);position:relative}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);font:500 22px/1 var(--mono);color:var(--phos)}
+.qa[open] summary::after{content:"−"}
+.qa[open] summary{color:var(--phos)}
+.qa summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+.qa p{margin:0;padding:0 18px 18px;color:var(--muted);font-size:16px;max-width:62em}
+.types{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 </style>
 
 <div class="wrap">
@@ -125,7 +135,8 @@ footer p{margin:0 0 8px;max-width:60em}
     <a href="#features">Features</a>
     <a href="#screens">Screenshots</a>
     <a href="#start">Get started</a>
-    <a href="#feedback">Feedback</a>
+    <a href="#faq">FAQ</a>
+    <a href="#feedback" class="to-support">Contact</a>
     <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Manual</a>
   </nav>
 </header>
@@ -256,10 +267,33 @@ footer p{margin:0 0 8px;max-width:60em}
   <div class="cta"><a class="btn" href="https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build">Download</a><a class="btn ghost" href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">Manual</a></div>
 </section>
 
+<section id="faq">
+  <div class="eyebrow">Questions</div>
+  <h2>FAQ</h2>
+  <p class="sub">The quick answers. The <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md">user manual</a> has all the details.</p>
+  <div class="faq">
+    <details class="qa"><summary>Is it free? Is it official IVAO software?</summary><p>Free and open source (MIT license). It is a third-party add-on for IVAO's Aurora, made by IVAO members: not made, endorsed or supported by IVAO. For simulation only. It is a fork of <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR by bornac1</a>.</p></details>
+    <details class="qa"><summary>What do I need to run it?</summary><p>Windows 64-bit and Aurora on the same PC. Nothing to install: unzip the <a href="https://github.com/altanico/AuroraPAR-v2/releases/tag/test-build">download</a> into a folder and run <span class="mono">AuroraPAR.exe</span>. Without Aurora you can still try it with test traffic.</p></details>
+    <details class="qa"><summary>Windows says "Windows protected your PC".</summary><p>The program is not signed with a paid certificate, so SmartScreen warns the first time. Click <b>More info → Run anyway</b>. To be sure the file is the original one, compare its SHA-256 with <span class="mono">SHA256SUMS.txt</span> on the download page.</p></details>
+    <details class="qa"><summary>It shows STS FAIL and no traffic.</summary><p>Aurora accepts programs like AuroraPAR only with <b>Aurora → Settings → Other → Software → 3rd Party software access</b> on. Start Aurora and AuroraPAR in any order: the connection is retried by itself. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#12-connecting-to-aurora">Manual 1.2</a></p></details>
+    <details class="qa"><summary>The tracks move in jumps, or DATA is red.</summary><p>Aurora updates the traffic every 3 seconds by default, too slow for a PAR. In Aurora set the <b>traffic refresh rate to 0.5 s</b>. AuroraPAR measures it and tells you when it is too slow. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#34-information-area">Manual 3.4</a></p></details>
+    <details class="qa"><summary>My airport or runway is missing.</summary><p>Add it in <b>Settings → Runways (runways.par)...</b>: thresholds, glide path, DH. <b>CRSCalculator</b> gives the exact runway heading from the two thresholds. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#11-runways-and-data">Manual 11</a></p></details>
+    <details class="qa"><summary>An aircraft is not shown on the scope.</summary><p>It is outside the scan or the antenna beam, or beyond the range. Increase the range, tilt the antenna (profiles with the narrow beam) or check the scan limits in Settings → Radar. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#51-antenna-tilt">Manual 5.1</a></p></details>
+    <details class="qa"><summary>How do I change the look of the radar?</summary><p>Press <span class="key">P</span> to go through the bundled profiles. To make your own, <b>Duplicate</b> one in Settings and change colours, lines, labels, units and scales: every change is saved in that profile. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#10-settings-and-customization">Manual 10</a></p></details>
+    <details class="qa"><summary>I lost my changes to a profile.</summary><p><b>Reload bundled...</b> overwrites the profiles with the same name as the bundled ones, and the changes cannot be recovered. Always work on a <b>Duplicate</b> (or keep an <b>Export</b>): your own profiles are never touched. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#101-profiles">Manual 10.1</a></p></details>
+    <details class="qa"><summary>How do I update? Are my settings kept?</summary><p>AuroraPAR tells you when a new version is published and opens the download page; replace the files in your folder. Settings and profiles are kept, and the bundled profiles are updated without losing your changes. Keep a copy of <span class="mono">runways.par</span> and <span class="mono">terrain.par</span> if you edited them. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#11-installation">Manual 1.1</a></p></details>
+    <details class="qa"><summary>Does the tower need AuroraPAR for the coordination panel?</summary><p>No. The tower can use <b>AuroraCoord</b> (a small program with only the panel, same download page) or the panel in the browser of a phone or tablet. The two panels pair by airport and callsign. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#8-coordination-panel">Manual 8</a></p></details>
+    <details class="qa"><summary>The coordination panel stays on "connecting..." or "waiting for the tower".</summary><p>"Connecting": the internet relay is blocked, most often by a DNS ad blocker, an antivirus web shield or a VPN. "Waiting": check that both panels have the same airport, one radar and one tower, and the same panel code (or none). <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#12-troubleshooting">Manual 12</a></p></details>
+    <details class="qa"><summary>Can I practise without real traffic?</summary><p>Yes: press <span class="key">T</span> for test traffic. Add aircraft on final or on an intercept, give headings and rates as a controller, or fly them with a stick or a real joystick, with wind. <a href="https://github.com/altanico/AuroraPAR-v2/blob/master/docs/MANUAL.md#7-practising-test-traffic-and-joystick">Manual 7</a></p></details>
+    <details class="qa"><summary>Can you make the profile of another radar?</summary><p>Send a <b>Profile request</b> with the form below, with screenshots, photos or documentation of the real display. The more detailed, the more faithful the profile.</p></details>
+  </div>
+  <p class="sub">Did not find the answer? <a href="#feedback" class="to-support">Contact us</a>.</p>
+</section>
+
 <section id="feedback">
-  <div class="eyebrow">Bugs, ideas, profiles</div>
-  <h2>Help shape it</h2>
-  <p class="sub">Found a bug, have an idea, or want the display of a radar you know? Send it here: no account needed. For a profile, detailed documentation is the key: screenshots, photos or manuals of the real display.</p>
+  <div class="eyebrow">Contact, bugs, ideas, profiles</div>
+  <h2>Get in touch</h2>
+  <p class="sub">A question, a bug, an idea, or the display of a radar you know? Send it here: no account needed. For quick answers, see the <a href="#faq">FAQ</a> first. For a profile, detailed documentation is the key: screenshots, photos or manuals of the real display.</p>
   <form class="form" id="fb-form" action="https://formsubmit.co/FORM_CODE" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="_subject" id="fb-subject" value="AuroraPAR: request from the website">
     <input type="hidden" name="_template" value="table">
@@ -267,6 +301,7 @@ footer p{margin:0 0 8px;max-width:60em}
     <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <fieldset class="types">
       <legend>What is it about?</legend>
+      <label class="type"><input type="radio" name="Type" value="Question / support" id="t-help"><span><b>Question / support</b>Help with installing or using it.</span></label>
       <label class="type"><input type="radio" name="Type" value="Bug report" id="t-bug" checked><span><b>Bug report</b>Something does not work as it should.</span></label>
       <label class="type"><input type="radio" name="Type" value="Feature request" id="t-feat"><span><b>Feature request</b>A new function or a better way.</span></label>
       <label class="type"><input type="radio" name="Type" value="Profile request" id="t-prof"><span><b>Profile request</b>Change a profile, or recreate a radar system.</span></label>
@@ -308,13 +343,15 @@ footer p{margin:0 0 8px;max-width:60em}
 <script>
 (function(){
   var form=document.getElementById('fb-form'); if(!form) return;
-  var desc={bug:'What happened: what you did, what you expected, what you saw',
+  var desc={help:'Your question: what you are trying to do and what happens (Aurora version, profile, airport if it matters)',
+            bug:'What happened: what you did, what you expected, what you saw',
             feat:'Your idea: what AuroraPAR should do, and how you would use it on an approach',
             prof:'What should change, or what the real display looks like (colours, lines, labels, units, scales, console)'};
-  var files={bug:'Screenshots or files (optional, up to 10 MB in total)',
+  var files={help:'Screenshots (optional, up to 10 MB in total)',
+             bug:'Screenshots or files (optional, up to 10 MB in total)',
              feat:'Pictures of a radar that does it (optional, up to 10 MB in total)',
              prof:'Documentation: screenshots, photos or manuals of the real display (at least one, up to 10 MB in total)'};
-  function kind(){return document.getElementById('t-prof').checked?'prof':document.getElementById('t-feat').checked?'feat':'bug';}
+  function kind(){return document.getElementById('t-prof').checked?'prof':document.getElementById('t-feat').checked?'feat':document.getElementById('t-help').checked?'help':'bug';}
   function update(){
     var k=kind();
     form.querySelectorAll('[data-for]').forEach(function(el){
@@ -330,6 +367,7 @@ footer p{margin:0 0 8px;max-width:60em}
   }
   form.querySelectorAll('input[name="Type"]').forEach(function(r){r.addEventListener('change',update);});
   update();
+  document.querySelectorAll('.to-support').forEach(function(a){a.addEventListener('click',function(){document.getElementById('t-help').checked=true;update();});});
   form.addEventListener('submit',function(e){
     var st=document.getElementById('fb-status');
     if(form.action.indexOf('FORM_CODE')>=0){e.preventDefault();st.textContent='The form is not active yet: it works once the site is online.';return;}
