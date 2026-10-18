@@ -79,7 +79,7 @@ namespace AuroraPAR
         private readonly TextBox rateBox = new();
         private readonly TextBox altitudeBox = NumberBox("");
         private readonly ComboBox altitudeRateBox = new() { Width = 64, Margin = new Thickness(4, 0, 4, 0), ItemsSource = VerticalRates.Select(r => r.ToString("0", CultureInfo.InvariantCulture)).ToArray(), SelectedIndex = 2, ToolTip = "Vertical rate to reach the altitude (ft/min)." };
-        private readonly TextBlock altitudeCaption = FieldCaption("ALTITUDE ft QNH");
+        private readonly TextBlock altitudeCaption = FieldCaption("CLIMB / DESCENT TO ft QNH");
         private readonly TextBox speedBox = NumberBox("");
         private readonly TextBox reactionBox = NumberBox("1.0");
         private readonly Button finalCourseButton = new() { Content = "Final CRS", FontWeight = FontWeights.SemiBold, Padding = new Thickness(2, 3, 2, 3), ToolTip = "The final course in the heading box, carried out after the pilot reaction." };
@@ -990,7 +990,7 @@ namespace AuroraPAR
             Runway? runway = bridge.Reference;
             double magneticVariation = variation();
             referenceText.Text = runway == null ? "none" : $"{runway.DisplayName}  (elevation {runway.Elevation:0} ft)";
-            altitudeCaption.Text = Qfe ? "ALTITUDE ft QFE" : "ALTITUDE ft QNH";
+            altitudeCaption.Text = Qfe ? "CLIMB / DESCENT TO ft QFE" : "CLIMB / DESCENT TO ft QNH";
             IReadOnlyList<AircraftState> states = bridge.Engine.Snapshot();
             updating = true;
             try
