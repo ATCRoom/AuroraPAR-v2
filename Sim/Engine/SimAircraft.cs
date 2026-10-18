@@ -57,7 +57,11 @@ namespace ATCRoom.Sim
         double TargetSpeedKt,
         bool Frozen,
         bool StickActive,
-        int PendingCommands);
+        int PendingCommands,
+        string PerformanceClass,
+        double GroundSpeedKt,
+        double TrackTrue,
+        double DriftDegrees);
 
     /// <summary>An aircraft inside the engine: actual values and the values commanded by the instructor. Only the engine changes it, under its lock.</summary>
     internal sealed class SimAircraft
@@ -89,9 +93,16 @@ namespace ATCRoom.Sim
         public double StickX;
         public double StickY;
         public double StickHeld;
+        /// <summary>What the aircraft can do (a copy of its class).</summary>
+        public PerformanceClass Class = PerformanceClass.Defaults()[1];
+        /// <summary>Over the ground, with the wind: speed (kt), track (degrees true in the plane) and drift (track − heading, −180..180).</summary>
+        public double GroundSpeedKt;
+        public double TrackTrue;
+        public double DriftDegrees;
 
         public AircraftState ToState(int pendingCommands) => new(Callsign, X, Y, AltitudeFt, HeadingTrue, SpeedKt, VerticalSpeedFpm, TurnRateDps,
             TargetHeading, TurnDirection, SelectedTurnRateDps, TurnRateMode, VerticalMode, TargetAltitudeFt, SelectedVerticalRateFpm,
-            CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands);
+            CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands,
+            Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees);
     }
 }

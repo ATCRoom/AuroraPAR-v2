@@ -39,6 +39,7 @@ namespace AuroraPAR
         private readonly Func<Aircraft, bool> isSeen;
         private readonly Action save;
         private readonly Action<Window>? openJoystick;
+        private readonly Func<string?> metar;
 
         // Simulation.
         private readonly TextBlock referenceText = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 8, 0), FontWeight = FontWeights.SemiBold };
@@ -54,6 +55,14 @@ namespace AuroraPAR
         private readonly TextBox newAltitudeBox = NumberBox("");
         private readonly TextBox newSpeedBox = NumberBox("140");
         private readonly TextBox newCallsignBox = new() { Width = 70, Height = 22, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = "Empty: the next free callsign of the prefix." };
+        private readonly ComboBox classBox = new() { Width = 90, Margin = new Thickness(4, 0, 0, 0), ToolTip = "Performance class: speeds, climb and descent limits, accelerations, bank limit (file performance.json). Choosing it puts its approach speed in the Speed box." };
+
+        // Wind (all the simulated aircraft).
+        private readonly TextBox windFromBox = NumberBox("0");
+        private readonly TextBox windSpeedBox = NumberBox("0");
+        private readonly TextBox windGustBox = NumberBox("0");
+        private readonly TextBlock windMagnetic = new() { VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.Gray, Margin = new Thickness(0, 0, 4, 0) };
+        private readonly TextBlock noticeText = new() { Foreground = Brushes.DarkOrange, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4, 6, 0, 0), Visibility = Visibility.Collapsed };
 
         // Aircraft and readouts.
         private readonly ListBox list = new() { Height = 110, FontFamily = new FontFamily("Consolas"), FontSize = 13 };
@@ -95,7 +104,8 @@ namespace AuroraPAR
         private string? joystickCallsign;
 
         public InstructorWindow(InstructorBridge bridge, InstructorSettings settings, bool qfe, Func<Runway> radarRunway, Func<double> variation,
-            Func<IEnumerable<string>> otherCallsigns, Func<Aircraft, bool> isSeen, Action save, Action<Window>? openJoystick = null)
+            Func<IEnumerable<string>> otherCallsigns, Func<Aircraft, bool> isSeen, Action save, Action<Window>? openJoystick = null,
+            Func<string?>? metar = null, string? notice = null)
         {
             this.bridge = bridge;
             this.settings = settings;
@@ -105,6 +115,12 @@ namespace AuroraPAR
             this.isSeen = isSeen;
             this.save = save;
             this.openJoystick = openJoystick;
+            this.metar = metar ?? (() => null);
+            if (!string.IsNullOrEmpty(notice))
+            {
+                noticeText.Text = notice;
+                noticeText.Visibility = Visibility.Visible;
+            }
             Title = "Aurora PAR - Instructor";
             SizeToContent = SizeToContent.WidthAndHeight;
             ResizeMode = ResizeMode.CanMinimize;
@@ -167,6 +183,32 @@ namespace AuroraPAR
             StackPanel panel = new();
             panel.Children.Add(referenceRow);
             panel.Children.Add(optionsRow);
+            // Wind: the same at all heights, for all the simulated aircraft.
+            WrapPanel windRow = new() { Margin = new Thickness(0, 6, 0, 0) };
+            windRow.Children.Add(Caption("Wind from"));
+            windRow.Children.Add(windFromBox);
+            windRow.Children.Add(Caption("°T"));
+            windRow.Children.Add(windMagnetic);
+            windRow.Children.Add(windSpeedBox);
+            windRow.Children.Add(Caption("kt   gusts +"));
+            windRow.Children.Add(windGustBox);
+            windRow.Children.Add(Caption("kt"));
+            Button fromMetar = SmallButton("From METAR");
+            fromMetar.Margin = new Thickness(6, 0, 0, 0);
+            fromMetar.ToolTip = "Copies the wind of the METAR of the airport (received from Aurora). A METAR gives the direction in degrees true.";
+            fromMetar.Click += (s, e) => WindFromMetar();
+            windRow.Children.Add(fromMetar);
+            windRow.ToolTip = "The aircraft fly their heading through the air: a crosswind makes them drift (DRIFT), a headwind lowers the ground speed and so the Normal rate. Gusts: the wind grows at random up to this much more. The same at all heights.";
+            (double windFrom, double windSpeed, double windGust) = bridge.Engine.Wind;
+            windFromBox.Text = windFrom.ToString("000", CultureInfo.InvariantCulture);
+            windSpeedBox.Text = windSpeed.ToString("0", CultureInfo.InvariantCulture);
+            windGustBox.Text = windGust.ToString("0", CultureInfo.InvariantCulture);
+            foreach (TextBox box in new[] { windFromBox, windSpeedBox, windGustBox }) box.TextChanged += (s, e) => ApplyWind();
+            Wheel(windFromBox, 10, 30, 0, 360, "000", null);
+            Wheel(windSpeedBox, 1, 5, 0, SimEngine.MaxWind, "0", null);
+            Wheel(windGustBox, 1, 5, 0, SimEngine.MaxGust, "0", null);
+            panel.Children.Add(windRow);
+            panel.Children.Add(noticeText);
             return Group("Simulation", panel);
         }
 
@@ -185,6 +227,19 @@ namespace AuroraPAR
             row2.Children.Add(newSpeedBox);
             row2.Children.Add(Caption("kt  callsign"));
             row2.Children.Add(newCallsignBox);
+            row2.Children.Add(Caption("class"));
+            row2.Children.Add(classBox);
+            classBox.ItemsSource = bridge.Engine.Classes.Select(c => c.Name).ToList();
+            classBox.SelectedItem = bridge.Engine.Classes.Any(c => c.Name == PerformanceClass.DefaultName) ? PerformanceClass.DefaultName : bridge.Engine.Classes[0].Name;
+            classBox.SelectionChanged += (s, e) =>
+            {
+                PerformanceClass? kind = bridge.Engine.Classes.FirstOrDefault(c => c.Name == classBox.SelectedItem as string);
+                if (kind != null) newSpeedBox.Text = kind.ApproachSpeedKt.ToString("0", CultureInfo.InvariantCulture);
+            };
+            if (bridge.Engine.Classes.FirstOrDefault(c => c.Name == classBox.SelectedItem as string) is PerformanceClass first)
+            {
+                newSpeedBox.Text = first.ApproachSpeedKt.ToString("0", CultureInfo.InvariantCulture);
+            }
             Button add = new() { Content = "New aircraft on final", Margin = new Thickness(12, 0, 0, 0), Padding = new Thickness(10, 2, 10, 2), FontWeight = FontWeights.SemiBold };
             add.Click += (s, e) => AddOnFinal();
             row2.Children.Add(add);
@@ -239,7 +294,7 @@ namespace AuroraPAR
             readouts.Children.Add(Readout(ReadoutCaption("VS"), actualValue, "Vertical speed now (ft/min)."));
             readouts.Children.Add(Readout(ReadoutCaption("TURN °/s"), turnValue, "Turn rate now."));
             readouts.Children.Add(Readout(ReadoutCaption("HDG °M"), headingValue, "Heading now (magnetic)."));
-            readouts.Children.Add(Readout(ReadoutCaption("DRIFT °"), driftValue, "Drift by the wind (no wind yet in the simulation)."));
+            readouts.Children.Add(Readout(ReadoutCaption("DRIFT °"), driftValue, "Drift by the wind: the track over the ground minus the heading (R: to the right)."));
             control.Children.Add(readouts);
 
             Grid columns = new();
@@ -574,6 +629,36 @@ namespace AuroraPAR
             prefixBox.Text = bridge.Engine.CallsignPrefix;
         }
 
+        private void ApplyWind()
+        {
+            if (!TryRead(windFromBox, out double from) || from < 0 || from > 360
+                || !TryRead(windSpeedBox, out double speed) || speed < 0 || speed > SimEngine.MaxWind
+                || !TryRead(windGustBox, out double gust) || gust < 0 || gust > SimEngine.MaxGust) return;
+            bridge.Engine.SetWind(from, speed, gust);
+            ShowWindMagnetic();
+        }
+
+        private void ShowWindMagnetic()
+        {
+            (double from, double speed, _) = bridge.Engine.Wind;
+            windMagnetic.Text = speed > 0 ? string.Format(CultureInfo.InvariantCulture, "({0:000}°M)", Magnetic(from, variation())) : "";
+        }
+
+        private void WindFromMetar()
+        {
+            if (!MetarWind.TryParse(metar(), out double from, out double speed, out double gust))
+            {
+                System.Media.SystemSounds.Beep.Play();
+                MessageBox.Show(this, "No METAR wind received from Aurora for the airport in use.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            // Variable: the direction stays.
+            if (!double.IsNaN(from)) windFromBox.Text = from.ToString("000", CultureInfo.InvariantCulture);
+            windSpeedBox.Text = Math.Round(speed).ToString(CultureInfo.InvariantCulture);
+            windGustBox.Text = Math.Round(gust).ToString(CultureInfo.InvariantCulture);
+            ApplyWind();
+        }
+
         private void ApplyReaction()
         {
             if (!TryRead(reactionBox, out double seconds) || seconds < 0 || seconds > SimEngine.MaxReaction) return;
@@ -644,7 +729,7 @@ namespace AuroraPAR
             try
             {
                 (double x, double y) = bridge.OnFinal(distance, offset);
-                string name = bridge.Add(x, y, altitude, runway.Heading, speed, callsign, otherCallsigns());
+                string name = bridge.Add(x, y, altitude, runway.Heading, speed, callsign, otherCallsigns(), classBox.SelectedItem as string);
                 bridge.Engine.SetTurnRateMode(name, CurrentTurnMode());
                 newCallsignBox.Text = "";
                 Refresh();
@@ -946,18 +1031,20 @@ namespace AuroraPAR
                 VerticalMode.Rate => "rate",
                 _ => "altitude"
             };
-            info.Text = string.Format(CultureInfo.InvariantCulture, "{0}{1}\n{2} NM from touchdown\n{3:0} ft {4}, {5:0} kt\nvertical: {6}{7}",
+            info.Text = string.Format(CultureInfo.InvariantCulture, "{0}  {8}{1}\n{2} NM from touchdown\n{3:0} ft {4}, {5:0} kt, ground speed {9:0} kt\nvertical: {6}{7}",
                 state.Callsign, state.Frozen ? "  (frozen)" : "",
                 position != null && runway != null ? position.DistanceFromTouchdown(runway).ToString("0.0", CultureInfo.InvariantCulture) : "--",
                 altitude, Qfe ? "QFE" : "QNH", state.SpeedKt, mode,
-                state.PendingCommands > 0 ? $"\npilot: {state.PendingCommands} instruction(s) coming" : "");
+                state.PendingCommands > 0 ? $"\npilot: {state.PendingCommands} instruction(s) coming" : "",
+                state.PerformanceClass, state.GroundSpeedKt);
             bestLabel.Text = runway != null ? string.Format(CultureInfo.InvariantCulture, "BEST VS {0:0.0#}°", runway.GlideSlope) : "BEST VS";
             bestValue.Text = Rounded(state.BestVerticalSpeedFpm);
             actualValue.Text = Rounded(state.VerticalSpeedFpm);
             turnValue.Text = Math.Abs(state.TurnRateDps) < 0.05 ? "0.0"
                 : string.Format(CultureInfo.InvariantCulture, "{0:0.0} {1}", Math.Abs(state.TurnRateDps), state.TurnRateDps > 0 ? "R" : "L");
             headingValue.Text = Magnetic(state.HeadingTrue, magneticVariation).ToString("000", CultureInfo.InvariantCulture);
-            driftValue.Text = "0";
+            int drift = (int)Math.Round(state.DriftDegrees);
+            driftValue.Text = drift == 0 ? "0" : $"{Math.Abs(drift)} {(drift > 0 ? "R" : "L")}";
             double best = Math.Round(state.BestVerticalSpeedFpm / 10) * 10;
             if (runway != null) finalCourseButton.Content = $"Final CRS ({Magnetic(runway.Heading, magneticVariation):000})";
             normalButton.Content = $"Normal ({FormatRate(best).Replace('-', '−')})";

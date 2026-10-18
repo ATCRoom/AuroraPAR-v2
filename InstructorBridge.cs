@@ -62,6 +62,17 @@ namespace AuroraPAR
 
         public SimEngine Engine { get; } = new();
 
+        /// <summary>
+        /// Reads the performance classes from performance.json in this folder (written with the defaults when
+        /// missing). Returns a line for the instructor when something was not a plain read, else null.
+        /// </summary>
+        public string? LoadPerformance(string folder)
+        {
+            (List<PerformanceClass> classes, _, string? message) = PerformanceFile.Load(Path.Combine(folder, PerformanceFile.FileName));
+            Engine.SetPerformanceClasses(classes);
+            return message;
+        }
+
         /// <summary>Positions as Aurora gives them (see <see cref="InstructorSettings.AuroraLike"/>).</summary>
         public bool AuroraLike { get; set; } = true;
 
@@ -109,10 +120,10 @@ namespace AuroraPAR
         /// (<paramref name="taken"/>) gets a letter (SIM1 → SIM1A), once, here: the radar's filters and track IDs
         /// follow the callsign, so it never changes while the aircraft flies.
         /// </summary>
-        public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign, IEnumerable<string> taken)
+        public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign, IEnumerable<string> taken, string? performanceClass = null)
         {
             HashSet<string> others = new(taken, StringComparer.OrdinalIgnoreCase);
-            string name = Engine.Add(x, y, altitudeFt, headingTrue, speedKt, callsign);
+            string name = Engine.Add(x, y, altitudeFt, headingTrue, speedKt, callsign, performanceClass);
             if (others.Contains(name))
             {
                 for (char letter = 'A'; letter <= 'Z'; letter++)
@@ -178,7 +189,7 @@ namespace AuroraPAR
             (double latitude, double longitude) = plane.ToGeo(state.X, state.Y);
             // Track on the Earth: the direction of flight in the plane, measured at the aircraft (away from the
             // threshold the plane's north is not exactly true north).
-            double direction = state.HeadingTrue * Math.PI / 180;
+            double direction = state.TrackTrue * Math.PI / 180;
             (double aheadLatitude, double aheadLongitude) = plane.ToGeo(state.X + TrackProbe * Math.Sin(direction), state.Y + TrackProbe * Math.Cos(direction));
             double track = Earth.Bearing(latitude, longitude, aheadLatitude, aheadLongitude);
             double altitude = state.AltitudeFt;
@@ -216,8 +227,8 @@ namespace AuroraPAR
                 Longitude = longitude,
                 Altitude = altitude,
                 Track = track,
-                // No wind yet: the ground speed is the true airspeed.
-                Speed = state.SpeedKt,
+                // Over the ground, with the wind (as Aurora gives it).
+                Speed = state.GroundSpeedKt,
                 IsTest = true,
                 IsSim = true
             };

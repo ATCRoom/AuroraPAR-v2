@@ -1,9 +1,12 @@
 using System.Globalization;
+using System.Text.Json;
 using ATCRoom.Sim;
 using AuroraPAR;
 
 // Self-test of the simulation engine (ATCRoom.Sim). Run by the GitHub build: any failure gives exit code 1.
-// Times in the checks follow from the fixed steps of 0.1 s: a command is carried out at the start of the next step.
+// Times in the checks follow from the fixed steps of 0.1 s: an instruction is carried out at the start of the next step,
+// the turn rate changes by 1.5°/s per second (rate one in 2 s), the vertical speed by the class's vertical acceleration
+// (Turboprop, the default class: 400 ft/min per second).
 
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 int failures = 0;
@@ -17,6 +20,7 @@ void Check(bool ok, string name, string detail = "")
 }
 
 bool Near(double a, double b, double tolerance) => Math.Abs(a - b) <= tolerance;
+bool Between(double value, double low, double high) => value >= low && value <= high;
 
 // A runway like LIBN 32 (threshold of runways.par, heading for AuroraPAR).
 const double ThresholdLatitude = 40.23227088;
@@ -29,12 +33,31 @@ const double RunwayHeading = 325.80;
     SimEngine engine = new();
     string a = engine.Add(0, 0, 3000, 0, 150);
     engine.SetHeading(a, 90);
-    engine.RunFor(29.5);
+    engine.RunFor(1);
     AircraftState s = engine.Get(a)!;
-    Check(s.HeadingTrue > 88 && s.HeadingTrue < 89 && Near(s.TurnRateDps, 3, 1e-9), "Turn right 90° at 3°/s: still turning at 29.5 s", $"heading {s.HeadingTrue:F3}");
-    engine.RunFor(0.5);
+    Check(Near(s.TurnRateDps, 1.5, 1e-9), "Roll-in: half of rate one after 1 s", $"rate {s.TurnRateDps:F3}");
+    double highest = 0;
+    for (int i = 0; i < 285; i++)
+    {
+        engine.RunFor(0.1);
+        highest = Math.Max(highest, engine.Get(a)!.HeadingTrue);
+    }
     s = engine.Get(a)!;
-    Check(s.HeadingTrue == 90 && s.TurnRateDps == 0, "Turn right 90° at 3°/s: exactly on 090 at 30 s", $"heading {s.HeadingTrue:R}");
+    Check(Near(s.TurnRateDps, 3, 1e-9) && Between(s.HeadingTrue, 85, 86), "Turn right 90° at 3°/s: full rate at 29.5 s", $"heading {s.HeadingTrue:F2}");
+    for (int i = 0; i < 15; i++)
+    {
+        engine.RunFor(0.1);
+        highest = Math.Max(highest, engine.Get(a)!.HeadingTrue);
+    }
+    s = engine.Get(a)!;
+    Check(Between(s.HeadingTrue, 88, 90) && s.TurnRateDps > 0 && s.TurnRateDps < 3, "Turn right 90°: rolling out at 31 s", $"heading {s.HeadingTrue:F2} rate {s.TurnRateDps:F2}");
+    for (int i = 0; i < 20; i++)
+    {
+        engine.RunFor(0.1);
+        highest = Math.Max(highest, engine.Get(a)!.HeadingTrue);
+    }
+    s = engine.Get(a)!;
+    Check(s.HeadingTrue == 90 && s.TurnRateDps == 0 && highest <= 90, "Turn right 90°: exactly on 090 by 33 s, never past it", $"heading {s.HeadingTrue:R} highest {highest:R}");
 }
 
 {
@@ -43,29 +66,39 @@ const double RunwayHeading = 325.80;
     engine.SetHeading(a, 90, TurnDirection.Left);
     engine.RunFor(10);
     AircraftState s = engine.Get(a)!;
-    Check(Near(s.HeadingTrue, 330, 1e-6) && s.TurnRateDps < 0, "Turn to 090 forced left: through 330 after 10 s", $"heading {s.HeadingTrue:F3}");
-    engine.RunFor(80);
+    Check(Between(s.HeadingTrue, 330, 336) && s.TurnRateDps < 0, "Turn to 090 forced left: through 333 after 10 s", $"heading {s.HeadingTrue:F2}");
+    engine.RunFor(85);
     s = engine.Get(a)!;
-    Check(s.HeadingTrue == 90 && s.TurnRateDps == 0 && s.TurnDirection == TurnDirection.Shortest, "Turn to 090 forced left: on 090 after 90 s, side back to shortest", $"heading {s.HeadingTrue:R}");
+    Check(s.HeadingTrue == 90 && s.TurnRateDps == 0 && s.TurnDirection == TurnDirection.Shortest, "Turn to 090 forced left: on 090 by 95 s, side back to shortest", $"heading {s.HeadingTrue:R}");
 }
 
 {
     SimEngine engine = new();
     string a = engine.Add(0, 0, 3000, 350, 150);
     engine.SetHeading(a, 10);
-    engine.RunFor(1);
+    engine.RunFor(3);
     AircraftState s = engine.Get(a)!;
-    Check(Near(s.HeadingTrue, 353, 1e-6), "Shortest turn across north: 350 to 010 turns right", $"heading {s.HeadingTrue:F3}");
+    Check(Between(s.HeadingTrue, 352, 358) && s.TurnRateDps > 0, "Shortest turn across north: 350 to 010 turns right", $"heading {s.HeadingTrue:F2}");
 }
 
 {
     SimEngine engine = new();
     string a = engine.Add(0, 0, 3000, 0, 150);
-    engine.SetTurnRate(a, 1.5);
+    engine.SetTurnRateMode(a, TurnRateMode.Half);
     engine.SetHeading(a, 30);
     engine.RunFor(10);
     AircraftState s = engine.Get(a)!;
-    Check(Near(s.HeadingTrue, 15, 1e-6), "Half rate turn: 15° in 10 s", $"heading {s.HeadingTrue:F3}");
+    Check(Between(s.HeadingTrue, 13.5, 15) && Near(s.TurnRateDps, 1.5, 1e-9), "Half rate turn: about 14° in 10 s at 1.5°/s", $"heading {s.HeadingTrue:F2}");
+}
+
+{
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 10000, 0, 250, null, "Jet");
+    engine.SetHeading(a, 120);
+    engine.RunFor(20);
+    AircraftState s = engine.Get(a)!;
+    double expected = SimEngine.RateForBank(30, 250);
+    Check(Near(s.TurnRateDps, expected, 1e-6) && Near(expected, 2.52, 0.01), "Jet at 250 kt asked rate one: bank limit 30°, about 2.5°/s", $"rate {s.TurnRateDps:F3}");
 }
 
 // --- Altitude and speed ------------------------------------------------------------------------------------------
@@ -82,13 +115,13 @@ const double RunwayHeading = 325.80;
     }
     AircraftState s = engine.Get(a)!;
     Check(s.AltitudeFt < 3000 && Near(s.VerticalSpeedFpm, 1000, 1e-9), "Climb 1000 ft at 1000 ft/min: still climbing at 59 s", $"altitude {s.AltitudeFt:F1}");
-    for (int i = 0; i < 30; i++)
+    for (int i = 0; i < 60; i++)
     {
         engine.RunFor(0.1);
         highest = Math.Max(highest, engine.Get(a)!.AltitudeFt);
     }
     s = engine.Get(a)!;
-    Check(s.AltitudeFt == 3000 && s.VerticalSpeedFpm == 0 && highest <= 3000, "Climb 1000 ft at 1000 ft/min: level at 3000 by 62 s, never above", $"highest {highest:R}");
+    Check(s.AltitudeFt == 3000 && s.VerticalSpeedFpm == 0 && highest <= 3000, "Climb 1000 ft: smooth level-off, level at 3000 by 65 s, never above", $"highest {highest:R}");
 }
 
 {
@@ -107,7 +140,7 @@ const double RunwayHeading = 325.80;
     Check(s.SpeedKt == 170, "Speed up 140 to 170 kt at 1.5 kt/s: 170 at 20 s", $"speed {s.SpeedKt:R}");
 }
 
-// --- Movement ----------------------------------------------------------------------------------------------------
+// --- Movement and wind -------------------------------------------------------------------------------------------
 
 {
     SimEngine engine = new();
@@ -120,7 +153,103 @@ const double RunwayHeading = 325.80;
     Check(Near(e.X, 2, 1e-9) && Near(e.Y, 0, 1e-9), "Straight east at 120 kt: 2 NM in 1 min", $"x {e.X:G10} y {e.Y:G6}");
 }
 
-// --- Clock, pause, freeze, commands -------------------------------------------------------------------------------
+{
+    SimEngine engine = new();
+    engine.SetWind(270, 20, 0);
+    string a = engine.Add(0, 0, 3000, 0, 140);
+    engine.RunFor(60);
+    AircraftState s = engine.Get(a)!;
+    double drift = Math.Atan2(20, 140) * 180 / Math.PI;
+    Check(Near(s.DriftDegrees, drift, 1e-6) && Near(s.GroundSpeedKt, Math.Sqrt(140 * 140 + 20 * 20), 1e-6) && Near(s.X, 20.0 / 60, 1e-6) && Near(s.Y, 140.0 / 60, 1e-6),
+        "Wind from 270 at 20 kt, heading 360: drifts 8.1° right, 1/3 NM east in 1 min", $"drift {s.DriftDegrees:F3} x {s.X:F4}");
+}
+
+{
+    SimEngine engine = new();
+    engine.SetGlidePath(0, 3);
+    engine.SetWind(0, 20, 0);
+    string a = engine.Add(0, -10, 3000, 0, 140);
+    engine.SetGlidePathRate(a);
+    engine.RunFor(10);
+    AircraftState s = engine.Get(a)!;
+    double headwind = -120 * SimEngine.FeetPerNM / 60 * Math.Tan(3 * Math.PI / 180);
+    Check(Near(s.VerticalSpeedFpm, headwind, 1e-6) && Near(s.GroundSpeedKt, 120, 1e-6), "Normal rate with 20 kt of headwind: as at 120 kt over the ground", $"VS {s.VerticalSpeedFpm:F1}");
+}
+
+{
+    IReadOnlyList<AircraftState> Gusty()
+    {
+        SimEngine engine = new();
+        engine.SetWind(250, 15, 10);
+        string a = engine.Add(0, 0, 3000, 0, 140);
+        engine.RunFor(30);
+        return engine.Snapshot();
+    }
+    IReadOnlyList<AircraftState> first = Gusty();
+    IReadOnlyList<AircraftState> second = Gusty();
+    Check(first.SequenceEqual(second) && first[0].GroundSpeedKt != 140, "Gusts: random but the same in two runs");
+}
+
+// --- Performance classes -----------------------------------------------------------------------------------------
+
+{
+    SimEngine engine = new();
+    string light = engine.Add(0, 0, 3000, 0, 40, null, "Light");
+    AircraftState s = engine.Get(light)!;
+    Check(s.SpeedKt == 60 && s.PerformanceClass == "Light", "Light aircraft added at 40 kt: kept at its minimum, 60 kt", $"speed {s.SpeedKt:R}");
+    engine.SetSpeed(light, 250);
+    engine.SetVerticalSpeed(light, -3000);
+    engine.RunFor(0.1);
+    s = engine.Get(light)!;
+    Check(s.TargetSpeedKt == 160 && s.CommandedVerticalSpeedFpm == -1500, "Light aircraft: speed and descent kept within the class (160 kt, 1500 ft/min)",
+        $"speed {s.TargetSpeedKt:R} VS {s.CommandedVerticalSpeedFpm:R}");
+    string other = engine.Add(0, 0, 3000, 0, 150, null, "Glider");
+    Check(engine.Get(other)!.PerformanceClass == PerformanceClass.DefaultName, "Unknown class: the Turboprop");
+}
+
+{
+    string folder = Path.Combine(Path.GetTempPath(), "atcroom-sim-selftest-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    string path = Path.Combine(folder, PerformanceFile.FileName);
+    try
+    {
+        var created = PerformanceFile.Load(path);
+        Check(File.Exists(path) && created.Classes.Count == 3 && !created.ReadOnly && created.Message == null, "performance.json missing: written with the 3 default classes");
+        var again = PerformanceFile.Load(path);
+        Check(again.Classes.Select(c => c.Name).SequenceEqual(new[] { "Light", "Turboprop", "Jet" }), "performance.json read back: the same classes");
+
+        string newer = "{ \"FormatVersion\": 2, \"Future\": true, \"Classes\": [ { \"Name\": \"Heavy\", \"MinSpeedKt\": 140, \"MaxSpeedKt\": 340, \"ApproachSpeedKt\": 150, \"Wake\": \"H\" } ] }";
+        File.WriteAllText(path, newer);
+        var future = PerformanceFile.Load(path);
+        Check(future.ReadOnly && future.Message != null && future.Classes.Count == 1 && future.Classes[0].Name == "Heavy" && File.ReadAllText(path) == newer,
+            "performance.json of a newer version: used, never written");
+
+        PerformanceFile? parsed = JsonSerializer.Deserialize<PerformanceFile>(newer, PerformanceFile.JsonOptions);
+        string written = JsonSerializer.Serialize(parsed, PerformanceFile.JsonOptions);
+        Check(written.Contains("\"Future\"") && written.Contains("\"Wake\""), "Unknown fields kept when the file is written again");
+
+        File.WriteAllText(path, "{ not json");
+        var damaged = PerformanceFile.Load(path);
+        Check(File.Exists(path + ".bad") && damaged.Classes.Count == 3 && damaged.Message != null, "Damaged performance.json: kept as .bad, defaults written");
+    }
+    finally
+    {
+        try { Directory.Delete(folder, true); } catch (Exception) { }
+    }
+}
+
+// --- METAR wind ----------------------------------------------------------------------------------------------------
+
+{
+    bool ok1 = MetarWind.TryParse("LIBN 181650Z 27015G25KT 9999 FEW030 18/12 Q1015", out double f1, out double s1, out double g1);
+    bool ok2 = MetarWind.TryParse("LIRF 181650Z VRB03KT CAVOK", out double f2, out double s2, out double g2);
+    bool ok3 = MetarWind.TryParse("UUEE 181650Z 27008MPS 9999", out double f3, out double s3, out double g3);
+    bool ok4 = MetarWind.TryParse("LIBN 181650Z 9999 CAVOK", out _, out _, out _);
+    Check(ok1 && f1 == 270 && s1 == 15 && g1 == 10 && ok2 && double.IsNaN(f2) && s2 == 3 && g2 == 0 && ok3 && f3 == 270 && Near(s3, 15.55, 0.01) && g3 == 0 && !ok4,
+        "METAR wind: knots with gusts, variable, metres per second, none");
+}
+
+// --- Clock, pause, freeze, instructions -----------------------------------------------------------------------------
 
 {
     SimEngine engine = new();
@@ -138,7 +267,7 @@ const double RunwayHeading = 325.80;
     engine.Advance(1);
     AircraftState after = engine.Get(a)!;
     Check(after.X == before.X && after.Y == before.Y && Near(engine.Time, 2.3, 1e-9) && after.TargetHeading == 180,
-        "Paused: nothing moves, the command is taken", $"time {engine.Time:R} target {after.TargetHeading:R}");
+        "Paused: nothing moves, the instruction is taken", $"time {engine.Time:R} target {after.TargetHeading:R}");
     engine.Paused = false;
 
     engine.SetFrozen(a, true);
@@ -148,7 +277,7 @@ const double RunwayHeading = 325.80;
     Check(after.X == before.X && after.Y == before.Y && after.HeadingTrue == before.HeadingTrue && after.Frozen, "Frozen aircraft: holds position and heading");
     engine.SetFrozen(a, false);
     engine.RunFor(1);
-    Check(engine.Get(a)!.HeadingTrue != before.HeadingTrue, "Unfrozen aircraft: goes on with its command");
+    Check(engine.Get(a)!.HeadingTrue != before.HeadingTrue, "Unfrozen aircraft: goes on with its instruction");
 }
 
 {
@@ -156,10 +285,10 @@ const double RunwayHeading = 325.80;
     string a = engine.Add(0, 0, 3000, 0, 120);
     engine.SetHeading(a, 90);
     AircraftState s = engine.Get(a)!;
-    Check(s.TargetHeading == 0, "Command queued: not carried out before the next step");
+    Check(s.TargetHeading == 0, "Instruction queued: not carried out before the next step");
     engine.RunFor(0.1);
     s = engine.Get(a)!;
-    Check(s.TargetHeading == 90 && Near(s.HeadingTrue, 0.3, 1e-9), "Command queued: carried out at the start of the next step", $"heading {s.HeadingTrue:R}");
+    Check(s.TargetHeading == 90 && s.HeadingTrue > 0 && s.HeadingTrue < 0.1, "Instruction queued: carried out at the start of the next step", $"heading {s.HeadingTrue:R}");
 }
 
 // --- Callsigns ---------------------------------------------------------------------------------------------------
@@ -176,7 +305,7 @@ const double RunwayHeading = 325.80;
     engine.RunFor(0.1);
     AircraftState? renamedState = engine.Get("TST22");
     Check(renamed && renamedState != null && renamedState.TargetSpeedKt == 200 && engine.Get(b) == null,
-        "Rename: new callsign, queued command follows the aircraft");
+        "Rename: new callsign, queued instruction follows the aircraft");
     Check(!engine.Rename(a, "ATC3"), "Rename refused when the callsign is taken");
     bool refused = false;
     try { engine.Add(0, 0, 3000, 0, 120, "sim1"); } catch (InvalidOperationException) { refused = true; }
@@ -222,11 +351,11 @@ const double RunwayHeading = 325.80;
     engine.SetVerticalSpeed(a, -700);
     engine.RunFor(60);
     AircraftState s = engine.Get(a)!;
-    Check(Near(s.AltitudeFt, 2300, 1e-6) && s.VerticalMode == VerticalMode.Rate && s.VerticalSpeedFpm == -700, "Rate −700 ft/min kept: 700 ft lower after 1 min", $"altitude {s.AltitudeFt:F3}");
+    Check(Between(s.AltitudeFt, 2305, 2315) && s.VerticalMode == VerticalMode.Rate && s.VerticalSpeedFpm == -700, "Rate −700 ft/min kept: about 690 ft lower after 1 min (2 s to reach the rate)", $"altitude {s.AltitudeFt:F1}");
     engine.SetAltitude(a, 2500, 500);
-    engine.RunFor(24);
+    engine.RunFor(40);
     s = engine.Get(a)!;
-    Check(s.AltitudeFt == 2500 && s.VerticalSpeedFpm == 0 && s.VerticalMode == VerticalMode.Altitude, "Then altitude 2500 at 500 ft/min: level after 24 s", $"altitude {s.AltitudeFt:R}");
+    Check(s.AltitudeFt == 2500 && s.VerticalSpeedFpm == 0 && s.VerticalMode == VerticalMode.Altitude, "Then altitude 2500 at 500 ft/min: level by 40 s", $"altitude {s.AltitudeFt:R}");
 }
 
 {
@@ -259,11 +388,11 @@ const double RunwayHeading = 325.80;
     engine.SetStick(a, 1, 0);
     engine.RunFor(10);
     AircraftState s = engine.Get(a)!;
-    Check(Near(s.HeadingTrue, 30, 1e-6) && s.StickActive && s.PendingCommands == 0, "Stick right at 3°/s for 10 s: 30° right, the waiting heading cancelled", $"heading {s.HeadingTrue:F3}");
+    Check(Between(s.HeadingTrue, 26, 28) && s.StickActive && s.PendingCommands == 0, "Stick right for 10 s: about 27° right (2 s to bank), the waiting heading cancelled", $"heading {s.HeadingTrue:F3}");
     engine.SetStick(a, 0, 0);
     engine.RunFor(10);
     s = engine.Get(a)!;
-    Check(Near(s.HeadingTrue, 30, 1e-6) && s.TurnRateDps == 0 && !s.StickActive, "Stick released: the heading reached stays", $"heading {s.HeadingTrue:F3}");
+    Check(Between(s.HeadingTrue, 29.5, 30.5) && s.TurnRateDps == 0 && !s.StickActive, "Stick released: rolls out about 3° further and stays", $"heading {s.HeadingTrue:F3}");
     engine.SetStick(a, 0, -1);
     engine.RunFor(1);
     engine.SetStick(a, 0, 0);
@@ -277,21 +406,23 @@ const double RunwayHeading = 325.80;
     string a = engine.Add(0, 0, 3000, 0, 150);
     engine.SetTurnRateMode(a, TurnRateMode.Free);
     engine.SetStick(a, 1, 0);
-    engine.RunFor(2);
+    engine.RunFor(4);
     AircraftState s = engine.Get(a)!;
-    Check(Near(s.TurnRateDps, 4.5, 0.16), "Free turn rate: about 4.5°/s after 2 s at the edge", $"rate {s.TurnRateDps:F2}");
+    Check(Near(s.TurnRateDps, 6, 0.16), "Free turn rate: 6°/s after 4 s held at the edge (more than rate one)", $"rate {s.TurnRateDps:F2}");
     engine.SetTurnRateMode(a, TurnRateMode.Half);
     Check(engine.Get(a)!.SelectedTurnRateDps == 1.5, "Half rate selected: 1.5°/s for the instructions");
 }
 
-// --- Same commands, same flight ----------------------------------------------------------------------------------
+// --- Same instructions, same flight --------------------------------------------------------------------------------
 
 {
     IReadOnlyList<AircraftState> Run()
     {
-        SimEngine engine = new();
+        SimEngine engine = new() { ReactionSeconds = 0.7 };
+        engine.SetGlidePath(325, 3);
+        engine.SetWind(290, 12, 8);
         string a = engine.Add(-3, -8, 2500, 45, 160);
-        string b = engine.Add(4, -6, 3000, 300, 140);
+        string b = engine.Add(4, -6, 3000, 300, 140, null, "Jet");
         engine.RunFor(12.3);
         engine.SetHeading(a, 200, TurnDirection.Right);
         engine.SetAltitude(b, 1800, 700);
@@ -299,12 +430,13 @@ const double RunwayHeading = 325.80;
         engine.SetSpeed(a, 120);
         engine.SetTurnRate(b, 1.5);
         engine.SetHeading(b, 150);
+        engine.SetGlidePathRate(a);
         for (int i = 0; i < 300; i++) engine.Advance(0.137);
         return engine.Snapshot();
     }
     IReadOnlyList<AircraftState> first = Run();
     IReadOnlyList<AircraftState> second = Run();
-    Check(first.SequenceEqual(second), "Same commands twice: identical result, bit for bit");
+    Check(first.SequenceEqual(second), "Same instructions twice (with wind and gusts): identical result, bit for bit");
 }
 
 // --- Local plane on the radar's Earth ----------------------------------------------------------------------------

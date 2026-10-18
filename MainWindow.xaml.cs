@@ -373,7 +373,10 @@ namespace AuroraPAR
             double from = 0, knots = 0;
             if (strength > 0)
             {
-                if (testTraffic.Count > 0 && testTraffic.WindSpeed > 0) { from = testTraffic.WindFrom; knots = testTraffic.WindSpeed; }
+                // The Instructor's wind first while its aircraft fly, then the test traffic's.
+                (double simFrom, double simKnots, _) = instructor.Engine.Wind;
+                if (instructor.Count > 0 && simKnots > 0) { from = simFrom; knots = simKnots; }
+                else if (testTraffic.Count > 0 && testTraffic.WindSpeed > 0) { from = testTraffic.WindFrom; knots = testTraffic.WindSpeed; }
                 else if (!RainClutter.TryWind(clutterMetarText, out from, out knots)) knots = 0;
             }
             double towards = (from + 180 - runway.Heading) * Math.PI / 180;
@@ -1306,13 +1309,18 @@ namespace AuroraPAR
             if (!settings.Instructor.Enabled) return;
             if (instructorWindow == null)
             {
+                // Performance classes: performance.json in the Instructor folder beside the settings file.
+                string folder = Path.Combine(Path.GetDirectoryName(SettingsStore.FilePath) ?? AppContext.BaseDirectory, "Instructor");
+                string? notice = instructor.LoadPerformance(folder);
                 instructorWindow = new InstructorWindow(instructor, settings.Instructor, viewOptions.Qfe,
                     () => runway,
                     () => instructor.Reference?.MagneticVariation ?? settings.Active.MagneticVariation,
                     () => lastAircrafts.Where(a => !a.IsSim).Select(a => a.Callsign).ToList(),
                     aircraft => radar.IsSeen(aircraft, runway),
                     () => SettingsStore.Save(settings),
-                    OpenJoystick);
+                    OpenJoystick,
+                    () => aurora.LastMetar is MetarReport report && string.Equals(report.Icao, (instructor.Reference ?? runway).ICAO, StringComparison.OrdinalIgnoreCase) ? report.Text : null,
+                    notice);
                 instructorWindow.Activated += (s, e) => lastAircraftWindow = s as IJoystickTarget;
                 lastAircraftWindow = instructorWindow;
                 PlaceInstructorWindow(instructorWindow);

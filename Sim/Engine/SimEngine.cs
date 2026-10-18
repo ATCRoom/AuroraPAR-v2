@@ -5,18 +5,26 @@ namespace ATCRoom.Sim
     /// clock, in the <see cref="LocalPlane"/>.
     ///
     /// Each aircraft has actual values (heading, altitude or vertical speed, speed) and commanded ones; every step
-    /// moves the actual values towards the commanded ones. Heading: to a commanded heading at the selected turn rate,
-    /// or turned directly by the stick. Vertically, one of three modes (<see cref="VerticalMode"/>): to an altitude
-    /// at a selected rate, a commanded vertical speed (the PAR controller's "rate"), or the vertical speed that keeps
-    /// the glide path ("Normal"); the stick changes the vertical speed directly. Speed: at fixed accelerations.
-    /// Roll-in, bank limit, smooth level-off and wind come later.
+    /// moves the actual values towards the commanded ones, as an aircraft would:
+    /// - Heading: to a commanded heading at the selected turn rate, or turned directly by the stick. The turn rate
+    ///   grows and shrinks gradually (<see cref="TurnRateChange"/>: rate one is reached in 2 s, as when banking) and
+    ///   the roll-out starts in time to stop on the heading; the bank angle limit of the class caps the rate at high
+    ///   speed (rate one needs about 35° of bank at 250 kt).
+    /// - Vertically, one of three modes (<see cref="VerticalMode"/>): to an altitude at a selected rate with a smooth
+    ///   level-off, a commanded vertical speed (the PAR controller's "rate"), or the vertical speed that keeps the
+    ///   glide path ("Normal"); the stick changes the vertical speed directly. The vertical speed itself changes
+    ///   gradually (the class's vertical acceleration).
+    /// - Speed: at the accelerations of the class, within its speeds.
+    /// - Wind: one direction and speed for all heights, with optional gusts; the aircraft flies its heading through
+    ///   the air and drifts, and the "Normal" rate follows the ground speed along the final.
     ///
     /// Instructions (heading, vertical, speed) are carried out after the pilot reaction (<see cref="ReactionSeconds"/>,
     /// counted in simulation time); a new instruction of the same kind for the same aircraft replaces the one still
     /// waiting, so a run of wheel steps is carried out after the last one. The stick, the turn rate, freeze, rename
     /// and remove act at once. Used from the user interface and from the radar's data timer at the same time:
-    /// everything is under one lock. The engine never reads the wall clock: the caller tells it how much time has
-    /// passed (<see cref="Advance"/>).
+    /// everything is under one lock. The engine never reads the wall clock (the caller tells it how much time has
+    /// passed, <see cref="Advance"/>) and its gusts come from a seeded random source: the same instructions give the
+    /// same flight.
     /// </summary>
     public sealed class SimEngine
     {
@@ -28,27 +36,32 @@ namespace ATCRoom.Sim
         public const double StandardTurnRate = 3;
         public const double HalfTurnRate = 1.5;
         public const double DefaultVerticalRate = 1000;
-        /// <summary>Free turn rate with the stick at its edge: start, growth per second held, maximum (°/s).</summary>
+        /// <summary>How fast the turn rate changes (°/s per second): rate one in 2 s.</summary>
+        public const double TurnRateChange = 1.5;
+        /// <summary>Free turn rate with the stick at its edge: start, growth per second held, maximum (°/s), and its bank limit (degrees).</summary>
         public const double FreeStartRate = 1.5;
         public const double FreeGrowth = 1.5;
         public const double FreeMaxRate = 10;
-        /// <summary>How fast the stick at its edge changes the vertical speed (ft/min per second).</summary>
+        public const double FreeMaxBank = 60;
+        /// <summary>How fast the stick at its edge changes the commanded vertical speed (ft/min per second).</summary>
         public const double StickVerticalRate = 600;
-        /// <summary>Accelerations of the speed (kt/s).</summary>
-        public const double Acceleration = 1.5;
-        public const double Deceleration = 1.0;
-        /// <summary>Limits of the commanded values.</summary>
+        /// <summary>Limits of the commanded values (the class may set tighter ones).</summary>
         public const double MinTurnRate = 0.5;
         public const double MaxTurnRate = 10;
         public const double MinVerticalRate = 100;
         public const double MaxVerticalRate = 6000;
-        public const double MaxClimb = 4000;
-        public const double MaxDescent = -4000;
+        public const double MaxClimb = 8000;
+        public const double MaxDescent = -8000;
         public const double MaxSpeed = 600;
         public const double MaxAltitude = 60000;
         public const double MaxReaction = 5;
+        public const double MaxWind = 150;
+        public const double MaxGust = 60;
         /// <summary>Feet in a nautical mile (as the radar).</summary>
         public const double FeetPerNM = 6076.11549;
+        /// <summary>Standard gravity (m/s²) and metres per second in a knot, for the turn rate of a bank angle.</summary>
+        private const double Gravity = 9.80665;
+        private const double MetresPerSecondPerKnot = 1852.0 / 3600;
         /// <summary>Rounding allowance: a value this close to its target in the last step is taken as reached.</summary>
         private const double Epsilon = 1e-9;
 
@@ -60,6 +73,8 @@ namespace ATCRoom.Sim
         private readonly object sync = new();
         private readonly List<SimAircraft> aircraft = [];
         private readonly List<Pending> pending = [];
+        private readonly Random random = new(1);
+        private List<PerformanceClass> classes = PerformanceClass.Defaults();
         private long steps;
         private double accumulated;
         private int number;
@@ -68,6 +83,12 @@ namespace ATCRoom.Sim
         private double reaction;
         private double glidePathCourse = double.NaN;
         private double glidePathAngle;
+        private double windFrom;
+        private double windSpeed;
+        private double windGust;
+        private double gustNow;
+        private double gustTarget;
+        private long gustNextStep;
 
         /// <summary>Time of the simulation (s since the start): a whole number of steps.</summary>
         public double Time
@@ -107,6 +128,43 @@ namespace ATCRoom.Sim
             get { lock (sync) return aircraft.Count; }
         }
 
+        /// <summary>The performance classes new aircraft can have (copies), in their order.</summary>
+        public IReadOnlyList<PerformanceClass> Classes
+        {
+            get { lock (sync) return classes.Select(c => c.Copy()).ToList(); }
+        }
+
+        /// <summary>Wind: direction it blows from (degrees true), speed and gusts above it (kt).</summary>
+        public (double FromTrue, double SpeedKt, double GustKt) Wind
+        {
+            get { lock (sync) return (windFrom, windSpeed, windGust); }
+        }
+
+        /// <summary>Replaces the performance classes (for aircraft added from now on; those flying keep theirs).</summary>
+        public void SetPerformanceClasses(IEnumerable<PerformanceClass> list)
+        {
+            List<PerformanceClass> copies = [];
+            foreach (PerformanceClass item in list)
+            {
+                PerformanceClass copy = item.Copy();
+                copy.Normalize();
+                if (copy.Name.Length > 0 && !copies.Any(c => Same(c.Name, copy.Name))) copies.Add(copy);
+            }
+            lock (sync) classes = copies.Count > 0 ? copies : PerformanceClass.Defaults();
+        }
+
+        /// <summary>Wind for all aircraft, at once: from (degrees true), speed and gusts above it (kt).</summary>
+        public void SetWind(double fromTrue, double speedKt, double gustKt)
+        {
+            lock (sync)
+            {
+                windFrom = double.IsFinite(fromTrue) ? Normalize(fromTrue) : 0;
+                windSpeed = double.IsFinite(speedKt) ? Math.Clamp(speedKt, 0, MaxWind) : 0;
+                windGust = double.IsFinite(gustKt) ? Math.Clamp(gustKt, 0, MaxGust) : 0;
+                if (windGust == 0) gustNow = gustTarget = 0;
+            }
+        }
+
         /// <summary>
         /// The glide path of the reference runway, for the "Normal" vertical speed: the final course (degrees true,
         /// the direction of landing) and the glide path angle (degrees). NaN course: none.
@@ -128,10 +186,11 @@ namespace ATCRoom.Sim
 
         /// <summary>
         /// Adds an aircraft at once (it is in the next <see cref="Snapshot"/>), flying straight and level: commanded
-        /// values = actual values. Without a callsign it gets the next free one of <see cref="CallsignPrefix"/>.
+        /// values = actual values. Without a callsign it gets the next free one of <see cref="CallsignPrefix"/>;
+        /// without a class (or an unknown one) the Turboprop, or the first class. The speed is kept within the class.
         /// Returns its callsign.
         /// </summary>
-        public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign = null)
+        public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign = null, string? performanceClass = null)
         {
             lock (sync)
             {
@@ -146,12 +205,16 @@ namespace ATCRoom.Sim
                     name = CheckCallsign(callsign);
                     if (Find(name) != null) throw new InvalidOperationException($"{name} is already in the simulation.");
                 }
+                PerformanceClass kind = (classes.FirstOrDefault(c => Same(c.Name, performanceClass ?? ""))
+                    ?? classes.FirstOrDefault(c => Same(c.Name, PerformanceClass.DefaultName))
+                    ?? classes[0]).Copy();
                 double heading = Normalize(headingTrue);
                 double altitude = Math.Clamp(altitudeFt, 0, MaxAltitude);
-                double speed = Math.Clamp(speedKt, 0, MaxSpeed);
+                double speed = Math.Clamp(double.IsFinite(speedKt) ? speedKt : kind.ApproachSpeedKt, kind.MinSpeedKt, kind.MaxSpeedKt);
                 SimAircraft plane = new()
                 {
                     Callsign = name,
+                    Class = kind,
                     X = x,
                     Y = y,
                     AltitudeFt = altitude,
@@ -159,8 +222,11 @@ namespace ATCRoom.Sim
                     SpeedKt = speed,
                     TargetHeading = heading,
                     TargetAltitudeFt = altitude,
-                    TargetSpeedKt = speed
+                    TargetSpeedKt = speed,
+                    GroundSpeedKt = speed,
+                    TrackTrue = heading
                 };
+                Ground(plane, WindNow());
                 plane.BestVerticalSpeedFpm = BestVerticalSpeed(plane);
                 aircraft.Add(plane);
                 return name;
@@ -200,21 +266,21 @@ namespace ATCRoom.Sim
                 if (verticalRateFpm is double rate) a.SelectedVerticalRateFpm = Math.Clamp(Math.Abs(rate), MinVerticalRate, MaxVerticalRate);
             });
 
-        /// <summary>Instruction: a vertical speed to keep (ft/min, negative descending), until told otherwise.</summary>
+        /// <summary>Instruction: a vertical speed to keep (ft/min, negative descending), until told otherwise; within the class.</summary>
         public void SetVerticalSpeed(string callsign, double verticalSpeedFpm) =>
             Instruct(callsign, Kind.Vertical, a =>
             {
                 a.VerticalMode = VerticalMode.Rate;
-                a.CommandedVerticalSpeedFpm = Math.Clamp(verticalSpeedFpm, MaxDescent, MaxClimb);
+                a.CommandedVerticalSpeedFpm = Math.Clamp(verticalSpeedFpm, -a.Class.MaxDescentFpm, a.Class.MaxClimbFpm);
             });
 
         /// <summary>Instruction: the "Normal" rate, the vertical speed that keeps the glide path at the aircraft's ground speed.</summary>
         public void SetGlidePathRate(string callsign) =>
             Instruct(callsign, Kind.Vertical, a => a.VerticalMode = VerticalMode.GlidePath);
 
-        /// <summary>Instruction: speed to reach (kt, true airspeed).</summary>
+        /// <summary>Instruction: speed to reach (kt, true airspeed), within the class.</summary>
         public void SetSpeed(string callsign, double speedKt) =>
-            Instruct(callsign, Kind.Speed, a => a.TargetSpeedKt = Math.Clamp(speedKt, 0, MaxSpeed));
+            Instruct(callsign, Kind.Speed, a => a.TargetSpeedKt = Math.Clamp(speedKt, a.Class.MinSpeedKt, a.Class.MaxSpeedKt));
 
         /// <summary>Vertical rate used to reach a commanded altitude (ft/min). At once.</summary>
         public void SetVerticalRate(string callsign, double verticalRateFpm) =>
@@ -234,8 +300,8 @@ namespace ATCRoom.Sim
 
         /// <summary>
         /// The stick (pilot flying), at once: X (−1..1, + right) turns at the turn rate, Y (−1..1, + up) changes the
-        /// vertical speed. Moving it cancels the instruction of that axis still waiting. Released (0), the heading and
-        /// the vertical speed reached stay.
+        /// vertical speed. Moving it cancels the instruction of that axis still waiting. Released (0), the aircraft
+        /// rolls out on about the heading reached, and the vertical speed reached stays.
         /// </summary>
         public void SetStick(string callsign, double x, double y)
         {
@@ -249,8 +315,9 @@ namespace ATCRoom.Sim
                 if (y != 0) pending.RemoveAll(p => Same(p.Callsign, callsign) && p.Kind == Kind.Vertical);
                 if (x == 0 && plane.StickX != 0)
                 {
-                    // Released: the heading reached stays.
-                    plane.TargetHeading = plane.HeadingTrue;
+                    // Released: the heading where the roll-out ends (the turn goes on a little while the wings level).
+                    double rollOut = plane.TurnRateDps * Math.Abs(plane.TurnRateDps) / (2 * TurnRateChange);
+                    plane.TargetHeading = Normalize(plane.HeadingTrue + rollOut);
                     plane.TurnDirection = TurnDirection.Shortest;
                     plane.StickHeld = 0;
                 }
@@ -338,6 +405,16 @@ namespace ATCRoom.Sim
         /// <summary>Angle in 0–360.</summary>
         public static double Normalize(double degrees) => (degrees % 360 + 360) % 360;
 
+        /// <summary>Angle in −180..180.</summary>
+        public static double Wrap(double degrees) => ((degrees + 180) % 360 + 360) % 360 - 180;
+
+        /// <summary>Turn rate (°/s) of a coordinated turn at this bank angle (degrees) and true airspeed (kt).</summary>
+        public static double RateForBank(double bankDegrees, double speedKt)
+        {
+            double speed = Math.Max(20, speedKt) * MetresPerSecondPerKnot;
+            return Gravity * Math.Tan(bankDegrees * Math.PI / 180) / speed * 180 / Math.PI;
+        }
+
         private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
         private int PendingOf(string callsign) => pending.Count(p => Same(p.Callsign, callsign));
@@ -385,13 +462,38 @@ namespace ATCRoom.Sim
             }
         }
 
+        /// <summary>Wind now (towards east, towards north, kt), gusts included.</summary>
+        private (double East, double North) WindNow()
+        {
+            double speed = Math.Max(0, windSpeed + gustNow);
+            double towards = (windFrom + 180) * Math.PI / 180;
+            return (speed * Math.Sin(towards), speed * Math.Cos(towards));
+        }
+
+        private void Gusts()
+        {
+            if (windGust <= 0)
+            {
+                gustNow = gustTarget = 0;
+                return;
+            }
+            // A new gust every 2–5 s, reached gradually.
+            if (steps >= gustNextStep)
+            {
+                gustTarget = random.NextDouble() * windGust;
+                gustNextStep = steps + (long)Math.Round((2 + 3 * random.NextDouble()) / Step);
+            }
+            gustNow += (gustTarget - gustNow) * Step;
+        }
+
         private void StepOnce()
         {
             ApplyPending();
             steps++;
+            Gusts();
+            (double East, double North) wind = WindNow();
             foreach (SimAircraft plane in aircraft)
             {
-                plane.BestVerticalSpeedFpm = BestVerticalSpeed(plane);
                 if (plane.Frozen)
                 {
                     plane.TurnRateDps = 0;
@@ -399,39 +501,57 @@ namespace ATCRoom.Sim
                     continue;
                 }
                 Turn(plane);
-                Vertical(plane);
                 Accelerate(plane);
-                double heading = plane.HeadingTrue * Math.PI / 180;
-                plane.X += plane.SpeedKt * Math.Sin(heading) * Step / 3600;
-                plane.Y += plane.SpeedKt * Math.Cos(heading) * Step / 3600;
+                Ground(plane, wind);
+                plane.BestVerticalSpeedFpm = BestVerticalSpeed(plane);
+                Vertical(plane);
+                plane.X += plane.GroundSpeedKt * Math.Sin(plane.TrackTrue * Math.PI / 180) * Step / 3600;
+                plane.Y += plane.GroundSpeedKt * Math.Cos(plane.TrackTrue * Math.PI / 180) * Step / 3600;
             }
         }
 
-        /// <summary>Vertical speed that keeps the glide path: from the speed along the final course (ft/min, negative; 0 without a glide path).</summary>
+        /// <summary>Speed and direction over the ground: the speed along the heading plus the wind.</summary>
+        private static void Ground(SimAircraft plane, (double East, double North) wind)
+        {
+            double heading = plane.HeadingTrue * Math.PI / 180;
+            double east = plane.SpeedKt * Math.Sin(heading) + wind.East;
+            double north = plane.SpeedKt * Math.Cos(heading) + wind.North;
+            plane.GroundSpeedKt = Math.Sqrt(east * east + north * north);
+            plane.TrackTrue = plane.GroundSpeedKt > 0.5 ? Normalize(Math.Atan2(east, north) * 180 / Math.PI) : plane.HeadingTrue;
+            plane.DriftDegrees = Wrap(plane.TrackTrue - plane.HeadingTrue);
+        }
+
+        /// <summary>Vertical speed that keeps the glide path: from the ground speed along the final course (ft/min, negative; 0 without a glide path).</summary>
         private double BestVerticalSpeed(SimAircraft plane)
         {
             if (double.IsNaN(glidePathCourse) || glidePathAngle <= 0) return 0;
-            double along = Math.Max(0, plane.SpeedKt * Math.Cos((plane.HeadingTrue - glidePathCourse) * Math.PI / 180));
+            double along = Math.Max(0, plane.GroundSpeedKt * Math.Cos((plane.TrackTrue - glidePathCourse) * Math.PI / 180));
             return -along * FeetPerNM / 60 * Math.Tan(glidePathAngle * Math.PI / 180);
+        }
+
+        /// <summary>The turn rate moves towards the one wanted, at most <see cref="TurnRateChange"/> per second.</summary>
+        private static void MoveTurnRate(SimAircraft plane, double wanted)
+        {
+            double change = TurnRateChange * Step;
+            plane.TurnRateDps += Math.Clamp(wanted - plane.TurnRateDps, -change, change);
         }
 
         private static void Turn(SimAircraft plane)
         {
             if (plane.StickX != 0)
             {
-                // Stick: turns at once at the turn rate (Free: faster the longer it is held at its edge).
+                // Stick: turns at the turn rate (Free: faster the longer it is held at its edge, with a steeper bank).
                 if (Math.Abs(plane.StickX) > 0.95) plane.StickHeld += Step; else plane.StickHeld = 0;
-                double rate = plane.TurnRateMode == TurnRateMode.Free
-                    ? Math.Min(FreeMaxRate, FreeStartRate + FreeGrowth * plane.StickHeld)
-                    : plane.SelectedTurnRateDps;
-                plane.TurnRateDps = plane.StickX * rate;
+                bool free = plane.TurnRateMode == TurnRateMode.Free;
+                double rate = free ? Math.Min(FreeMaxRate, FreeStartRate + FreeGrowth * plane.StickHeld) : plane.SelectedTurnRateDps;
+                rate = Math.Min(rate, RateForBank(free ? FreeMaxBank : plane.Class.MaxBankDegrees, plane.SpeedKt));
+                MoveTurnRate(plane, plane.StickX * rate);
                 plane.HeadingTrue = Normalize(plane.HeadingTrue + plane.TurnRateDps * Step);
                 plane.TargetHeading = plane.HeadingTrue;
                 plane.TurnDirection = TurnDirection.Shortest;
                 return;
             }
-            double difference = Normalize(plane.TargetHeading - plane.HeadingTrue);
-            if (difference > 180) difference -= 360;
+            double difference = Wrap(plane.TargetHeading - plane.HeadingTrue);
             int side = plane.TurnDirection switch
             {
                 TurnDirection.Left => -1,
@@ -441,51 +561,84 @@ namespace ATCRoom.Sim
             // Degrees still to turn on that side.
             double remaining = side > 0 ? Normalize(plane.TargetHeading - plane.HeadingTrue)
                 : side < 0 ? Normalize(plane.HeadingTrue - plane.TargetHeading) : 0;
-            double turn = plane.SelectedTurnRateDps * Step;
-            if (remaining <= turn + Epsilon || remaining > 360 - Epsilon)
+            if (remaining > 360 - 1e-6) remaining = 0;
+            if (side == 0 || remaining < 1e-6)
             {
+                // On the heading: level the wings (a turn still going on carries a little past it, then comes back).
+                if (Math.Abs(plane.TurnRateDps) <= TurnRateChange * Step + Epsilon)
+                {
+                    plane.HeadingTrue = plane.TargetHeading;
+                    plane.TurnRateDps = 0;
+                    plane.TurnDirection = TurnDirection.Shortest;
+                    return;
+                }
+                MoveTurnRate(plane, 0);
+                plane.HeadingTrue = Normalize(plane.HeadingTrue + plane.TurnRateDps * Step);
+                plane.TurnDirection = TurnDirection.Shortest;
+                return;
+            }
+            // The rate that still lets the roll-out end on the heading, within the selected rate and the bank limit.
+            double limit = Math.Min(plane.SelectedTurnRateDps, RateForBank(plane.Class.MaxBankDegrees, plane.SpeedKt));
+            double wanted = side * Math.Min(limit, Math.Sqrt(2 * TurnRateChange * remaining));
+            MoveTurnRate(plane, wanted);
+            double turn = plane.TurnRateDps * Step;
+            if (turn * side >= remaining - Epsilon)
+            {
+                // This step reaches the heading.
                 plane.HeadingTrue = plane.TargetHeading;
                 plane.TurnRateDps = 0;
                 plane.TurnDirection = TurnDirection.Shortest;
                 return;
             }
-            plane.HeadingTrue = Normalize(plane.HeadingTrue + side * turn);
-            plane.TurnRateDps = side * plane.SelectedTurnRateDps;
+            plane.HeadingTrue = Normalize(plane.HeadingTrue + turn);
         }
 
         private static void Vertical(SimAircraft plane)
         {
+            PerformanceClass kind = plane.Class;
+            double change = kind.VerticalAccelerationFpmPerSecond * Step;
             if (plane.StickY != 0)
             {
-                // Stick: changes the vertical speed at once.
+                // Stick: changes the commanded vertical speed at once.
                 plane.VerticalMode = VerticalMode.Rate;
-                plane.CommandedVerticalSpeedFpm = Math.Clamp(plane.CommandedVerticalSpeedFpm + plane.StickY * StickVerticalRate * Step, MaxDescent, MaxClimb);
+                plane.CommandedVerticalSpeedFpm = Math.Clamp(plane.CommandedVerticalSpeedFpm + plane.StickY * StickVerticalRate * Step, -kind.MaxDescentFpm, kind.MaxClimbFpm);
             }
+            double wanted;
             switch (plane.VerticalMode)
             {
                 case VerticalMode.Altitude:
                     double difference = plane.TargetAltitudeFt - plane.AltitudeFt;
-                    double change = plane.SelectedVerticalRateFpm / 60 * Step;
-                    if (Math.Abs(difference) <= change + Epsilon)
+                    if (Math.Abs(difference) < 0.5 && Math.Abs(plane.VerticalSpeedFpm) <= change + Epsilon)
                     {
                         plane.AltitudeFt = plane.TargetAltitudeFt;
                         plane.VerticalSpeedFpm = 0;
                         return;
                     }
-                    plane.VerticalSpeedFpm = Math.Sign(difference) * plane.SelectedVerticalRateFpm;
+                    // The rate that still lets the level-off end on the altitude: v² / (120 a) feet are needed to stop.
+                    double capture = Math.Sqrt(120 * kind.VerticalAccelerationFpmPerSecond * Math.Abs(difference));
+                    wanted = Math.Sign(difference) * Math.Min(plane.SelectedVerticalRateFpm, capture);
                     break;
                 case VerticalMode.Rate:
-                    plane.VerticalSpeedFpm = plane.CommandedVerticalSpeedFpm;
+                    wanted = plane.CommandedVerticalSpeedFpm;
                     break;
-                case VerticalMode.GlidePath:
-                    plane.VerticalSpeedFpm = plane.BestVerticalSpeedFpm;
+                default:
+                    wanted = plane.BestVerticalSpeedFpm;
                     break;
             }
+            wanted = Math.Clamp(wanted, -kind.MaxDescentFpm, kind.MaxClimbFpm);
+            plane.VerticalSpeedFpm += Math.Clamp(wanted - plane.VerticalSpeedFpm, -change, change);
+            double before = plane.AltitudeFt;
             plane.AltitudeFt += plane.VerticalSpeedFpm / 60 * Step;
+            if (plane.VerticalMode == VerticalMode.Altitude && (before - plane.TargetAltitudeFt) * (plane.AltitudeFt - plane.TargetAltitudeFt) <= 0)
+            {
+                // Reached the altitude in this step.
+                plane.AltitudeFt = plane.TargetAltitudeFt;
+                plane.VerticalSpeedFpm = 0;
+            }
             if (plane.AltitudeFt <= 0)
             {
                 plane.AltitudeFt = 0;
-                plane.VerticalSpeedFpm = 0;
+                if (plane.VerticalSpeedFpm < 0) plane.VerticalSpeedFpm = 0;
             }
             // The altitude to come back to with an altitude instruction starts from here.
             if (plane.VerticalMode != VerticalMode.Altitude) plane.TargetAltitudeFt = plane.AltitudeFt;
@@ -494,7 +647,7 @@ namespace ATCRoom.Sim
         private static void Accelerate(SimAircraft plane)
         {
             double difference = plane.TargetSpeedKt - plane.SpeedKt;
-            double change = (difference > 0 ? Acceleration : Deceleration) * Step;
+            double change = (difference > 0 ? plane.Class.AccelerationKtPerSecond : plane.Class.DecelerationKtPerSecond) * Step;
             plane.SpeedKt = Math.Abs(difference) <= change + Epsilon ? plane.TargetSpeedKt : plane.SpeedKt + Math.Sign(difference) * change;
         }
     }
