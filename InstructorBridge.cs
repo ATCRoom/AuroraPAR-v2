@@ -68,7 +68,7 @@ namespace AuroraPAR
         /// </summary>
         public string? LoadPerformance(string folder)
         {
-            (List<PerformanceClass> classes, _, string? message) = PerformanceFile.Load(Path.Combine(folder, PerformanceFile.FileName));
+            (List<PerformanceClass> classes, _, string? message) = PerformanceFile.Load(System.IO.Path.Combine(folder, PerformanceFile.FileName));
             Engine.SetPerformanceClasses(classes);
             return message;
         }
