@@ -190,6 +190,46 @@ const double RunwayHeading = 325.80;
     Check(first.SequenceEqual(second) && first[0].GroundSpeedKt != 140, "Gusts: random but the same in two runs");
 }
 
+// --- Ground, landing ---------------------------------------------------------------------------------------------
+
+{
+    SimEngine engine = new();
+    engine.SetGlidePath(0, 3, 500, 1.5);
+    double onPath = 500 + 3 * SimEngine.FeetPerNM * Math.Tan(3 * Math.PI / 180);
+    string a = engine.Add(0, -3, onPath, 0, 140);
+    engine.SetGlidePathRate(a);
+    bool landed = false;
+    for (int i = 0; i < 1200 && engine.Get(a) is AircraftState state; i++)
+    {
+        if (state.Contact == GroundContact.Landed) landed = true;
+        engine.RunFor(0.1);
+    }
+    Check(landed && engine.Get(a) == null, "Normal rate from 3 NM on the glide path: lands on the runway, removed a few seconds later");
+
+    string b = engine.Add(3, -5, 600, 0, 140);
+    engine.SetVerticalSpeed(b, -1000);
+    engine.RunFor(20);
+    AircraftState s = engine.Get(b)!;
+    Check(s.Contact == GroundContact.OnGround && s.AltitudeFt == 500 && s.GroundSpeedKt == 0, "Descending 3 NM beside the runway: stops on the ground at the runway elevation (500 ft)");
+    engine.RunFor(20);
+    Check(engine.Get(b) is AircraftState still && still.X == s.X && still.Y == s.Y, "On the ground outside the runway: stays there until removed");
+
+    string c = engine.Add(-5, 0, 2000, 0, 140);
+    engine.SetAltitude(c, 300);
+    engine.RunFor(0.1);
+    Check(engine.Get(c)!.TargetAltitudeFt == 500, "Altitude below the runway: kept at the runway elevation");
+}
+
+{
+    SimEngine engine = new();
+    HashSet<string> flying = new(StringComparer.OrdinalIgnoreCase) { "SIM1", "AZA123" };
+    string a = engine.Add(0, 0, 3000, 0, 140, null, null, flying.Contains);
+    string b = engine.Add(0, 0, 3000, 0, 140, "aza123", null, flying.Contains);
+    Check(a == "SIM2" && b == "AZA123A", "Callsigns already flying outside the simulation are skipped (SIM2) or get a letter (AZA123A)", $"{a} {b}");
+    engine.Clear();
+    Check(engine.Add(0, 0, 3000, 0, 140) == "SIM1", "After Remove all the callsigns start again from SIM1");
+}
+
 // --- Performance classes -----------------------------------------------------------------------------------------
 
 {

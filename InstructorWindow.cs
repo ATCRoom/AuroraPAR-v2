@@ -146,6 +146,8 @@ namespace AuroraPAR
             reactionBox.Text = settings.ReactionSeconds.ToString("0.0", CultureInfo.InvariantCulture);
             bridge.Engine.ReactionSeconds = settings.ReactionSeconds;
             ShowTurnMode(null);
+            pauseButton.Content = bridge.Engine.Paused ? "Resume" : "Pause";
+            ShowWindMagnetic();
             refresh.Tick += (s, e) => Refresh();
             Loaded += (s, e) => { refresh.Start(); Refresh(); };
             Closed += (s, e) => refresh.Stop();
@@ -203,10 +205,15 @@ namespace AuroraPAR
             windFromBox.Text = windFrom.ToString("000", CultureInfo.InvariantCulture);
             windSpeedBox.Text = windSpeed.ToString("0", CultureInfo.InvariantCulture);
             windGustBox.Text = windGust.ToString("0", CultureInfo.InvariantCulture);
-            foreach (TextBox box in new[] { windFromBox, windSpeedBox, windGustBox }) box.TextChanged += (s, e) => ApplyWind();
-            Wheel(windFromBox, 10, 30, 0, 360, "000", null);
-            Wheel(windSpeedBox, 1, 5, 0, SimEngine.MaxWind, "0", null);
-            Wheel(windGustBox, 1, 5, 0, SimEngine.MaxGust, "0", null);
+            // Applied with Enter, when leaving the box, or at each wheel step (not at each key typed: "2" before "250").
+            foreach (TextBox box in new[] { windFromBox, windSpeedBox, windGustBox })
+            {
+                box.KeyDown += (s, e) => { if (e.Key == Key.Enter) ApplyWind(); };
+                box.LostFocus += (s, e) => ApplyWind();
+            }
+            Wheel(windFromBox, 10, 30, 0, 360, "000", ApplyWind);
+            Wheel(windSpeedBox, 1, 5, 0, SimEngine.MaxWind, "0", ApplyWind);
+            Wheel(windGustBox, 1, 5, 0, SimEngine.MaxGust, "0", ApplyWind);
             panel.Children.Add(windRow);
             panel.Children.Add(noticeText);
             return Group("Simulation", panel);
@@ -230,13 +237,13 @@ namespace AuroraPAR
             row2.Children.Add(Caption("class"));
             row2.Children.Add(classBox);
             classBox.ItemsSource = bridge.Engine.Classes.Select(c => c.Name).ToList();
-            classBox.SelectedItem = bridge.Engine.Classes.Any(c => c.Name == PerformanceClass.DefaultName) ? PerformanceClass.DefaultName : bridge.Engine.Classes[0].Name;
+            classBox.SelectedItem = bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, PerformanceClass.DefaultName, StringComparison.OrdinalIgnoreCase))?.Name ?? bridge.Engine.Classes[0].Name;
             classBox.SelectionChanged += (s, e) =>
             {
-                PerformanceClass? kind = bridge.Engine.Classes.FirstOrDefault(c => c.Name == classBox.SelectedItem as string);
+                PerformanceClass? kind = bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, classBox.SelectedItem as string, StringComparison.OrdinalIgnoreCase));
                 if (kind != null) newSpeedBox.Text = kind.ApproachSpeedKt.ToString("0", CultureInfo.InvariantCulture);
             };
-            if (bridge.Engine.Classes.FirstOrDefault(c => c.Name == classBox.SelectedItem as string) is PerformanceClass first)
+            if (bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, classBox.SelectedItem as string, StringComparison.OrdinalIgnoreCase)) is PerformanceClass first)
             {
                 newSpeedBox.Text = first.ApproachSpeedKt.ToString("0", CultureInfo.InvariantCulture);
             }
@@ -245,7 +252,7 @@ namespace AuroraPAR
             row2.Children.Add(add);
             distanceBox.ToolTip = "Distance from touchdown (NM). Mouse wheel: 0.5 NM (+Shift: 1).";
             offsetBox.ToolTip = "Offset from the extended centreline, to the right (+) or left (−) as seen by the pilot (NM). Mouse wheel: 0.1 NM (+Shift: 1).";
-            newAltitudeBox.ToolTip = "Empty: on the glide path at that distance. With QFE selected: height above the threshold. Mouse wheel: 100 ft (+Shift: 1000).";
+            newAltitudeBox.ToolTip = "Empty: on the glide path at that distance. With QFE selected: height above the threshold. Mouse wheel: 100 ft (+Shift: 1000). The aircraft starts level: Normal starts the descent.";
             newSpeedBox.ToolTip = "Speed (kt). Mouse wheel: 5 kt (+Shift: 10).";
             Wheel(distanceBox, 0.5, 1, 0.5, 60, "0.0", null);
             Wheel(offsetBox, 0.1, 1, -20, 20, "0.0", null);
@@ -677,7 +684,8 @@ namespace AuroraPAR
             Runway? reference = bridge.Reference;
             if (reference != null && reference.RunwayKey == radar.RunwayKey && reference.GlideSlope == radar.GlideSlope
                 && reference.Latitude == radar.Latitude && reference.Longitude == radar.Longitude && reference.Heading == radar.DefaultHeading
-                && reference.Elevation == radar.Elevation) return;
+                && reference.Elevation == radar.Elevation && reference.TCH == radar.TCH && reference.TouchdownM == radar.TouchdownM
+                && reference.LengthM == radar.LengthM) return;
             bridge.SetReference(radar);
             fillFields = true;
         }
@@ -750,9 +758,10 @@ namespace AuroraPAR
         private void FinalCourse()
         {
             Runway? runway = bridge.Reference;
-            if (runway == null || SelectedCallsign == null) return;
+            if (runway == null || SelectedCallsign is not string callsign) return;
             headingBox.Text = Magnetic(runway.Heading, variation()).ToString("000", CultureInfo.InvariantCulture);
-            GiveHeading();
+            // The exact final course, not the magnetic heading rounded to a degree (0.5° would be 160 m off at 10 NM).
+            bridge.Engine.SetHeading(callsign, runway.Heading);
         }
 
         /// <summary>Heading box changed by keys or wheel (degrees, + right), then carried out after the pilot reaction.</summary>
@@ -803,7 +812,9 @@ namespace AuroraPAR
             next = Math.Clamp(next, SimEngine.MaxDescent, SimEngine.MaxClimb);
             rateBox.Text = FormatRate(next);
             rateBox.CaretIndex = rateBox.Text.Length;
-            GiveRate();
+            // Stopped on the Normal rate: Normal itself, which follows the speed and the wind.
+            if (best != 0 && next == best) bridge.Engine.SetGlidePathRate(state.Callsign);
+            else GiveRate();
         }
 
         /// <summary>A rate instruction (vertical speed to keep): after the pilot reaction; a new one replaces it.</summary>
@@ -827,7 +838,7 @@ namespace AuroraPAR
 
         private void GiveAltitude()
         {
-            if (SelectedCallsign is not string callsign || !TryRead(altitudeBox, out double value) || value < (Qfe ? -Elevation : 0) || value > 40000)
+            if (SelectedCallsign is not string callsign || !TryRead(altitudeBox, out double value) || value < (Qfe ? 0 : Elevation) || value > 40000)
             {
                 System.Media.SystemSounds.Beep.Play();
                 return;
@@ -970,6 +981,9 @@ namespace AuroraPAR
         }
 
         /// <summary>Updates the reference text, the list (keeping the selection) and the selected aircraft.</summary>
+        /// <summary>Callsign of the aircraft whose values the fields show.</summary>
+        private string? shownCallsign;
+
         private void Refresh()
         {
             FollowRadarRunway();
@@ -1001,13 +1015,23 @@ namespace AuroraPAR
                     double altitude = Qfe ? state.AltitudeFt - Elevation : state.AltitudeFt;
                     string climbing = state.VerticalSpeedFpm > 0 ? "↑" : state.VerticalSpeedFpm < 0 ? "↓" : " ";
                     item.Content = string.Format(CultureInfo.InvariantCulture, "{0,-8}  {1:000}  {2,6:0}{3}  {4,4:0}  {5,5}  {6}{7}",
-                        state.Callsign, Magnetic(state.HeadingTrue, magneticVariation), altitude, climbing, state.SpeedKt, distance, seen, state.Frozen ? " FRZ" : "");
+                        state.Callsign, Magnetic(state.HeadingTrue, magneticVariation), altitude, climbing, state.SpeedKt, distance, seen,
+                        state.Contact switch { GroundContact.Landed => " LANDED", GroundContact.OnGround => " GROUND", _ => state.Frozen ? " FRZ" : "" });
+                    item.Foreground = state.Contact == GroundContact.OnGround ? Brushes.Red : Brushes.Black;
                 }
                 if (list.SelectedItem == null && list.Items.Count > 0 && selected == null) list.SelectedIndex = 0;
             }
             finally
             {
                 updating = false;
+            }
+            // The selection changed by itself (an aircraft removed or landed, the first one added): as a click.
+            if (SelectedCallsign != shownCallsign)
+            {
+                shownCallsign = SelectedCallsign;
+                ReleaseManual();
+                ApplyJoystick();
+                fillFields = true;
             }
             ShowSelected(states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase)), runway, magneticVariation);
         }

@@ -47,7 +47,9 @@ namespace AuroraPAR
         private readonly Dictionary<string, Given> given = new(StringComparer.OrdinalIgnoreCase);
         private Runway? reference;
         private LocalPlane? plane;
-        private DateTime lastAdvance = DateTime.MinValue;
+        /// <summary>Wall clock of the simulation (not changed by a change of the computer's clock) and its last reading (s).</summary>
+        private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+        private double lastAdvance = double.NaN;
         private Dictionary<string, Aircraft> lastPositions = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Last position given to Aurora's rhythm: position every 0.4–0.65 s, altitude every 3 s in steps of 10 ft.</summary>
@@ -56,6 +58,8 @@ namespace AuroraPAR
             public double Latitude = double.NaN;
             public double Longitude = double.NaN;
             public double Altitude = double.NaN;
+            public double Track;
+            public double Speed;
             public DateTime PositionTime;
             public DateTime AltitudeTime;
         }
@@ -100,7 +104,7 @@ namespace AuroraPAR
                 reference = copy;
                 plane = new LocalPlane(copy.Latitude, copy.Longitude, copy.Heading);
                 // The "Normal" rate follows the glide path of this runway.
-                Engine.SetGlidePath(copy.Heading, copy.GlideSlope);
+                Engine.SetGlidePath(copy.Heading, copy.GlideSlope, copy.Elevation, copy.LengthNM);
             }
         }
 
@@ -123,20 +127,8 @@ namespace AuroraPAR
         public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign, IEnumerable<string> taken, string? performanceClass = null)
         {
             HashSet<string> others = new(taken, StringComparer.OrdinalIgnoreCase);
-            string name = Engine.Add(x, y, altitudeFt, headingTrue, speedKt, callsign, performanceClass);
-            if (others.Contains(name))
-            {
-                for (char letter = 'A'; letter <= 'Z'; letter++)
-                {
-                    string candidate = name + letter;
-                    if (!others.Contains(candidate) && !Engine.IsCallsignTaken(candidate) && Engine.Rename(name, candidate))
-                    {
-                        name = candidate;
-                        break;
-                    }
-                }
-            }
-            return name;
+            // The callsign is chosen before the aircraft exists, so it never shows under a callsign that is already flying.
+            return Engine.Add(x, y, altitudeFt, headingTrue, speedKt, callsign, performanceClass, others.Contains);
         }
 
         /// <summary>Removes all simulated aircraft.</summary>
@@ -165,8 +157,9 @@ namespace AuroraPAR
         {
             lock (sync)
             {
-                double seconds = lastAdvance == DateTime.MinValue ? 0 : (now - lastAdvance).TotalSeconds;
-                lastAdvance = now;
+                double elapsed = clock.Elapsed.TotalSeconds;
+                double seconds = double.IsNaN(lastAdvance) ? 0 : elapsed - lastAdvance;
+                lastAdvance = elapsed;
                 Engine.Advance(seconds);
                 List<Aircraft> result = [];
                 if (plane == null || reference == null) return result;
@@ -193,6 +186,7 @@ namespace AuroraPAR
             (double aheadLatitude, double aheadLongitude) = plane.ToGeo(state.X + TrackProbe * Math.Sin(direction), state.Y + TrackProbe * Math.Cos(direction));
             double track = Earth.Bearing(latitude, longitude, aheadLatitude, aheadLongitude);
             double altitude = state.AltitudeFt;
+            double speed = state.GroundSpeedKt;
             if (AuroraLike)
             {
                 if (!given.TryGetValue(state.Callsign, out Given? last))
@@ -205,6 +199,9 @@ namespace AuroraPAR
                 {
                     last.Latitude = latitude;
                     last.Longitude = longitude;
+                    // Aurora gives track and ground speed with the position.
+                    last.Track = track;
+                    last.Speed = speed;
                     last.PositionTime = now.AddSeconds(0.4 + 0.25 * random.NextDouble());
                 }
                 if (double.IsNaN(last.Altitude) || now >= last.AltitudeTime)
@@ -214,6 +211,8 @@ namespace AuroraPAR
                 }
                 latitude = last.Latitude;
                 longitude = last.Longitude;
+                track = last.Track;
+                speed = last.Speed;
                 altitude = last.Altitude;
             }
             else
@@ -228,7 +227,7 @@ namespace AuroraPAR
                 Altitude = altitude,
                 Track = track,
                 // Over the ground, with the wind (as Aurora gives it).
-                Speed = state.GroundSpeedKt,
+                Speed = speed,
                 IsTest = true,
                 IsSim = true
             };

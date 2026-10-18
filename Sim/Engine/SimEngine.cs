@@ -64,6 +64,11 @@ namespace ATCRoom.Sim
         private const double MetresPerSecondPerKnot = 1852.0 / 3600;
         /// <summary>Rounding allowance: a value this close to its target in the last step is taken as reached.</summary>
         private const double Epsilon = 1e-9;
+        /// <summary>Touching the ground this close to the runway (NM to the side, NM before the threshold) counts as landed.</summary>
+        private const double RunwayHalfWidthForLanding = 0.1;
+        private const double BeforeThresholdForLanding = 0.2;
+        /// <summary>How long a landed aircraft rolls on before it is removed (s).</summary>
+        public const double LandedRemoveAfter = 5;
 
         /// <summary>Kinds of pilot instructions: a new one replaces the one of the same kind still waiting.</summary>
         private enum Kind { Heading, Vertical, Speed }
@@ -83,6 +88,9 @@ namespace ATCRoom.Sim
         private double reaction;
         private double glidePathCourse = double.NaN;
         private double glidePathAngle;
+        /// <summary>The reference runway: threshold elevation (the ground everywhere, ft) and length (NM) from the threshold along the final course.</summary>
+        private double runwayElevation;
+        private double runwayLength;
         private double windFrom;
         private double windSpeed;
         private double windGust;
@@ -166,16 +174,26 @@ namespace ATCRoom.Sim
         }
 
         /// <summary>
-        /// The glide path of the reference runway, for the "Normal" vertical speed: the final course (degrees true,
-        /// the direction of landing) and the glide path angle (degrees). NaN course: none.
+        /// The reference runway, threshold at the origin of the plane: final course (degrees true, the direction of
+        /// landing) and glide path angle (degrees), for the "Normal" vertical speed; threshold elevation (ft), the
+        /// ground of the simulation; length (NM), to tell a landing on it from a contact with the ground elsewhere.
+        /// NaN course: no runway (the ground at 0 ft, every contact outside a runway).
         /// </summary>
-        public void SetGlidePath(double finalCourseTrue, double angleDegrees)
+        public void SetGlidePath(double finalCourseTrue, double angleDegrees, double elevationFt = 0, double lengthNM = 0)
         {
             lock (sync)
             {
                 glidePathCourse = double.IsFinite(finalCourseTrue) ? Normalize(finalCourseTrue) : double.NaN;
                 glidePathAngle = double.IsFinite(angleDegrees) ? Math.Clamp(angleDegrees, 0, 10) : 0;
+                runwayElevation = double.IsFinite(elevationFt) ? Math.Clamp(elevationFt, -1500, 15000) : 0;
+                runwayLength = double.IsFinite(lengthNM) ? Math.Clamp(lengthNM, 0, 5) : 0;
             }
+        }
+
+        /// <summary>Elevation of the ground of the simulation (ft): the threshold of the reference runway.</summary>
+        public double GroundElevation
+        {
+            get { lock (sync) return runwayElevation; }
         }
 
         /// <summary>True if an aircraft of the simulation already has this callsign (not case sensitive).</summary>
@@ -190,20 +208,35 @@ namespace ATCRoom.Sim
         /// without a class (or an unknown one) the Turboprop, or the first class. The speed is kept within the class.
         /// Returns its callsign.
         /// </summary>
-        public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign = null, string? performanceClass = null)
+        public string Add(double x, double y, double altitudeFt, double headingTrue, double speedKt, string? callsign = null, string? performanceClass = null,
+            Func<string, bool>? takenElsewhere = null)
         {
             lock (sync)
             {
+                // Callsigns also flying outside the simulation (real or test traffic): never given (the radar's filters
+                // and track IDs follow the callsign, so it is chosen once, before the aircraft exists).
+                bool Taken(string candidate) => Find(candidate) != null || takenElsewhere?.Invoke(candidate) == true;
                 string name;
                 if (string.IsNullOrWhiteSpace(callsign))
                 {
                     do name = prefix + (++number).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    while (Find(name) != null);
+                    while (Taken(name));
                 }
                 else
                 {
                     name = CheckCallsign(callsign);
                     if (Find(name) != null) throw new InvalidOperationException($"{name} is already in the simulation.");
+                    if (takenElsewhere?.Invoke(name) == true)
+                    {
+                        // Flying outside the simulation: the same with a letter (SIM1 → SIM1A).
+                        string? free = null;
+                        for (char letter = 'A'; letter <= 'Z' && free == null; letter++)
+                        {
+                            string candidate = name + letter;
+                            if (candidate.Length <= 10 && !Taken(candidate)) free = candidate;
+                        }
+                        name = free ?? throw new InvalidOperationException($"{name} is already flying (real or test traffic).");
+                    }
                 }
                 PerformanceClass kind = (classes.FirstOrDefault(c => Same(c.Name, performanceClass ?? ""))
                     ?? classes.FirstOrDefault(c => Same(c.Name, PerformanceClass.DefaultName))
@@ -262,7 +295,7 @@ namespace ATCRoom.Sim
             Instruct(callsign, Kind.Vertical, a =>
             {
                 a.VerticalMode = VerticalMode.Altitude;
-                a.TargetAltitudeFt = Math.Clamp(altitudeFt, 0, MaxAltitude);
+                a.TargetAltitudeFt = Math.Clamp(altitudeFt, runwayElevation, MaxAltitude);
                 if (verticalRateFpm is double rate) a.SelectedVerticalRateFpm = Math.Clamp(Math.Abs(rate), MinVerticalRate, MaxVerticalRate);
             });
 
@@ -343,12 +376,14 @@ namespace ATCRoom.Sim
             }
         }
 
+        /// <summary>Removes all aircraft; the automatic callsigns start again from 1.</summary>
         public void Clear()
         {
             lock (sync)
             {
                 aircraft.Clear();
                 pending.Clear();
+                number = 0;
             }
         }
 
@@ -456,8 +491,10 @@ namespace ATCRoom.Sim
             if (due.Count == 0) return;
             foreach (Pending item in due)
             {
-                pending.Remove(item);
                 SimAircraft? plane = Find(item.Callsign);
+                // The pilot flying with the stick on that axis: the instruction waits until the stick is let go.
+                if (plane != null && ((item.Kind == Kind.Heading && plane.StickX != 0) || (item.Kind == Kind.Vertical && plane.StickY != 0))) continue;
+                pending.Remove(item);
                 if (plane != null) item.Change(plane);
             }
         }
@@ -494,10 +531,11 @@ namespace ATCRoom.Sim
             (double East, double North) wind = WindNow();
             foreach (SimAircraft plane in aircraft)
             {
-                if (plane.Frozen)
+                if (plane.Frozen || plane.Contact == GroundContact.OnGround)
                 {
                     plane.TurnRateDps = 0;
                     plane.VerticalSpeedFpm = 0;
+                    if (plane.Contact == GroundContact.OnGround) plane.GroundSpeedKt = 0;
                     continue;
                 }
                 Turn(plane);
@@ -507,6 +545,34 @@ namespace ATCRoom.Sim
                 Vertical(plane);
                 plane.X += plane.GroundSpeedKt * Math.Sin(plane.TrackTrue * Math.PI / 180) * Step / 3600;
                 plane.Y += plane.GroundSpeedKt * Math.Cos(plane.TrackTrue * Math.PI / 180) * Step / 3600;
+            }
+            // Landed aircraft roll on for a few seconds, then they are gone.
+            aircraft.RemoveAll(a => a.Contact == GroundContact.Landed && steps - a.LandedStep >= (long)Math.Round(LandedRemoveAfter / Step));
+        }
+
+        /// <summary>The aircraft reached the ground: on the runway it has landed, elsewhere it stops there.</summary>
+        private void TouchGround(SimAircraft plane)
+        {
+            if (plane.Contact != GroundContact.Airborne) return;
+            bool onRunway = false;
+            if (!double.IsNaN(glidePathCourse) && runwayLength > 0)
+            {
+                double course = glidePathCourse * Math.PI / 180;
+                // From the threshold: along the landing direction and to its right.
+                double along = plane.X * Math.Sin(course) + plane.Y * Math.Cos(course);
+                double lateral = plane.X * Math.Cos(course) - plane.Y * Math.Sin(course);
+                onRunway = along >= -BeforeThresholdForLanding && along <= runwayLength && Math.Abs(lateral) <= RunwayHalfWidthForLanding;
+            }
+            plane.Contact = onRunway ? GroundContact.Landed : GroundContact.OnGround;
+            plane.LandedStep = steps;
+            plane.VerticalSpeedFpm = 0;
+            plane.VerticalMode = VerticalMode.Altitude;
+            plane.TargetAltitudeFt = plane.AltitudeFt;
+            if (!onRunway)
+            {
+                plane.SpeedKt = plane.TargetSpeedKt = 0;
+                plane.GroundSpeedKt = 0;
+                plane.TurnRateDps = 0;
             }
         }
 
@@ -525,7 +591,13 @@ namespace ATCRoom.Sim
         private double BestVerticalSpeed(SimAircraft plane)
         {
             if (double.IsNaN(glidePathCourse) || glidePathAngle <= 0) return 0;
-            double along = Math.Max(0, plane.GroundSpeedKt * Math.Cos((plane.TrackTrue - glidePathCourse) * Math.PI / 180));
+            // With the mean wind: pilots fly through the gusts, they do not chase them.
+            double course = glidePathCourse * Math.PI / 180;
+            double heading = plane.HeadingTrue * Math.PI / 180;
+            double towards = (windFrom + 180) * Math.PI / 180;
+            double east = plane.SpeedKt * Math.Sin(heading) + windSpeed * Math.Sin(towards);
+            double north = plane.SpeedKt * Math.Cos(heading) + windSpeed * Math.Cos(towards);
+            double along = Math.Max(0, east * Math.Sin(course) + north * Math.Cos(course));
             return -along * FeetPerNM / 60 * Math.Tan(glidePathAngle * Math.PI / 180);
         }
 
@@ -579,21 +651,27 @@ namespace ATCRoom.Sim
             }
             // The rate that still lets the roll-out end on the heading, within the selected rate and the bank limit.
             double limit = Math.Min(plane.SelectedTurnRateDps, RateForBank(plane.Class.MaxBankDegrees, plane.SpeedKt));
-            double wanted = side * Math.Min(limit, Math.Sqrt(2 * TurnRateChange * remaining));
+            // (The remaining heading less this step's turn: the rate falls in time, so the roll-out ends on the heading.)
+            double wanted = side * Math.Min(limit, Math.Sqrt(2 * TurnRateChange * Math.Max(0, remaining - Math.Abs(plane.TurnRateDps) * Step)));
             MoveTurnRate(plane, wanted);
             double turn = plane.TurnRateDps * Step;
             if (turn * side >= remaining - Epsilon)
             {
-                // This step reaches the heading.
-                plane.HeadingTrue = plane.TargetHeading;
-                plane.TurnRateDps = 0;
+                if (Math.Abs(plane.TurnRateDps) <= Math.Sqrt(2 * TurnRateChange * remaining) + TurnRateChange * Step + Epsilon)
+                {
+                    // This step reaches the heading at the end of the roll-out.
+                    plane.HeadingTrue = plane.TargetHeading;
+                    plane.TurnRateDps = 0;
+                    plane.TurnDirection = TurnDirection.Shortest;
+                    return;
+                }
+                // Turning too fast onto a heading just ahead: it carries past it a little and comes back the shorter way.
                 plane.TurnDirection = TurnDirection.Shortest;
-                return;
             }
             plane.HeadingTrue = Normalize(plane.HeadingTrue + turn);
         }
 
-        private static void Vertical(SimAircraft plane)
+        private void Vertical(SimAircraft plane)
         {
             PerformanceClass kind = plane.Class;
             double change = kind.VerticalAccelerationFpmPerSecond * Step;
@@ -615,7 +693,8 @@ namespace ATCRoom.Sim
                         return;
                     }
                     // The rate that still lets the level-off end on the altitude: v² / (120 a) feet are needed to stop.
-                    double capture = Math.Sqrt(120 * kind.VerticalAccelerationFpmPerSecond * Math.Abs(difference));
+                    // (Less this step's climb or descent, so the level-off ends on the altitude.)
+                    double capture = Math.Sqrt(120 * kind.VerticalAccelerationFpmPerSecond * Math.Max(0, Math.Abs(difference) - Math.Abs(plane.VerticalSpeedFpm) / 60 * Step));
                     wanted = Math.Sign(difference) * Math.Min(plane.SelectedVerticalRateFpm, capture);
                     break;
                 case VerticalMode.Rate:
@@ -629,16 +708,19 @@ namespace ATCRoom.Sim
             plane.VerticalSpeedFpm += Math.Clamp(wanted - plane.VerticalSpeedFpm, -change, change);
             double before = plane.AltitudeFt;
             plane.AltitudeFt += plane.VerticalSpeedFpm / 60 * Step;
-            if (plane.VerticalMode == VerticalMode.Altitude && (before - plane.TargetAltitudeFt) * (plane.AltitudeFt - plane.TargetAltitudeFt) <= 0)
+            if (plane.VerticalMode == VerticalMode.Altitude && (before - plane.TargetAltitudeFt) * (plane.AltitudeFt - plane.TargetAltitudeFt) <= 0
+                && Math.Abs(plane.VerticalSpeedFpm) <= Math.Sqrt(120 * kind.VerticalAccelerationFpmPerSecond * Math.Abs(before - plane.TargetAltitudeFt)) + change + Epsilon)
             {
-                // Reached the altitude in this step.
+                // Reached the altitude in this step, nearly level. (Arriving fast, it carries past it a little and comes back.)
                 plane.AltitudeFt = plane.TargetAltitudeFt;
                 plane.VerticalSpeedFpm = 0;
             }
-            if (plane.AltitudeFt <= 0)
+            if (plane.AltitudeFt <= runwayElevation)
             {
-                plane.AltitudeFt = 0;
+                plane.AltitudeFt = runwayElevation;
+                if (before > runwayElevation || plane.VerticalSpeedFpm < 0) TouchGround(plane);
                 if (plane.VerticalSpeedFpm < 0) plane.VerticalSpeedFpm = 0;
+                return;
             }
             // The altitude to come back to with an altitude instruction starts from here.
             if (plane.VerticalMode != VerticalMode.Altitude) plane.TargetAltitudeFt = plane.AltitudeFt;

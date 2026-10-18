@@ -31,6 +31,16 @@ namespace ATCRoom.Sim
         GlidePath
     }
 
+    /// <summary>Whether the aircraft is still flying.</summary>
+    public enum GroundContact
+    {
+        Airborne,
+        /// <summary>Touched down on the runway: it rolls on for a few seconds, then it is removed.</summary>
+        Landed,
+        /// <summary>Reached the ground outside the runway: it stops there until the instructor removes it.</summary>
+        OnGround
+    }
+
     /// <summary>
     /// An aircraft of the simulation at one moment, as given out by <see cref="SimEngine.Snapshot"/> (a copy: it does
     /// not change afterwards). Positions in the <see cref="LocalPlane"/> (NM), altitude above mean sea level (ft),
@@ -61,7 +71,8 @@ namespace ATCRoom.Sim
         string PerformanceClass,
         double GroundSpeedKt,
         double TrackTrue,
-        double DriftDegrees);
+        double DriftDegrees,
+        GroundContact Contact);
 
     /// <summary>An aircraft inside the engine: actual values and the values commanded by the instructor. Only the engine changes it, under its lock.</summary>
     internal sealed class SimAircraft
@@ -99,10 +110,13 @@ namespace ATCRoom.Sim
         public double GroundSpeedKt;
         public double TrackTrue;
         public double DriftDegrees;
+        /// <summary>Still flying, landed (and since which step) or on the ground outside the runway.</summary>
+        public GroundContact Contact = GroundContact.Airborne;
+        public long LandedStep;
 
         public AircraftState ToState(int pendingCommands) => new(Callsign, X, Y, AltitudeFt, HeadingTrue, SpeedKt, VerticalSpeedFpm, TurnRateDps,
             TargetHeading, TurnDirection, SelectedTurnRateDps, TurnRateMode, VerticalMode, TargetAltitudeFt, SelectedVerticalRateFpm,
             CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands,
-            Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees);
+            Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees, Contact);
     }
 }

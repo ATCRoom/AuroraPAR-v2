@@ -83,7 +83,10 @@ namespace ATCRoom.Sim
         {
             WriteIndented = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true
+            AllowTrailingCommas = true,
+            // Forgiving with hand edits: "minSpeedKt" or "MinSpeedKt", 120 or "120".
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
         };
 
         public int FormatVersion { get; set; } = CurrentFormatVersion;

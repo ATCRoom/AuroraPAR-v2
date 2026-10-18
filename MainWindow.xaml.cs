@@ -1332,6 +1332,7 @@ namespace AuroraPAR
                     }
                     instructorWindow = null;
                     instructor.Clear();
+                    instructor.Engine.Paused = false;
                     InstructorButton.Tag = viewOptions.Analog ? "Unlit" : null;
                     SettingsStore.Save(settings);
                     Redraw();
