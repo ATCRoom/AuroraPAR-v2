@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ATCRoom Sim: the simulation engine of the Instructor (flight model, commands, start positions, data files).
+    No WPF and no radar code on purpose: the tower circuit simulator will use the same library with its own view.
+    AuroraPAR references it, and the build puts it inside AuroraPAR.exe (one download). Tested by Sim/SelfTest.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ATCRoom.Sim</RootNamespace>
+    <AssemblyName>ATCRoom.Sim</AssemblyName>
+  </PropertyGroup>
+
+  <!-- The radar's own Earth (sphere and formulas), so simulated aircraft are placed as the radar measures them. -->
+  <ItemGroup>
+    <Compile Include="..\..\Earth.cs" Link="Earth.cs" />
+  </ItemGroup>
+
+</Project>

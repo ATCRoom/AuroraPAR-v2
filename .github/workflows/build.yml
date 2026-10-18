@@ -28,6 +28,11 @@ jobs:
           -p:BuildCommit=${{ github.sha }}
           -o publish
 
+      # Checks the simulation engine of the Instructor (turns, climbs, speeds, clock, callsigns, placement on the
+      # radar's Earth): the build fails if a check fails.
+      - name: Self-test of the simulation engine
+        run: dotnet run --project Sim/SelfTest/ATCRoom.Sim.SelfTest.csproj -c Release
+
       - name: Add the user manual
         run: Copy-Item docs/MANUAL.md publish/MANUAL.md
 

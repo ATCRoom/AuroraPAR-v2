@@ -45,6 +45,16 @@
     <None Remove="CRSCalculator\**" />
     <Page Remove="CRSCalculator\**" />
     <Resource Remove="CRSCalculator\**" />
+    <!-- The simulation engine of the Instructor and its self-test are separate projects (Sim folder). -->
+    <Compile Remove="Sim\**" />
+    <None Remove="Sim\**" />
+    <Page Remove="Sim\**" />
+    <Resource Remove="Sim\**" />
+  </ItemGroup>
+
+  <!-- The simulation engine (ATCRoom Sim, no WPF): built into AuroraPAR.exe, one download as before. -->
+  <ItemGroup>
+    <ProjectReference Include="Sim\Engine\ATCRoom.Sim.csproj" />
   </ItemGroup>
 
   <ItemGroup>
