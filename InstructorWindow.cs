@@ -127,7 +127,6 @@ namespace AuroraPAR
             });
             Content = root;
 
-            if (bridge.Reference == null) bridge.SetReference(radarRunway());
             reactionBox.Text = settings.ReactionSeconds.ToString("0.0", CultureInfo.InvariantCulture);
             bridge.Engine.ReactionSeconds = settings.ReactionSeconds;
             ShowTurnMode(null);
@@ -144,10 +143,7 @@ namespace AuroraPAR
             StackPanel referenceRow = new() { Orientation = Orientation.Horizontal };
             referenceRow.Children.Add(Caption("Runway"));
             referenceRow.Children.Add(referenceText);
-            Button useRadar = SmallButton("Use the radar's runway");
-            useRadar.ToolTip = "Takes the runway now shown on the radar as the reference of the simulation (with the heading of the runway file). The simulated aircraft are removed.";
-            useRadar.Click += (s, e) => UseRadarRunway();
-            referenceRow.Children.Add(useRadar);
+            referenceRow.ToolTip = "Runway the simulated aircraft are placed from. With no simulated aircraft flying it follows the runway of the radar; while they fly it stays, so they stay where they are if the runway of the radar changes.";
             WrapPanel optionsRow = new() { Margin = new Thickness(0, 6, 0, 0) };
             pauseButton.Click += (s, e) => TogglePause();
             optionsRow.Children.Add(pauseButton);
@@ -585,14 +581,20 @@ namespace AuroraPAR
             settings.ReactionSeconds = seconds;
         }
 
-        private void UseRadarRunway()
+        /// <summary>
+        /// With no simulated aircraft flying, the reference runway follows the runway of the radar (another runway,
+        /// approach or airport chosen there). While aircraft fly it stays: they stay where they are.
+        /// </summary>
+        private void FollowRadarRunway()
         {
-            Runway runway = radarRunway();
-            if (bridge.Count > 0 && MessageBox.Show(this, $"Use {runway.DisplayName} as the reference runway? The simulated aircraft are removed.",
-                "Instructor", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
-            bridge.SetReference(runway);
+            if (bridge.Count > 0) return;
+            Runway radar = radarRunway();
+            Runway? reference = bridge.Reference;
+            if (reference != null && reference.RunwayKey == radar.RunwayKey && reference.GlideSlope == radar.GlideSlope
+                && reference.Latitude == radar.Latitude && reference.Longitude == radar.Longitude && reference.Heading == radar.DefaultHeading
+                && reference.Elevation == radar.Elevation) return;
+            bridge.SetReference(radar);
             fillFields = true;
-            Refresh();
         }
 
         /// <summary>Altitude for the wheel of the new aircraft box when it is empty: the glide path at the distance.</summary>
@@ -885,6 +887,7 @@ namespace AuroraPAR
         /// <summary>Updates the reference text, the list (keeping the selection) and the selected aircraft.</summary>
         private void Refresh()
         {
+            FollowRadarRunway();
             Runway? runway = bridge.Reference;
             double magneticVariation = variation();
             referenceText.Text = runway == null ? "none" : $"{runway.DisplayName}  (elevation {runway.Elevation:0} ft)";
