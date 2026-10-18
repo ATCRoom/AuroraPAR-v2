@@ -185,6 +185,105 @@ const double RunwayHeading = 325.80;
     Check(engine.Count == 2 && !engine.IsCallsignTaken("SIM1"), "Remove");
 }
 
+// --- Pilot reaction ----------------------------------------------------------------------------------------------
+
+{
+    SimEngine engine = new() { ReactionSeconds = 1 };
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetHeading(a, 90);
+    engine.RunFor(0.9);
+    AircraftState s = engine.Get(a)!;
+    Check(s.TargetHeading == 0 && s.HeadingTrue == 0 && s.PendingCommands == 1, "Reaction 1 s: nothing carried out after 0.9 s", $"pending {s.PendingCommands}");
+    engine.RunFor(0.2);
+    s = engine.Get(a)!;
+    Check(s.TargetHeading == 90 && s.HeadingTrue > 0 && s.PendingCommands == 0, "Reaction 1 s: carried out by 1.1 s", $"heading {s.HeadingTrue:F2}");
+}
+
+{
+    SimEngine engine = new() { ReactionSeconds = 1 };
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetHeading(a, 10);
+    engine.RunFor(0.5);
+    engine.SetHeading(a, 20);
+    engine.SetSpeed(a, 160);
+    engine.RunFor(0.9);
+    AircraftState s = engine.Get(a)!;
+    Check(s.TargetHeading == 0 && s.PendingCommands == 2, "Reaction: a new heading replaces the one still waiting (wheel steps)", $"target {s.TargetHeading:R} pending {s.PendingCommands}");
+    engine.RunFor(0.2);
+    s = engine.Get(a)!;
+    Check(s.TargetHeading == 20 && s.TargetSpeedKt == 160 && s.PendingCommands == 0, "Reaction: the last heading and the speed carried out 1 s after they were given");
+}
+
+// --- Vertical modes ----------------------------------------------------------------------------------------------
+
+{
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetVerticalSpeed(a, -700);
+    engine.RunFor(60);
+    AircraftState s = engine.Get(a)!;
+    Check(Near(s.AltitudeFt, 2300, 1e-6) && s.VerticalMode == VerticalMode.Rate && s.VerticalSpeedFpm == -700, "Rate −700 ft/min kept: 700 ft lower after 1 min", $"altitude {s.AltitudeFt:F3}");
+    engine.SetAltitude(a, 2500, 500);
+    engine.RunFor(24);
+    s = engine.Get(a)!;
+    Check(s.AltitudeFt == 2500 && s.VerticalSpeedFpm == 0 && s.VerticalMode == VerticalMode.Altitude, "Then altitude 2500 at 500 ft/min: level after 24 s", $"altitude {s.AltitudeFt:R}");
+}
+
+{
+    SimEngine engine = new();
+    engine.SetGlidePath(0, 3);
+    string a = engine.Add(0, -10, 3000, 0, 140);
+    double best = -140 * SimEngine.FeetPerNM / 60 * Math.Tan(3 * Math.PI / 180);
+    engine.SetGlidePathRate(a);
+    engine.RunFor(10);
+    AircraftState s = engine.Get(a)!;
+    Check(Near(s.VerticalSpeedFpm, best, 1e-9) && Near(s.BestVerticalSpeedFpm, best, 1e-9) && s.VerticalMode == VerticalMode.GlidePath,
+        "Normal rate on a 3° glide path at 140 kt: about −743 ft/min", $"VS {s.VerticalSpeedFpm:F1}");
+    engine.SetSpeed(a, 120);
+    engine.RunFor(30);
+    s = engine.Get(a)!;
+    double slower = -120 * SimEngine.FeetPerNM / 60 * Math.Tan(3 * Math.PI / 180);
+    Check(Near(s.VerticalSpeedFpm, slower, 1e-9), "Normal rate follows the speed: about −637 ft/min at 120 kt", $"VS {s.VerticalSpeedFpm:F1}");
+    engine.SetHeading(a, 90);
+    engine.RunFor(40);
+    s = engine.Get(a)!;
+    Check(Near(s.BestVerticalSpeedFpm, 0, 1e-6), "Normal rate flying across the final: no descent needed", $"best {s.BestVerticalSpeedFpm:F3}");
+}
+
+// --- Stick -------------------------------------------------------------------------------------------------------
+
+{
+    SimEngine engine = new() { ReactionSeconds = 2 };
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetHeading(a, 300);
+    engine.SetStick(a, 1, 0);
+    engine.RunFor(10);
+    AircraftState s = engine.Get(a)!;
+    Check(Near(s.HeadingTrue, 30, 1e-6) && s.StickActive && s.PendingCommands == 0, "Stick right at 3°/s for 10 s: 30° right, the waiting heading cancelled", $"heading {s.HeadingTrue:F3}");
+    engine.SetStick(a, 0, 0);
+    engine.RunFor(10);
+    s = engine.Get(a)!;
+    Check(Near(s.HeadingTrue, 30, 1e-6) && s.TurnRateDps == 0 && !s.StickActive, "Stick released: the heading reached stays", $"heading {s.HeadingTrue:F3}");
+    engine.SetStick(a, 0, -1);
+    engine.RunFor(1);
+    engine.SetStick(a, 0, 0);
+    engine.RunFor(5);
+    s = engine.Get(a)!;
+    Check(Near(s.VerticalSpeedFpm, -600, 1e-6) && s.VerticalMode == VerticalMode.Rate, "Stick down 1 s: −600 ft/min, kept when released", $"VS {s.VerticalSpeedFpm:F3}");
+}
+
+{
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetTurnRateMode(a, TurnRateMode.Free);
+    engine.SetStick(a, 1, 0);
+    engine.RunFor(2);
+    AircraftState s = engine.Get(a)!;
+    Check(Near(s.TurnRateDps, 4.5, 0.16), "Free turn rate: about 4.5°/s after 2 s at the edge", $"rate {s.TurnRateDps:F2}");
+    engine.SetTurnRateMode(a, TurnRateMode.Half);
+    Check(engine.Get(a)!.SelectedTurnRateDps == 1.5, "Half rate selected: 1.5°/s for the instructions");
+}
+
 // --- Same commands, same flight ----------------------------------------------------------------------------------
 
 {

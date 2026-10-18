@@ -18,7 +18,7 @@ namespace AuroraPAR
     /// ◀ L / Final CRS / R ▶ under it, and the heading given by the controller. Closing the window removes the test
     /// traffic.
     /// </summary>
-    internal sealed class TestTrafficWindow : Window
+    internal sealed class TestTrafficWindow : Window, IJoystickTarget
     {
         private const double PadSize = 150;
         private const double KnobSize = 22;
@@ -626,7 +626,7 @@ namespace AuroraPAR
         }
 
         /// <summary>An aircraft is selected (the joystick moves it in the automatic role).</summary>
-        internal bool HasSelection => list.SelectedItem is string;
+        public bool HasSelection => list.SelectedItem is string;
 
         /// <summary>Final CRS: the final course in the heading box, carried out after the pilot reaction.</summary>
         private void FinalCourse()
@@ -800,7 +800,7 @@ namespace AuroraPAR
         }
 
         /// <summary>A command from a joystick button.</summary>
-        internal void RunJoystickCommand(JoystickCommand command)
+        public void RunJoystickCommand(JoystickCommand command)
         {
             switch (command)
             {
@@ -838,7 +838,7 @@ namespace AuroraPAR
         /// The real joystick moved (only when it changes): as the stick of the window, which follows it. Released
         /// (0, 0), the heading and vertical speed reached stay. Ignored while the stick is held with the mouse.
         /// </summary>
-        internal void JoystickStick(double x, double y)
+        public void JoystickStick(double x, double y)
         {
             joystickX = x;
             joystickY = y;

@@ -133,6 +133,8 @@ namespace AuroraPAR
         /// <summary>Instructor: the simulation and its window (key I, after turning it on in the Settings).</summary>
         private readonly InstructorBridge instructor = new();
         private InstructorWindow? instructorWindow;
+        /// <summary>The aircraft window used last (test traffic or Instructor): the joystick flies its selected aircraft.</summary>
+        private IJoystickTarget? lastAircraftWindow;
         private ShortcutsWindow? shortcutsWindow;
         private readonly TextBlock statusText = new() { FontSize = 14 };
         private readonly TextBlock dataText = new() { FontSize = 14 };
@@ -1190,6 +1192,8 @@ namespace AuroraPAR
                     TestButton.Tag = viewOptions.Analog ? "Unlit" : null;
                     Redraw();
                 };
+                testTrafficWindow.Activated += (s, e) => lastAircraftWindow = s as IJoystickTarget;
+                lastAircraftWindow = testTrafficWindow;
                 testTrafficWindow.Show();
                 TestButton.Tag = viewOptions.Analog ? "Lit" : null;
             }
@@ -1206,6 +1210,22 @@ namespace AuroraPAR
             new JoystickWindow(settings) { Owner = owner }.ShowDialog();
         }
 
+        /// <summary>
+        /// The window whose selected aircraft the joystick flies: the aircraft window used last among the open ones
+        /// (the one with a selection first).
+        /// </summary>
+        private IJoystickTarget? JoystickTarget()
+        {
+            IJoystickTarget? instructorTarget = instructorWindow;
+            IJoystickTarget? testTarget = testTrafficWindow;
+            // A window closed meanwhile no longer counts.
+            IJoystickTarget? last = lastAircraftWindow != null && (ReferenceEquals(lastAircraftWindow, instructorTarget) || ReferenceEquals(lastAircraftWindow, testTarget)) ? lastAircraftWindow : null;
+            if (last?.HasSelection == true) return last;
+            if (instructorTarget?.HasSelection == true) return instructorTarget;
+            if (testTarget?.HasSelection == true) return testTarget;
+            return last ?? instructorTarget ?? testTarget;
+        }
+
         private JoystickController? joystick;
         private readonly System.Windows.Threading.DispatcherTimer joystickTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
 
@@ -1214,7 +1234,7 @@ namespace AuroraPAR
         {
             joystick = new JoystickController(
                 () => settings.Joystick,
-                () => testTrafficWindow,
+                JoystickTarget,
                 (elevation, azimuth) => TiltAntenna(elevation, azimuth * AzimuthSign),
                 NeutralAntenna,
                 ShowBanner);
@@ -1291,7 +1311,10 @@ namespace AuroraPAR
                     () => instructor.Reference?.MagneticVariation ?? settings.Active.MagneticVariation,
                     () => lastAircrafts.Where(a => !a.IsSim).Select(a => a.Callsign).ToList(),
                     aircraft => radar.IsSeen(aircraft, runway),
-                    () => SettingsStore.Save(settings));
+                    () => SettingsStore.Save(settings),
+                    OpenJoystick);
+                instructorWindow.Activated += (s, e) => lastAircraftWindow = s as IJoystickTarget;
+                lastAircraftWindow = instructorWindow;
                 PlaceInstructorWindow(instructorWindow);
                 instructorWindow.Closed += (s, e) =>
                 {

@@ -11,6 +11,8 @@ namespace AuroraPAR
         public string CallsignPrefix { get; set; } = "SIM";
         /// <summary>Positions as Aurora gives them (every about 0.5 s, altitude in steps), so the student sees realistic data.</summary>
         public bool AuroraLike { get; set; } = true;
+        /// <summary>Pilot reaction (s, 0–5): instructions are carried out this long after they are given.</summary>
+        public double ReactionSeconds { get; set; } = 1;
         /// <summary>Last position and size of the Instructor window.</summary>
         public WindowPlacement? Window { get; set; }
 
@@ -18,6 +20,7 @@ namespace AuroraPAR
         {
             string prefix = (CallsignPrefix ?? "").Trim().ToUpperInvariant();
             CallsignPrefix = prefix.Length is >= 1 and <= 6 && prefix.All(char.IsAsciiLetterOrDigit) ? prefix : "SIM";
+            ReactionSeconds = double.IsFinite(ReactionSeconds) ? Math.Clamp(ReactionSeconds, 0, SimEngine.MaxReaction) : 1;
         }
     }
 
@@ -85,6 +88,8 @@ namespace AuroraPAR
                 lastPositions = new(StringComparer.OrdinalIgnoreCase);
                 reference = copy;
                 plane = new LocalPlane(copy.Latitude, copy.Longitude, copy.Heading);
+                // The "Normal" rate follows the glide path of this runway.
+                Engine.SetGlidePath(copy.Heading, copy.GlideSlope);
             }
         }
 
