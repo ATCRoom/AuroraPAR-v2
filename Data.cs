@@ -188,6 +188,18 @@ namespace AuroraPAR
         /// touchdown, magnetic variation) is the same; the touchdown point follows the angle when it is not given
         /// in the file.
         /// </summary>
+        /// <summary>
+        /// Independent copy with the heading of the runway file (not the course chosen for the session): the reference
+        /// runway of the Instructor, which must not change when the student changes runway or course.
+        /// </summary>
+        public Runway CopyWithFileHeading()
+        {
+            _ = BaseDesignator;
+            Runway copy = (Runway)MemberwiseClone();
+            copy.ResetHeading();
+            return copy;
+        }
+
         public Runway WithGlideSlope(double glideSlope)
         {
             _ = BaseDesignator; // computed with the published angle, kept by the copy
@@ -270,6 +282,11 @@ namespace AuroraPAR
         public Aircraft? Filtered { get; set; }
         /// <summary>Virtual aircraft of the test traffic (see <see cref="TestTraffic"/>), not from Aurora.</summary>
         public bool IsTest { get; set; }
+        /// <summary>
+        /// Aircraft of the Instructor's simulation (see <see cref="InstructorBridge"/>), not from Aurora. Also
+        /// <see cref="IsTest"/>, so it never counts as real traffic.
+        /// </summary>
+        public bool IsSim { get; set; }
 
         /// <summary>Copy of the data (without <see cref="Filtered"/>).</summary>
         public Aircraft Copy() => new()
@@ -282,7 +299,8 @@ namespace AuroraPAR
             Speed = Speed,
             VerticalSpeedFpm = VerticalSpeedFpm,
             Squawk = Squawk,
-            IsTest = IsTest
+            IsTest = IsTest,
+            IsSim = IsSim
         };
         /// <summary>
         /// Distance to runway.

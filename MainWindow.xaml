@@ -349,6 +349,8 @@
                             ToolTip="Coordination light panel with the tower (voiceless coordination)."/>
  <Button Name="TestButton" Content="Test traffic (T)" Margin="0,4,0,0" Height="26" Width="98"
                             ToolTip="Test traffic: aircraft to practise with (key T)."/>
+                    <Button Name="InstructorButton" Content="Instructor (I)" Margin="0,4,0,0" Height="26" Width="98" Visibility="Collapsed"
+                            ToolTip="Instructor: simulated aircraft for training (key I)."/>
                     <Border Name="SystemSeparator" Height="1" Width="98" Background="#55808080" Margin="0,8,0,4"/>
                     <Button Name="SettingsButton" Content="Settings..." Margin="0,4,0,0" Height="30" Width="98"/>
                     <!-- Help: the user manual (online) and the list of keys (also F1). -->

@@ -64,6 +64,10 @@
                         ToolTip="Virtual aircraft on the glide path, moved with a joystick, to test the radar without real traffic (also without Aurora)."/>
                 <Button Name="JoystickButton" Content="Joystick..." Height="26" Padding="12,0" Margin="8,0,0,0"
                         ToolTip="A real joystick or gamepad (USB) for the test aircraft and the antenna tilt: device, buttons, live test."/>
+                <CheckBox Name="InstructorCheck" Content="Instructor" VerticalAlignment="Center" Margin="16,0,0,0"
+                          ToolTip="Turns on the Instructor: simulated aircraft for training, steered by an instructor (key I and an Instructor button beside Test traffic). Off: nothing of it is shown."/>
+                <Button Name="InstructorButton" Content="Instructor... (I)" Height="26" Padding="12,0" Margin="6,0,0,0"
+                        ToolTip="Opens the Instructor window beside the radar."/>
                 <TextBlock Name="FileLocationText" Margin="16,0,8,0" VerticalAlignment="Center" Foreground="Gray" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="380"/>
             </DockPanel>
         </Border>

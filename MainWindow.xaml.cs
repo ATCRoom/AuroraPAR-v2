@@ -130,6 +130,9 @@ namespace AuroraPAR
         /// <summary>Virtual aircraft for tests (key T), merged with the traffic of Aurora.</summary>
         private readonly TestTraffic testTraffic = new();
         private TestTrafficWindow? testTrafficWindow;
+        /// <summary>Instructor: the simulation and its window (key I, after turning it on in the Settings).</summary>
+        private readonly InstructorBridge instructor = new();
+        private InstructorWindow? instructorWindow;
         private ShortcutsWindow? shortcutsWindow;
         private readonly TextBlock statusText = new() { FontSize = 14 };
         private readonly TextBlock dataText = new() { FontSize = 14 };
@@ -245,6 +248,8 @@ namespace AuroraPAR
             ModeButton.Click += (s, e) => ToggleDisplayMode();
             CoordinationButton.Click += (s, e) => OpenCoordination();
             TestButton.Click += (s, e) => OpenTestTraffic();
+            InstructorButton.Click += (s, e) => OpenInstructor();
+            UpdateInstructorButton();
             BuildKnobs();
             ScopeHost.SizeChanged += (s, e) => LayoutDisplay();
             // Console panel at most about a quarter of the display (it is scaled to fit, see the XAML).
@@ -1228,11 +1233,18 @@ namespace AuroraPAR
         }
 
         private Border? testTrafficSign;
+        private TextBlock? testTrafficSignText;
 
-        /// <summary>"TEST TRAFFIC" at the top of the views while virtual aircraft are flying (never mixed up with real traffic).</summary>
+        /// <summary>
+        /// "TEST TRAFFIC" at the top of the views while virtual aircraft are flying (never mixed up with real traffic).
+        /// "SIM TRAFFIC" for the Instructor's aircraft only while Aurora is connected (mixed with real traffic): in a
+        /// closed lesson without Aurora the student sees them as normal traffic.
+        /// </summary>
         private void UpdateTestTrafficSign()
         {
-            bool on = testTraffic.Count > 0;
+            bool test = testTraffic.Count > 0;
+            bool sim = instructor.Count > 0 && aurora.Connected;
+            bool on = test || sim;
             if (testTrafficSign == null)
             {
                 if (!on) return;
@@ -1247,7 +1259,7 @@ namespace AuroraPAR
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Top,
                     IsHitTestVisible = false,
-                    Child = new TextBlock { Text = "TEST TRAFFIC", FontWeight = FontWeights.Bold, FontSize = 14, Foreground = CreateFrozenBrush(Color.FromRgb(0xFF, 0x8C, 0x00)) }
+                    Child = testTrafficSignText = new TextBlock { Text = "TEST TRAFFIC", FontWeight = FontWeights.Bold, FontSize = 14, Foreground = CreateFrozenBrush(Color.FromRgb(0xFF, 0x8C, 0x00)) }
                 };
                 Panel.SetZIndex(testTrafficSign, 999);
                 if (Content is Grid root)
@@ -1256,7 +1268,68 @@ namespace AuroraPAR
                     root.Children.Add(testTrafficSign);
                 }
             }
+            if (testTrafficSignText != null) testTrafficSignText.Text = test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC";
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>The Instructor button is there only with the Instructor turned on in the Settings; turned off, its window closes.</summary>
+        private void UpdateInstructorButton()
+        {
+            bool enabled = settings.Instructor.Enabled;
+            InstructorButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+            if (!enabled) instructorWindow?.Close();
+        }
+
+        /// <summary>Opens (or brings to front) the Instructor window. It has no owner, so it can live on a second monitor.</summary>
+        private void OpenInstructor()
+        {
+            if (!settings.Instructor.Enabled) return;
+            if (instructorWindow == null)
+            {
+                instructorWindow = new InstructorWindow(instructor, settings.Instructor, viewOptions.Qfe,
+                    () => runway,
+                    () => instructor.Reference?.MagneticVariation ?? settings.Active.MagneticVariation,
+                    () => lastAircrafts.Where(a => !a.IsSim).Select(a => a.Callsign).ToList(),
+                    aircraft => radar.IsSeen(aircraft, runway),
+                    () => SettingsStore.Save(settings));
+                PlaceInstructorWindow(instructorWindow);
+                instructorWindow.Closed += (s, e) =>
+                {
+                    if (s is Window window)
+                    {
+                        settings.Instructor.Window = new WindowPlacement { Left = window.Left, Top = window.Top, Width = window.ActualWidth, Height = window.ActualHeight };
+                    }
+                    instructorWindow = null;
+                    instructor.Clear();
+                    InstructorButton.Tag = viewOptions.Analog ? "Unlit" : null;
+                    SettingsStore.Save(settings);
+                    Redraw();
+                };
+                instructorWindow.Show();
+                InstructorButton.Tag = viewOptions.Analog ? "Lit" : null;
+            }
+            else
+            {
+                if (instructorWindow.WindowState == WindowState.Minimized) instructorWindow.WindowState = WindowState.Normal;
+                instructorWindow.Activate();
+            }
+        }
+
+        /// <summary>Where the Instructor window was last time, if that place is still on a screen; else beside the main window.</summary>
+        private void PlaceInstructorWindow(Window window)
+        {
+            WindowPlacement? p = settings.Instructor.Window;
+            Rect allScreens = new(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+            if (p != null && double.IsFinite(p.Left) && double.IsFinite(p.Top) && allScreens.Contains(new Point(p.Left + 40, p.Top + 20)))
+            {
+                window.Left = p.Left;
+                window.Top = p.Top;
+            }
+            else
+            {
+                window.Left = Math.Max(allScreens.Left, Left + 60);
+                window.Top = Math.Max(allScreens.Top, Top + 80);
+            }
         }
 
         /// <summary>Key C: linear or log (compressed) distance scale (saved in the profile).</summary>
@@ -1528,6 +1601,7 @@ namespace AuroraPAR
                 (ModeButton, "Analog (A)", "MODERN", "Switch to the modern display (key A).", 26),
                 (CoordinationButton, "Coordination", "COORD", "Coordination light panel with the tower (voiceless coordination).", 26),
                 (TestButton, "Test traffic (T)", "TEST", "Test traffic: aircraft to practise with (key T).", 26),
+                (InstructorButton, "Instructor (I)", "INSTR", "Instructor: simulated aircraft for training (key I).", 26),
                 (SettingsButton, "Settings...", "SETUP", "Settings.", 30),
                 (ManualButton, "Manual", "MANUAL", "Open the user manual (in the browser).", 24),
                 (KeysButton, "Keys", "KEYS", "List of the keyboard and mouse shortcuts (F1).", 24)
@@ -1551,7 +1625,7 @@ namespace AuroraPAR
                     button.Height = height;
                     button.Margin = new Thickness(button == KeysButton ? 2 : 0, 4, 0, 0);
                     button.Tag = null;
-                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == ManualButton || button == KeysButton ? tip : null;
+                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == InstructorButton || button == ManualButton || button == KeysButton ? tip : null;
                 }
             }
             SpareKey.Visibility = Visibility.Collapsed;
@@ -1562,6 +1636,7 @@ namespace AuroraPAR
             // Lamp: the coordination key is lit while its panel is open. The mode key is a plain command.
             CoordinationButton.Tag = analog ? (coordinationWindow != null ? "Lit" : "Unlit") : null;
             TestButton.Tag = analog ? (testTrafficWindow != null ? "Lit" : "Unlit") : null;
+            InstructorButton.Tag = analog ? (instructorWindow != null ? "Lit" : "Unlit") : null;
             KeysButton.Tag = analog ? (shortcutsWindow != null ? "Lit" : "Unlit") : null;
             // Display mode locked in the profile: no mode button (analog: a blank key keeps the place of the others).
             bool locked = settings.Active.LockDisplayMode;
@@ -1626,6 +1701,7 @@ namespace AuroraPAR
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             coordinationWindow?.Close();
+            instructorWindow?.Close();
             joystickTimer.Stop();
             Open = false;
             timer.Stop();
@@ -2243,11 +2319,12 @@ namespace AuroraPAR
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            SettingsWindow window = new(settings, ApplyProfile, OpenRunwayEditor, OpenTestTraffic, OpenJoystick)
+            SettingsWindow window = new(settings, ApplyProfile, OpenRunwayEditor, OpenTestTraffic, OpenJoystick, OpenInstructor)
             {
                 Owner = this
             };
             window.ShowDialog();
+            UpdateInstructorButton();
         }
 
         /// <summary>
@@ -2304,6 +2381,7 @@ namespace AuroraPAR
                 case Key.A: ToggleDisplayMode(); break;
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
                 case Key.T: OpenTestTraffic(); break;
+                case Key.I when modifiers == 0 && settings.Instructor.Enabled: OpenInstructor(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
                 case Key.X when modifiers == 0: ToggleCrosshair(); break;
@@ -2553,6 +2631,8 @@ namespace AuroraPAR
                 {
                     aircrafts.AddRange(testTraffic.Snapshot(current, DateTime.UtcNow));
                 }
+                // Instructor: simulated aircraft, also without Aurora (the simulation moves on even with none flying).
+                aircrafts.AddRange(instructor.Snapshot(DateTime.UtcNow));
                 if (!aurora.Connected && connectedCallsign != null)
                 {
                     connectedCallsign = null;
