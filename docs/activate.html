@@ -1,10 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AuroraPAR v2: a precision approach radar (PAR) display for the IVAO Aurora ATC client. Free, highly customizable.">
+<link rel="icon" href="coord/icon-192.png">
 <title>AuroraPAR v2 - Form activation</title>
 <meta name="robots" content="noindex">
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 /* Layout: one dark scope-like column; hero with a drawn PAR display, then features, how it works, credits.
    Palette: scope black, phosphor green (the one accent), amber for the glide path, cool grey text. */
 :root{
@@ -117,6 +124,8 @@ footer p{margin:0 0 8px;max-width:60em}
 .send .btn{border:0;cursor:pointer}
 .status{font:400 14px/1.4 var(--mono);color:var(--amber)}
 </style>
+</head>
+<body>
 
 <div class="wrap">
 <main>
@@ -138,3 +147,5 @@ document.getElementById('act').addEventListener('submit',function(){
   this.action='https://formsubmit.co/'+encodeURIComponent(document.getElementById('act-email').value.trim());
 });
 </script>
+</body>
+</html>
