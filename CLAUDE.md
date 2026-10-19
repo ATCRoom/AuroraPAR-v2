@@ -8,7 +8,9 @@ Progetto: AuroraPAR v2 (C# .NET 9 WPF), repository **ATCRoom/AuroraPAR-v2**, sit
 
 ## Quando scrivere codice
 - Prima proponi; scrivi codice solo dopo un via esplicito ("vai", "parti", "procedi", "ok").
-- I bug si correggono subito.
+- Chiedi SEMPRE prima di scrivere codice o di fare una build, anche per correggere un bug (deciso il 18 ottobre: sostituisce "i bug si correggono subito"). Proponi la correzione e aspetta il via.
+- Raggruppa più modifiche in una sola build, per risparmiare utilizzo. Ogni push fa partire una build: niente push di modifiche sparse (documentazione compresa), si fa il commit in locale e si manda tutto insieme al prossimo gruppo.
+- Tieni le cose semplici: niente realismo o dettagli non chiesti (vedi la preferenza sull'Instructor nel TODO). Proponi la soluzione più semplice che funziona.
 - Le idee vanno in `TODO.md`.
 - "Non fare niente" o "aspetta" vuol dire non fare niente.
 

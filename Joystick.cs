@@ -6,7 +6,7 @@ namespace AuroraPAR
     /// <summary>What the stick (X/Y axes) of the joystick moves.</summary>
     internal enum JoystickRole
     {
-        /// <summary>The selected test aircraft while the test traffic window is open with one selected, else the antenna.</summary>
+        /// <summary>The selected aircraft while an Instructor window is open with one selected, else the antenna.</summary>
         Automatic,
         AntennaTilt,
         TestAircraft
@@ -356,6 +356,19 @@ namespace AuroraPAR
     }
 
     /// <summary>
+    /// A window whose selected aircraft the joystick can fly: the test traffic window or the Instructor window.
+    /// </summary>
+    internal interface IJoystickTarget
+    {
+        /// <summary>An aircraft is selected (the joystick moves it in the automatic role).</summary>
+        bool HasSelection { get; }
+        /// <summary>The stick moved (x right, y up, −1..1); (0, 0) = released.</summary>
+        void JoystickStick(double x, double y);
+        /// <summary>A command from a joystick button.</summary>
+        void RunJoystickCommand(JoystickCommand command);
+    }
+
+    /// <summary>
     /// Reads the joystick about 25 times a second and gives its movements to the radar: the stick moves the
     /// selected test aircraft or tilts the antenna (<see cref="JoystickRole"/>), the buttons and the hat give the
     /// commands assigned in <see cref="JoystickSettings"/>.
@@ -370,7 +383,7 @@ namespace AuroraPAR
         private const double FullDeflection = 0.92;
 
         private readonly Func<JoystickSettings> settings;
-        private readonly Func<TestTrafficWindow?> aircraftWindow;
+        private readonly Func<IJoystickTarget?> aircraftWindow;
         private readonly Action<int, int> tilt;
         private readonly Action neutral;
         private readonly Action<string> banner;
@@ -382,12 +395,12 @@ namespace AuroraPAR
         private bool resync = true;
         private double sentX;
         private double sentY;
-        private TestTrafficWindow? sentTo;
+        private IJoystickTarget? sentTo;
 
         /// <summary>No commands while the joystick window waits for a button to assign.</summary>
         public static bool Suspended { get; set; }
 
-        public JoystickController(Func<JoystickSettings> settings, Func<TestTrafficWindow?> aircraftWindow,
+        public JoystickController(Func<JoystickSettings> settings, Func<IJoystickTarget?> aircraftWindow,
             Action<int, int> tilt, Action neutral, Action<string> banner)
         {
             this.settings = settings;
@@ -513,7 +526,7 @@ namespace AuroraPAR
         /// <summary>Gives the stick to the test traffic window, only when it changes (and centred once when let go).</summary>
         private void SendStick(double x, double y)
         {
-            TestTrafficWindow? window = aircraftWindow();
+            IJoystickTarget? window = aircraftWindow();
             if (sentTo != null && sentTo != window)
             {
                 sentX = sentY = 0;
@@ -540,14 +553,14 @@ namespace AuroraPAR
                     sessionRole = CurrentRole == JoystickRole.TestAircraft ? JoystickRole.AntennaTilt : JoystickRole.TestAircraft;
                     sessionBase = settings().Role;
                     banner(sessionRole == JoystickRole.TestAircraft
-                        ? (aircraftWindow()?.HasSelection == true ? "JOYSTICK: TEST AIRCRAFT" : "JOYSTICK: TEST AIRCRAFT (NONE SELECTED)")
+                        ? (aircraftWindow()?.HasSelection == true ? "JOYSTICK: AIRCRAFT" : "JOYSTICK: AIRCRAFT (NONE SELECTED)")
                         : "JOYSTICK: ANTENNA TILT");
                     return;
             }
-            TestTrafficWindow? window = aircraftWindow();
+            IJoystickTarget? window = aircraftWindow();
             if (window == null)
             {
-                banner("NO TEST TRAFFIC (KEY T)");
+                banner("NO INSTRUCTOR WINDOW (KEY I)");
                 return;
             }
             window.RunJoystickCommand(command);

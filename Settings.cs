@@ -849,6 +849,8 @@ namespace AuroraPAR
         public bool ShowAdvancedSettings { get; set; }
         /// <summary>Joystick or gamepad: test aircraft and antenna tilt.</summary>
         public JoystickSettings Joystick { get; set; } = new();
+        /// <summary>Instructor: simulated aircraft for training (off until turned on in the Settings).</summary>
+        public InstructorSettings Instructor { get; set; } = new();
         /// <summary>Bundled profiles already taken (by lower-case name): version and fingerprint, see <see cref="BundledProfiles"/>.</summary>
         public Dictionary<string, BundledProfileRecord> BundledProfiles { get; set; } = [];
         /// <summary>New version notice at the start (once a day); false: never asked (see <see cref="UpdateCheck"/>).</summary>
@@ -902,6 +904,8 @@ namespace AuroraPAR
             Coordination.Normalize();
             Joystick ??= new();
             Joystick.Normalize();
+            Instructor ??= new();
+            Instructor.Normalize();
             BundledProfiles ??= [];
             foreach (string key in RunwayReminders.Keys.ToList())
             {

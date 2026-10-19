@@ -80,12 +80,17 @@ namespace AuroraPAR
             /// <summary>Started level (below the glide path, on an intercept heading): the height offset is measured at <see cref="AimDistance"/>.</summary>
             public bool StartLevel;
             public double AimDistance;
+            /// <summary>Start at this height above the threshold (ft), level (NaN: on the glide path plus the height offset).</summary>
+            public double StartHeight = double.NaN;
             /// <summary>Level below the glide path: NM and seconds left before it meets the glide path (NaN: not applicable).</summary>
             public double GpRemainingNM = double.NaN;
             public double GpSeconds = double.NaN;
 
             public Plane Copy() => (Plane)MemberwiseClone();
         }
+
+        /// <summary>Distance from the centreline of an intercept start (NM), at most; less when the radar's beam is narrower there.</summary>
+        public const double DefaultStartOffset = 3;
 
         /// <summary>Vertical speed limits (ft/min) and how fast the full stick changes it (ft/min per second).</summary>
         public const double MaxClimb = 2000;
@@ -138,7 +143,8 @@ namespace AuroraPAR
         /// path (ft, + above), descending at the glide path rate; returns its callsign. The height is set at the
         /// next <see cref="Snapshot"/> (it needs the runway).
         /// </summary>
-        public string Add(double distanceNM, double speedKt, string? squawk, double lateralM, double heightOffsetFt, double interceptDegrees = 0, int side = 0)
+        public string Add(double distanceNM, double speedKt, string? squawk, double lateralM, double heightOffsetFt, double interceptDegrees = 0, int side = 0,
+            double startHeightFt = double.NaN, double startOffsetNM = DefaultStartOffset)
         {
             lock (sync)
             {
@@ -158,14 +164,21 @@ namespace AuroraPAR
                 if (interceptDegrees > 0 && side != 0)
                 {
                     // Aimed at the point of the centreline at distanceNM, with this intercept angle: the start is back along
-                    // that track, at about 3 NM from the centreline (left: side −1, right: +1); level, below the glide path.
+                    // that track, startOffsetNM from the centreline (left: side −1, right: +1); level, below the glide path.
+                    double offset = double.IsFinite(startOffsetNM) && startOffsetNM > 0 ? startOffsetNM : DefaultStartOffset;
                     double angle = interceptDegrees * Math.PI / 180;
-                    double back = 3 / Math.Sin(angle);
+                    double back = offset / Math.Sin(angle);
                     plane.AimDistance = distanceNM;
                     plane.Distance = distanceNM + back * Math.Cos(angle);
-                    plane.Lateral = side * 3.0;
+                    plane.Lateral = side * offset;
                     plane.Heading = -side * interceptDegrees;
                     plane.StartLevel = true;
+                    plane.HoldGlidePath = false;
+                }
+                if (double.IsFinite(startHeightFt))
+                {
+                    // A height chosen by the instructor: level there; Normal (or a rate) starts the descent.
+                    plane.StartHeight = Math.Max(0, startHeightFt);
                     plane.HoldGlidePath = false;
                 }
                 planes.Add(plane);
@@ -243,8 +256,16 @@ namespace AuroraPAR
                     // New aircraft: on the glide path plus its height offset (kept in VerticalSpeed by Add).
                     if (double.IsNaN(plane.Height))
                     {
-                        plane.Height = Math.Max(0, runway.GlidePathHeight(plane.StartLevel ? plane.AimDistance : plane.Distance) + plane.VerticalSpeed);
-                        plane.VerticalSpeed = plane.StartLevel ? 0 : BestVerticalSpeed(plane, runway, windAlong);
+                        if (!double.IsNaN(plane.StartHeight))
+                        {
+                            plane.Height = plane.StartHeight;
+                            plane.VerticalSpeed = 0;
+                        }
+                        else
+                        {
+                            plane.Height = Math.Max(0, runway.GlidePathHeight(plane.StartLevel ? plane.AimDistance : plane.Distance) + plane.VerticalSpeed);
+                            plane.VerticalSpeed = plane.StartLevel ? 0 : BestVerticalSpeed(plane, runway, windAlong);
+                        }
                     }
                     Fly(plane, runway, seconds, windAlong, windRight);
                     // Landed (past the touchdown point near the centreline), or far away: removed.

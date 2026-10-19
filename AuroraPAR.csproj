@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>AuroraPAR.ico</ApplicationIcon>
     <!-- Version of the program, shown in the title bar and in the Keys window. Raise it at every release (2.0.0 for the final one). -->
-    <Version>2.0.0-beta</Version>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <!-- Date and commit of the build (the commit is given by the GitHub build: -p:BuildCommit=...), read by AppInfo. -->
@@ -45,6 +45,16 @@
     <None Remove="CRSCalculator\**" />
     <Page Remove="CRSCalculator\**" />
     <Resource Remove="CRSCalculator\**" />
+    <!-- The simulation engine of the Instructor and its self-test are separate projects (Sim folder). -->
+    <Compile Remove="Sim\**" />
+    <None Remove="Sim\**" />
+    <Page Remove="Sim\**" />
+    <Resource Remove="Sim\**" />
+  </ItemGroup>
+
+  <!-- The simulation engine (ATCRoom Sim, no WPF): built into AuroraPAR.exe, one download as before. -->
+  <ItemGroup>
+    <ProjectReference Include="Sim\Engine\ATCRoom.Sim.csproj" />
   </ItemGroup>
 
   <ItemGroup>

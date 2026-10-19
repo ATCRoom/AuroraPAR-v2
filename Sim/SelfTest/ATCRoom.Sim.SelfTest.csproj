@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Self-test of the simulation engine, run by the GitHub build at every push (dotnet run): each check prints OK or
+    FAIL, and any failure ends the program with exit code 1, which makes the build fail.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ATCRoom.Sim.SelfTest</RootNamespace>
+    <AssemblyName>ATCRoom.Sim.SelfTest</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Engine\ATCRoom.Sim.csproj" />
+  </ItemGroup>
+
+  <!-- The radar's Earth, to measure the simulated positions as the radar does. -->
+  <ItemGroup>
+    <Compile Include="..\..\Earth.cs" Link="Earth.cs" />
+  </ItemGroup>
+
+</Project>

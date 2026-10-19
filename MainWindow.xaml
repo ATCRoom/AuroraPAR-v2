@@ -347,8 +347,10 @@
                             ToolTip="Switch between the modern display and the analog scope (key A)."/>
                     <Button Name="CoordinationButton" Content="Coordination" Margin="0,4,0,0" Height="26" Width="98"
                             ToolTip="Coordination light panel with the tower (voiceless coordination)."/>
- <Button Name="TestButton" Content="Test traffic (T)" Margin="0,4,0,0" Height="26" Width="98"
-                            ToolTip="Test traffic: aircraft to practise with (key T)."/>
+ <Button Name="TestButton" Content="Test (T)" Margin="0,4,0,0" Height="26" Width="98"
+                            ToolTip="Test: one aircraft on final at 10 NM, to see the tracks and labels of a profile (key T; again: removed)."/>
+                    <Button Name="BasicButton" Content="Instructor (I)" Margin="0,4,0,0" Height="26" Width="98"
+                            ToolTip="Instructor: a small window to fly aircraft for practice or a lesson at the same PC (key I)."/>
                     <Border Name="SystemSeparator" Height="1" Width="98" Background="#55808080" Margin="0,8,0,4"/>
                     <Button Name="SettingsButton" Content="Settings..." Margin="0,4,0,0" Height="30" Width="98"/>
                     <!-- Help: the user manual (online) and the list of keys (also F1). -->

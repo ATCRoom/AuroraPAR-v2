@@ -11,14 +11,14 @@ using System.Windows.Threading;
 namespace AuroraPAR
 {
     /// <summary>
-    /// Window of the test traffic (key T). Top: new aircraft (distance, speed, SSR, initial offsets), the wind and the
-    /// list. Control: the readouts the instructor needs while flying (best vertical speed of the glide path, actual
+    /// Window of the basic Instructor, the former test traffic window (key I). Top: new aircraft (distance, speed, SSR,
+    /// initial offsets or a start altitude), the wind and the list. Control: the readouts the instructor needs while flying (best vertical speed of the glide path, actual
     /// vertical speed, actual turn rate, heading, drift), the turn rate (1.5°/s, 3°/s, Free), the rate of descent keys
     /// (reduce / normal / increase, in steps aligned on the best vertical speed) beside the stick, ▲ UP / ▼ DN and
     /// ◀ L / Final CRS / R ▶ under it, and the heading given by the controller. Closing the window removes the test
     /// traffic.
     /// </summary>
-    internal sealed class TestTrafficWindow : Window
+    internal sealed class TestTrafficWindow : Window, IJoystickTarget
     {
         private const double PadSize = 150;
         private const double KnobSize = 22;
@@ -38,7 +38,24 @@ namespace AuroraPAR
         private readonly TextBox squawkBox = NumberBox("7001");
         private readonly TextBox lateralBox = NumberBox("0");
         private readonly TextBox heightBox = NumberBox("0");
-        private readonly ComboBox startBox = new() { Width = 130, Margin = new Thickness(4, 0, 0, 0), ItemsSource = new[] { "On final", "30° from left", "30° from right", "45° from left", "45° from right", "90° from left", "90° from right" }, SelectedIndex = 0, ToolTip = "Start: on the final course (as before), or heading towards the point of the centreline at the Distance (NM), with this intercept angle, about 3 NM off the centreline and level below the glide path (the height offset is measured at that point). The Normal button then starts the descent." };
+        private readonly TextBox altitudeBox = NumberBox("");
+        private readonly TextBlock altitudeUnit = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 4, 0) };
+        private readonly Func<bool> qfe;
+        private readonly Func<double> elevation;
+        /// <summary>Half width of the radar's azimuth beam (NM) at a distance from touchdown, on a side (−1 left, +1 right); null: unknown.</summary>
+        private readonly Func<double, int, double>? beamHalfWidth;
+        /// <summary>Whether the radar shows this aircraft now (null: not known yet).</summary>
+        private readonly Func<string, bool?>? seen;
+        private readonly TextBlock notSeenText = new()
+        {
+            Text = "⚠ Not seen by the radar now: outside the antenna beam or beyond the range shown. The aircraft is there; tilt the antenna, change the range, or wait until it flies into the beam.",
+            Foreground = Brushes.DarkRed,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 6, 0, 0),
+            Visibility = Visibility.Collapsed
+        };
+        private readonly ComboBox startBox = new() { Width = 130, Margin = new Thickness(4, 0, 0, 0), ItemsSource = new[] { "On final", "30° from left", "30° from right", "45° from left", "45° from right", "90° from left", "90° from right" }, SelectedIndex = 0, ToolTip = "Start: on the final course (as before), or heading towards the point of the centreline at the Distance (NM), with this intercept angle, up to 3 NM off the centreline (less, to start inside the radar beam) and level below the glide path (the height offset is measured at that point). The Normal button then starts the descent." };
         private readonly TextBox windFromBox = NumberBox("0");
         private readonly TextBox windSpeedBox = NumberBox("0");
         private readonly TextBox windGustBox = NumberBox("0");
@@ -91,12 +108,17 @@ namespace AuroraPAR
             filterSlider.Value = Math.Clamp(filterStep, 0, 10);
         }
 
-        internal TestTrafficWindow(TestTraffic traffic, Action<Window>? openJoystick = null, Func<double>? variation = null, Func<string?>? metar = null)
+        internal TestTrafficWindow(TestTraffic traffic, Action<Window>? openJoystick = null, Func<double>? variation = null, Func<string?>? metar = null,
+            Func<bool>? qfe = null, Func<double>? elevation = null, Func<double, int, double>? beamHalfWidth = null, Func<string, bool?>? seen = null)
         {
             this.traffic = traffic;
             this.variation = variation ?? (() => 0);
             this.metar = metar ?? (() => null);
-            Title = "Aurora PAR - Test traffic";
+            this.qfe = qfe ?? (() => false);
+            this.elevation = elevation ?? (() => 0);
+            this.beamHalfWidth = beamHalfWidth;
+            this.seen = seen;
+            Title = "Aurora PAR - Instructor";
             SizeToContent = SizeToContent.WidthAndHeight;
             ResizeMode = ResizeMode.NoResize;
             ShowInTaskbar = false;
@@ -132,6 +154,24 @@ namespace AuroraPAR
             startRow.Children.Add(startBox);
             startRow.Children.Add(Caption("aimed at the Distance, level below the GP"));
             newPanel.Children.Add(startRow);
+            // Start altitude: empty = on the glide path plus the height offset (as before); set = level at it.
+            StackPanel altitudeRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+            altitudeRow.Children.Add(Caption("Altitude"));
+            altitudeRow.Children.Add(altitudeBox);
+            altitudeRow.Children.Add(altitudeUnit);
+            altitudeRow.Children.Add(new TextBlock { Text = "empty: on the GP + offset; set: level at it (then Normal)", VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.Gray });
+            altitudeBox.ToolTip = "Start altitude of the new aircraft, as the radar shows it (QNH: altitude; QFE: height above the threshold). The aircraft starts level there; Normal or a rate starts the descent. Empty: on the glide path plus the height offset. Mouse wheel: 100 ft (+Shift: 1000).";
+            altitudeBox.TextChanged += (s, e) => heightBox.IsEnabled = string.IsNullOrWhiteSpace(altitudeBox.Text);
+            altitudeBox.PreviewMouseWheel += (s, e) =>
+            {
+                double step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 1000 : 100;
+                double value = TryNumber(altitudeBox, -2000, 40000, out double current) ? current : this.qfe() ? 2000 : Math.Round((this.elevation() + 2000) / 100) * 100;
+                value = Math.Clamp(Math.Round((value + (e.Delta > 0 ? step : -step)) / 100) * 100, this.qfe() ? 0 : Math.Ceiling(this.elevation() / 100) * 100, 40000);
+                altitudeBox.Text = value.ToString("0", CultureInfo.InvariantCulture);
+                altitudeBox.CaretIndex = altitudeBox.Text.Length;
+                e.Handled = true;
+            };
+            newPanel.Children.Add(altitudeRow);
             startBox.SelectionChanged += (s, e) =>
             {
                 bool intercept = startBox.SelectedIndex > 0;
@@ -203,6 +243,7 @@ namespace AuroraPAR
             removeRow.Children.Add(removeAll);
             aircraftGroup.Children.Add(removeRow);
             aircraftGroup.Children.Add(aircraftPanel);
+            aircraftGroup.Children.Add(notSeenText);
             root.Children.Add(Group("Aircraft", aircraftGroup));
 
             // Control: readouts, then the instructions of the controller (left) and the manual stick (right).
@@ -620,13 +661,30 @@ namespace AuroraPAR
             int start = startBox.SelectedIndex;
             double intercept = start <= 0 ? 0 : new[] { 30.0, 45.0, 90.0 }[(start - 1) / 2];
             int side = start <= 0 ? 0 : start % 2 == 1 ? -1 : 1;
-            string callsign = traffic.Add(distance, speed, squawk, lateral, height, intercept, side);
+            // Start altitude as the radar shows it: QFE = height above the threshold, QNH = altitude.
+            double startHeight = double.NaN;
+            if (!string.IsNullOrWhiteSpace(altitudeBox.Text))
+            {
+                if (!TryNumber(altitudeBox, -2000, 40000, out double typed))
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    return;
+                }
+                startHeight = qfe() ? typed : typed - elevation();
+                if (startHeight < 0)
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    MessageBox.Show(this, "The altitude is below the runway threshold.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+            }
+            string callsign = traffic.Add(distance, speed, squawk, lateral, height, intercept, side, startHeight, StartOffset(distance, intercept, side));
             RefreshList();
             list.SelectedItem = callsign;
         }
 
         /// <summary>An aircraft is selected (the joystick moves it in the automatic role).</summary>
-        internal bool HasSelection => list.SelectedItem is string;
+        public bool HasSelection => list.SelectedItem is string;
 
         /// <summary>Final CRS: the final course in the heading box, carried out after the pilot reaction.</summary>
         private void FinalCourse()
@@ -800,7 +858,7 @@ namespace AuroraPAR
         }
 
         /// <summary>A command from a joystick button.</summary>
-        internal void RunJoystickCommand(JoystickCommand command)
+        public void RunJoystickCommand(JoystickCommand command)
         {
             switch (command)
             {
@@ -838,7 +896,7 @@ namespace AuroraPAR
         /// The real joystick moved (only when it changes): as the stick of the window, which follows it. Released
         /// (0, 0), the heading and vertical speed reached stay. Ignored while the stick is held with the mouse.
         /// </summary>
-        internal void JoystickStick(double x, double y)
+        public void JoystickStick(double x, double y)
         {
             joystickX = x;
             joystickY = y;
@@ -917,6 +975,7 @@ namespace AuroraPAR
         /// <summary>The list follows the aircraft (landed ones go away); the selection stays.</summary>
         private void RefreshList()
         {
+            altitudeUnit.Text = qfe() ? "ft QFE" : "ft QNH";
             List<string> callsigns = traffic.List().Select(p => p.Callsign).ToList();
             if (list.ItemsSource is not List<string> current || !current.SequenceEqual(callsigns))
             {
@@ -930,9 +989,30 @@ namespace AuroraPAR
             ShowWindMagnetic();
         }
 
+        /// <summary>
+        /// Distance from the centreline of an intercept start (NM): 3 NM, or less so that the aircraft starts inside the
+        /// radar's azimuth beam (with a margin, at least 0.5 NM). The start is back along the intercept track, so its
+        /// distance from touchdown depends on the offset: a few rounds bring the two together.
+        /// </summary>
+        private double StartOffset(double distance, double intercept, int side)
+        {
+            if (intercept <= 0 || side == 0 || beamHalfWidth == null) return TestTraffic.DefaultStartOffset;
+            double angle = intercept * Math.PI / 180;
+            double offset = TestTraffic.DefaultStartOffset;
+            for (int i = 0; i < 8; i++)
+            {
+                double start = distance + offset * Math.Cos(angle) / Math.Sin(angle);
+                double width = beamHalfWidth(start, side);
+                if (!double.IsFinite(width)) return TestTraffic.DefaultStartOffset;
+                offset = Math.Min(TestTraffic.DefaultStartOffset, 0.85 * width);
+            }
+            return Math.Max(0.5, offset);
+        }
+
         private void ShowSelected()
         {
             TestTraffic.Plane? plane = traffic.List().FirstOrDefault(p => p.Callsign == list.SelectedItem as string);
+            notSeenText.Visibility = plane != null && seen?.Invoke(plane.Callsign) == false ? Visibility.Visible : Visibility.Collapsed;
             if (plane == null)
             {
                 finalCourseButton.Content = "Final CRS";
