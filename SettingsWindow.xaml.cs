@@ -25,7 +25,7 @@ namespace AuroraPAR
         private readonly List<Action> refreshers = [];
 
         internal SettingsWindow(AppSettings settings, Action applyToScreen, Action<Window>? editRunways = null, Action? openTestTraffic = null,
-            Action<Window>? openJoystick = null, Action? openInstructor = null)
+            Action<Window>? openJoystick = null)
         {
             InitializeComponent();
             // Never larger than the screen (each section scrolls if needed), and its top edge on the screen.
@@ -53,18 +53,6 @@ namespace AuroraPAR
             };
             JoystickButton.Visibility = openJoystick == null ? Visibility.Collapsed : Visibility.Visible;
             JoystickButton.Click += (s, e) => openJoystick?.Invoke(this);
-            // Instructor: turned on here (global, not in the profile); then it can be opened.
-            InstructorCheck.IsChecked = settings.Instructor.Enabled;
-            InstructorButton.Visibility = openInstructor == null ? Visibility.Collapsed : Visibility.Visible;
-            InstructorButton.IsEnabled = settings.Instructor.Enabled;
-            InstructorCheck.Checked += (s, e) => SetInstructorEnabled(true);
-            InstructorCheck.Unchecked += (s, e) => SetInstructorEnabled(false);
-            InstructorButton.Click += (s, e) =>
-            {
-                // The settings are modal: closed first, then the Instructor window opens.
-                Close();
-                if (openInstructor != null) Dispatcher.BeginInvoke(openInstructor);
-            };
             ProfileComboBox.SelectionChanged += ProfileComboBox_SelectionChanged;
             RenameButton.Click += (s, e) => RenameProfile();
             ProfileNameTextBox.KeyDown += (s, e) =>
@@ -449,14 +437,6 @@ namespace AuroraPAR
             }
             applyToScreen();
             RefreshControls();
-        }
-
-        /// <summary>Instructor on or off (saved at once; the main window shows or hides its button when the settings close).</summary>
-        private void SetInstructorEnabled(bool enabled)
-        {
-            settings.Instructor.Enabled = enabled;
-            InstructorButton.IsEnabled = enabled;
-            SettingsStore.Save(settings);
         }
 
         private void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

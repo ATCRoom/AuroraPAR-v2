@@ -361,13 +361,12 @@ The airport is the same as in the modern display (ICAO box and runway keys there
 
 ## 7. Practising: Test, Instructor and joystick
 
-AuroraPAR has three ways to fly aircraft without real traffic, also without Aurora. While they fly, **TEST TRAFFIC** is shown at the top of the views (never mixed up with real traffic).
+AuroraPAR has two ways to fly aircraft without real traffic, also without Aurora. While they fly, **TEST TRAFFIC** is shown at the top of the views (never mixed up with real traffic).
 
 | | For | How |
 | --- | --- | --- |
 | **Test** (key **T**) | seeing the tracks and labels of a profile | one aircraft, no window |
 | **Instructor** (key **I**) | practising alone, or a lesson with two people at the same PC, with one monitor | a small window in a corner of the screen |
-| **Advanced instructor** (**Shift+I**, preview) | the full instructor station: two monitors, later two PCs at a distance | still in development: turn it on in *Settings → Advanced instructor (preview)* |
 
 **Test** (key **T** or the **Test** button). One aircraft on final at **10 NM**, on the centreline and the glide path at 140 kt, descending by itself until it lands. Press T again to remove it. Nothing to set: it is there to see how the tracks and the labels of a profile look while you make it.
 
@@ -376,15 +375,13 @@ AuroraPAR has three ways to fly aircraft without real traffic, also without Auro
 ![Instructor window](images/test-traffic.png)
 
 - **New aircraft**: distance from touchdown, speed, SSR code and the initial offsets (m right + / left −, ft above + / below − the glide path), or a start **Altitude**, then **Add**. The **Altitude** is as the radar shows it (QNH: altitude; QFE: height above the threshold; the unit is shown beside it; mouse wheel 100 ft, +Shift 1000): with it the aircraft starts **level** at that altitude, and **Normal** (or a rate) starts the descent; empty = on the glide path plus the height offset. It appears as TEST1, TEST2... on the final course, descending at the glide path rate, and flies towards touchdown (it disappears when it lands, or when it goes far away).
-  **Start**: *On final* (as above) or an **intercept start** (30°, 45°, 90°, from the left or from the right): the aircraft is aimed at the point of the centreline at the **Distance**, with that intercept angle, starting about 3 NM from the centreline and **level, below the glide path** (the height offset, default −300 ft, is measured at that point; the lateral offset is not used). It is for practising the turn onto the final and the moment of the descent: when it reaches the glide path (the aircraft information shows *GP in … NM (about … s)*) give **Normal** and it starts to descend after the pilot reaction.
+  **Start**: *On final* (as above) or an **intercept start** (30°, 45°, 90°, from the left or from the right): the aircraft is aimed at the point of the centreline at the **Distance**, with that intercept angle, starting up to 3 NM from the centreline (less when the antenna beam of the profile is narrower there, so that it appears on the radar at once) and **level, below the glide path** (the height offset, default −300 ft, is measured at that point; the lateral offset is not used). It is for practising the turn onto the final and the moment of the descent: when it reaches the glide path (the aircraft information shows *GP in … NM (about … s)*) give **Normal** and it starts to descend after the pilot reaction.
 - **Wind** (rough model: the same at all heights): direction it blows from in degrees true (as in the METAR; the magnetic value is shown beside it), speed, and **gusts** (the wind grows at random up to this much more; 0 = none). **From METAR** copies the wind of the METAR of the airport in use received from Aurora. The aircraft fly their **heading** through the air: with a **crosswind** they drift off the centreline unless the heading is corrected into the wind; with a **headwind** the ground speed is lower and so is the rate of descent needed on the glide path (BEST VS follows the ground speed).
-- **Aircraft**: the list (the selected one is the one you command) with distance, speed and code.
+- **Aircraft**: the list (the selected one is the one you command) with distance, speed and code. If the selected aircraft is **not seen by the radar** (outside the antenna beam, or beyond the range shown), a red line says so: the aircraft is there, it just is not in the beam.
 - **Control**, everything needed while flying: the readouts **BEST VS** (vertical speed of the glide path for the ground speed of the aircraft and the GP angle in use), **ACTUAL VS**, **TURN** (actual turn rate, useful in Free), **HDG** (magnetic heading) and **DRIFT** (degrees the wind pushes the track off the heading, L / R); the **turn rate** 1.5°/s, 3°/s or **Free** (the longer the stick is held at its edge, the faster the turn, up to 10°/s); two blocks:
   - **Instructions (controller)**, carried out after the **pilot reaction** (default 0.5 s, 0–5 s; with the wheel or held keys, after the last step), as real pilots are not instantaneous. **HEADING °M**: ◀ L / R ▶ change it by 1° (held: repeat), the **mouse wheel** over the box by 1° (+Shift 10°), Enter carries out what is typed; the aircraft turns the shortest way at the chosen turn rate (3°/s with Free) and keeps the heading (whole circle). **Final CRS (xxx)** puts the final course in the box (with a crosswind the aircraft then drifts: correct the heading). **RATE ft/min**: ▲ UP / ▼ DN change it by 50 ft/min (held: repeat), the **wheel** by 100 (+Shift 500); a step that would cross the best rate **stops once on it**. **Normal (−xxx)**: the best rate, kept also if the speed, heading or wind change. The fields start from the heading and rate of the selected aircraft and follow it after the stick is released.
   - **Manual (pilot flying)**: the turn rate 1.5°/s, 3°/s or **Free** (the longer the stick is held at its edge, the faster the turn, up to 10°/s) and the **stick** (left/right turns, up/down changes the vertical speed, at once; released, the heading and the vertical speed reached stay, as with a real aircraft; the knob also follows a real joystick).
 - **On GP / CL** (exactly on the centreline and the glide path at once, with the heading that holds the final course in this wind), **Auto** (intercepts the centreline and the glide path by itself, correcting the drift), **Pause**, **Remove**, **Remove all**, **Joystick...**, and **Aurora-like data** (positions every about 0.5 s and the altitude in steps, as the real data, to test the track smoothing).
-
-**Advanced instructor (preview).** The full instructor station is being built: plan view, a PAR monitor for the instructor, start positions, and later the link between two PCs. Until it is finished it is hidden: turn it on in *Settings → Advanced instructor (preview)* to try it (then **Shift+I** or the **Advanced** button). Its data files are described in [SIM-FORMAT.md](SIM-FORMAT.md).
 
 **Joystick or gamepad** (*Settings → Joystick...* or *Instructor → Joystick...*). Any USB joystick or gamepad seen by Windows works, without a driver, also while AuroraPAR is not the window in front. The window shows the device in use (or *First found*), a **live test** of the X/Y axes and of the buttons pressed, and the settings, saved at once:
 
@@ -517,7 +514,7 @@ From a picture of the U.S. Army **AN/TPN-31** ATNAVICS display: almost black bac
 
 **Settings...** opens the options of the **active profile**. Every change is applied and saved immediately.
 
-The window has the **profile** bar at the top (everything below belongs to that profile), the **sections** on the left — *Display*, *Range and scale*, *Approach and DH*, *Tracks and labels*, *Radar*, *Units*, *Analog console*, *Colours and lines*, *Reminders* — and the tools at the bottom (runway editor, Instructor, joystick, Advanced instructor). One section is shown at a time; it scrolls only on a small screen.
+The window has the **profile** bar at the top (everything below belongs to that profile), the **sections** on the left — *Display*, *Range and scale*, *Approach and DH*, *Tracks and labels*, *Radar*, *Units*, *Analog console*, *Colours and lines*, *Reminders* — and the tools at the bottom (runway editor, Instructor, joystick). One section is shown at a time; it scrolls only on a small screen.
 
 **Show advanced** (above the sections, off by default, remembered): shows the options that are seldom changed — lock of the display mode, rain clutter, marks per range, DH selector, DH vertical and azimuth lines and DH symbols, history interval, track smoothing, coasting tracks and the symbols other than track and history, everything of the radar except the approach limits, magnetic variation; the glide path near the runway; in the range marks, the table of the marks per range, *Distance text on all ranges* and its *Default* button. Off, they are only hidden: their values stay as set.
 
@@ -815,8 +812,7 @@ A heading taken from the runway number or from the magnetic value on a chart is 
 | A | Modern / Analog display |
 | P / Shift+P | Next / previous profile (its name is shown for 2 s; runway and traffic stay, the antenna goes back to neutral) |
 | T | Test: one aircraft on final at 10 NM; again: removed ([section 7](#7-practising-test-instructor-and-joystick)) |
-| I | Instructor (basic) window |
-| Shift+I | Advanced instructor (preview, turned on in the Settings) |
+| I | Instructor window |
 | C | Linear / log distance scale (LIN / LOG keys; saved in the profile, see [10.3](#103-range-and-scale)) |
 | 1 – 5 / 0 | Coordination panel (must be open, see [section 8](#8-coordination-panel)): press lights 1–5 / Reset (0); also the numeric keypad |
 | F1 | List of all the keys and mouse actions (also the **Keys** button) |

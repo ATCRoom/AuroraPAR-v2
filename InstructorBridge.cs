@@ -5,7 +5,7 @@ namespace AuroraPAR
     /// <summary>Settings of the Instructor (the same for all profiles).</summary>
     internal sealed class InstructorSettings
     {
-        /// <summary>The Instructor is turned on in the Settings: only then key I and the Instructor button.</summary>
+        /// <summary>The advanced Instructor (dormant in 2.0): only with this written by hand in the settings file, then Ctrl+Shift+I.</summary>
         public bool Enabled { get; set; }
         /// <summary>Start of the callsigns given automatically (SIM → SIM1, SIM2...).</summary>
         public string CallsignPrefix { get; set; } = "SIM";

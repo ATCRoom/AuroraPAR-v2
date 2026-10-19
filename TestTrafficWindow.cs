@@ -42,7 +42,20 @@ namespace AuroraPAR
         private readonly TextBlock altitudeUnit = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 4, 0) };
         private readonly Func<bool> qfe;
         private readonly Func<double> elevation;
-        private readonly ComboBox startBox = new() { Width = 130, Margin = new Thickness(4, 0, 0, 0), ItemsSource = new[] { "On final", "30° from left", "30° from right", "45° from left", "45° from right", "90° from left", "90° from right" }, SelectedIndex = 0, ToolTip = "Start: on the final course (as before), or heading towards the point of the centreline at the Distance (NM), with this intercept angle, about 3 NM off the centreline and level below the glide path (the height offset is measured at that point). The Normal button then starts the descent." };
+        /// <summary>Half width of the radar's azimuth beam (NM) at a distance from touchdown, on a side (−1 left, +1 right); null: unknown.</summary>
+        private readonly Func<double, int, double>? beamHalfWidth;
+        /// <summary>Whether the radar shows this aircraft now (null: not known yet).</summary>
+        private readonly Func<string, bool?>? seen;
+        private readonly TextBlock notSeenText = new()
+        {
+            Text = "⚠ Not seen by the radar now: outside the antenna beam or beyond the range shown. The aircraft is there; tilt the antenna, change the range, or wait until it flies into the beam.",
+            Foreground = Brushes.DarkRed,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 6, 0, 0),
+            Visibility = Visibility.Collapsed
+        };
+        private readonly ComboBox startBox = new() { Width = 130, Margin = new Thickness(4, 0, 0, 0), ItemsSource = new[] { "On final", "30° from left", "30° from right", "45° from left", "45° from right", "90° from left", "90° from right" }, SelectedIndex = 0, ToolTip = "Start: on the final course (as before), or heading towards the point of the centreline at the Distance (NM), with this intercept angle, up to 3 NM off the centreline (less, to start inside the radar beam) and level below the glide path (the height offset is measured at that point). The Normal button then starts the descent." };
         private readonly TextBox windFromBox = NumberBox("0");
         private readonly TextBox windSpeedBox = NumberBox("0");
         private readonly TextBox windGustBox = NumberBox("0");
@@ -96,14 +109,16 @@ namespace AuroraPAR
         }
 
         internal TestTrafficWindow(TestTraffic traffic, Action<Window>? openJoystick = null, Func<double>? variation = null, Func<string?>? metar = null,
-            Func<bool>? qfe = null, Func<double>? elevation = null)
+            Func<bool>? qfe = null, Func<double>? elevation = null, Func<double, int, double>? beamHalfWidth = null, Func<string, bool?>? seen = null)
         {
             this.traffic = traffic;
             this.variation = variation ?? (() => 0);
             this.metar = metar ?? (() => null);
             this.qfe = qfe ?? (() => false);
             this.elevation = elevation ?? (() => 0);
-            Title = "Aurora PAR - Instructor (basic)";
+            this.beamHalfWidth = beamHalfWidth;
+            this.seen = seen;
+            Title = "Aurora PAR - Instructor";
             SizeToContent = SizeToContent.WidthAndHeight;
             ResizeMode = ResizeMode.NoResize;
             ShowInTaskbar = false;
@@ -228,6 +243,7 @@ namespace AuroraPAR
             removeRow.Children.Add(removeAll);
             aircraftGroup.Children.Add(removeRow);
             aircraftGroup.Children.Add(aircraftPanel);
+            aircraftGroup.Children.Add(notSeenText);
             root.Children.Add(Group("Aircraft", aircraftGroup));
 
             // Control: readouts, then the instructions of the controller (left) and the manual stick (right).
@@ -662,7 +678,7 @@ namespace AuroraPAR
                     return;
                 }
             }
-            string callsign = traffic.Add(distance, speed, squawk, lateral, height, intercept, side, startHeight);
+            string callsign = traffic.Add(distance, speed, squawk, lateral, height, intercept, side, startHeight, StartOffset(distance, intercept, side));
             RefreshList();
             list.SelectedItem = callsign;
         }
@@ -973,9 +989,30 @@ namespace AuroraPAR
             ShowWindMagnetic();
         }
 
+        /// <summary>
+        /// Distance from the centreline of an intercept start (NM): 3 NM, or less so that the aircraft starts inside the
+        /// radar's azimuth beam (with a margin, at least 0.5 NM). The start is back along the intercept track, so its
+        /// distance from touchdown depends on the offset: a few rounds bring the two together.
+        /// </summary>
+        private double StartOffset(double distance, double intercept, int side)
+        {
+            if (intercept <= 0 || side == 0 || beamHalfWidth == null) return TestTraffic.DefaultStartOffset;
+            double angle = intercept * Math.PI / 180;
+            double offset = TestTraffic.DefaultStartOffset;
+            for (int i = 0; i < 8; i++)
+            {
+                double start = distance + offset * Math.Cos(angle) / Math.Sin(angle);
+                double width = beamHalfWidth(start, side);
+                if (!double.IsFinite(width)) return TestTraffic.DefaultStartOffset;
+                offset = Math.Min(TestTraffic.DefaultStartOffset, 0.85 * width);
+            }
+            return Math.Max(0.5, offset);
+        }
+
         private void ShowSelected()
         {
             TestTraffic.Plane? plane = traffic.List().FirstOrDefault(p => p.Callsign == list.SelectedItem as string);
+            notSeenText.Visibility = plane != null && seen?.Invoke(plane.Callsign) == false ? Visibility.Visible : Visibility.Collapsed;
             if (plane == null)
             {
                 finalCourseButton.Content = "Final CRS";

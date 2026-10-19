@@ -55,8 +55,7 @@ namespace AuroraPAR
             ]),
             ("Windows", [
                 ("T", "Test: one aircraft on final at 10 NM (again: removed)"),
-                ("I", "Instructor (basic)"),
-                ("Shift+I", "Instructor (advanced, preview: turn it on in the Settings)"),
+                ("I", "Instructor"),
                 ("1 – 5 / 0", "Coordination panel (must be open): press lights 1–5 / Reset"),
                 ("F1", "This list of keys"),
                 ("Esc / Enter in a text box", "Cancel / confirm what is typed")

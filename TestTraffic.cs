@@ -89,6 +89,9 @@ namespace AuroraPAR
             public Plane Copy() => (Plane)MemberwiseClone();
         }
 
+        /// <summary>Distance from the centreline of an intercept start (NM), at most; less when the radar's beam is narrower there.</summary>
+        public const double DefaultStartOffset = 3;
+
         /// <summary>Vertical speed limits (ft/min) and how fast the full stick changes it (ft/min per second).</summary>
         public const double MaxClimb = 2000;
         public const double MaxDescent = -3000;
@@ -141,7 +144,7 @@ namespace AuroraPAR
         /// next <see cref="Snapshot"/> (it needs the runway).
         /// </summary>
         public string Add(double distanceNM, double speedKt, string? squawk, double lateralM, double heightOffsetFt, double interceptDegrees = 0, int side = 0,
-            double startHeightFt = double.NaN)
+            double startHeightFt = double.NaN, double startOffsetNM = DefaultStartOffset)
         {
             lock (sync)
             {
@@ -161,12 +164,13 @@ namespace AuroraPAR
                 if (interceptDegrees > 0 && side != 0)
                 {
                     // Aimed at the point of the centreline at distanceNM, with this intercept angle: the start is back along
-                    // that track, at about 3 NM from the centreline (left: side −1, right: +1); level, below the glide path.
+                    // that track, startOffsetNM from the centreline (left: side −1, right: +1); level, below the glide path.
+                    double offset = double.IsFinite(startOffsetNM) && startOffsetNM > 0 ? startOffsetNM : DefaultStartOffset;
                     double angle = interceptDegrees * Math.PI / 180;
-                    double back = 3 / Math.Sin(angle);
+                    double back = offset / Math.Sin(angle);
                     plane.AimDistance = distanceNM;
                     plane.Distance = distanceNM + back * Math.Cos(angle);
-                    plane.Lateral = side * 3.0;
+                    plane.Lateral = side * offset;
                     plane.Heading = -side * interceptDegrees;
                     plane.StartLevel = true;
                     plane.HoldGlidePath = false;

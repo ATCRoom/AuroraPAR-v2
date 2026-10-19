@@ -61,13 +61,9 @@
                 <Button Name="EditRunwaysButton" Content="Runways (runways.par)..." Height="26" Padding="12,0"
                         ToolTip="Runway editor: add, change, duplicate or delete runways and approaches; the previous file is kept as runways.par.bak."/>
                 <Button Name="TestTrafficButton" Content="Instructor... (I)" Height="26" Padding="12,0" Margin="8,0,0,0"
-                        ToolTip="Instructor (basic): a small window to fly aircraft for practice or a lesson at the same PC, also without Aurora. (Key T: one test aircraft on final.)"/>
+                        ToolTip="Instructor: a small window to fly aircraft for practice or a lesson at the same PC, also without Aurora. (Key T: one test aircraft on final.)"/>
                 <Button Name="JoystickButton" Content="Joystick..." Height="26" Padding="12,0" Margin="8,0,0,0"
                         ToolTip="A real joystick or gamepad (USB) for the Instructor's aircraft and the antenna tilt: device, buttons, live test."/>
-                <CheckBox Name="InstructorCheck" Content="Advanced instructor (preview)" VerticalAlignment="Center" Margin="16,0,0,0"
-                          ToolTip="Turns on the advanced Instructor, still in development: the full instructor station (Shift+I and an Advanced button beside Instructor). Off: nothing of it is shown."/>
-                <Button Name="InstructorButton" Content="Advanced... (⇧I)" Height="26" Padding="12,0" Margin="6,0,0,0"
-                        ToolTip="Opens the advanced Instructor window."/>
                 <TextBlock Name="FileLocationText" Margin="16,0,8,0" VerticalAlignment="Center" Foreground="Gray" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="380"/>
             </DockPanel>
         </Border>

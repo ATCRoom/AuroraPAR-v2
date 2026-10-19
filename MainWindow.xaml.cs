@@ -251,8 +251,6 @@ namespace AuroraPAR
             CoordinationButton.Click += (s, e) => OpenCoordination();
             TestButton.Click += (s, e) => ToggleQuickTest();
             BasicButton.Click += (s, e) => OpenTestTraffic();
-            InstructorButton.Click += (s, e) => OpenInstructor();
-            UpdateInstructorButton();
             BuildKnobs();
             ScopeHost.SizeChanged += (s, e) => LayoutDisplay();
             // Console panel at most about a quarter of the display (it is scaled to fit, see the XAML).
@@ -1184,7 +1182,9 @@ namespace AuroraPAR
                     () => runway.MagneticVariation ?? settings.Active.MagneticVariation,
                     () => aurora.LastMetar is MetarReport report && string.Equals(report.Icao, runway.ICAO, StringComparison.OrdinalIgnoreCase) ? report.Text : null,
                     () => viewOptions.Qfe,
-                    () => runway.Elevation)
+                    () => runway.Elevation,
+                    AzimuthBeamHalfWidth,
+                    callsign => lastAircrafts.FirstOrDefault(a => a.Callsign == callsign) is Aircraft aircraft ? radar.IsSeen(aircraft, runway) : null)
                 { Owner = this };
                 testTrafficWindow.Left = Math.Max(0, Left + 40);
                 testTrafficWindow.Top = Math.Max(0, Top + 60);
@@ -1301,6 +1301,19 @@ namespace AuroraPAR
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        /// <summary>
+        /// Half width (NM) of the azimuth beam of the radar now (scan limits, beam width, tilt, antenna offset) on one
+        /// side of the extended centreline (−1 left, +1 right as seen by the pilot), at a distance from touchdown.
+        /// </summary>
+        private double AzimuthBeamHalfWidth(double distanceFromTouchdownNM, int side)
+        {
+            double fromAntenna = distanceFromTouchdownNM - runway.TouchdownNM + runway.LengthNM - Radar.AntennaFromRunwayEnd(runway);
+            if (fromAntenna <= 0) return 0;
+            double edge = side > 0 ? radar.AzimuthRightEdge : radar.AzimuthLeftEdge;
+            double lateral = radar.AntennaOffsetNM + Radar.ScanOffset(fromAntenna, edge);
+            return Math.Max(0, side > 0 ? lateral : -lateral);
+        }
+
         /// <summary>Aircraft added by the Test key (null: none).</summary>
         private string? quickTestCallsign;
 
@@ -1322,13 +1335,8 @@ namespace AuroraPAR
             Redraw();
         }
 
-        /// <summary>The Instructor button is there only with the Instructor turned on in the Settings; turned off, its window closes.</summary>
-        private void UpdateInstructorButton()
-        {
-            bool enabled = settings.Instructor.Enabled;
-            InstructorButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-            if (!enabled) instructorWindow?.Close();
-        }
+        // The advanced Instructor is dormant in 2.0 (developed further for the next version): no button and no Settings
+        // option. It opens only with Ctrl+Shift+I and "Instructor": { "Enabled": true } written by hand in the settings file.
 
         /// <summary>Opens (or brings to front) the Instructor window. It has no owner, so it can live on a second monitor.</summary>
         private void OpenInstructor()
@@ -1360,12 +1368,10 @@ namespace AuroraPAR
                     instructorWindow = null;
                     instructor.Clear();
                     instructor.Engine.Paused = false;
-                    InstructorButton.Tag = viewOptions.Analog ? "Unlit" : null;
                     SettingsStore.Save(settings);
                     Redraw();
                 };
                 instructorWindow.Show();
-                InstructorButton.Tag = viewOptions.Analog ? "Lit" : null;
             }
             else
             {
@@ -1660,8 +1666,7 @@ namespace AuroraPAR
                 (ModeButton, "Analog (A)", "MODERN", "Switch to the modern display (key A).", 26),
                 (CoordinationButton, "Coordination", "COORD", "Coordination light panel with the tower (voiceless coordination).", 26),
                 (TestButton, "Test (T)", "TEST", "Test: one aircraft on final at 10 NM, to see the tracks and labels of a profile (key T; again: removed).", 26),
-                (BasicButton, "Instructor (I)", "INSTR", "Instructor (basic): a small window to fly aircraft for practice or a lesson at the same PC (key I).", 26),
-                (InstructorButton, "Advanced (⇧I)", "ADV", "Instructor (advanced, preview): the full instructor station (Shift+I). Turned on in the Settings.", 26),
+                (BasicButton, "Instructor (I)", "INSTR", "Instructor: a small window to fly aircraft for practice or a lesson at the same PC (key I).", 26),
                 (SettingsButton, "Settings...", "SETUP", "Settings.", 30),
                 (ManualButton, "Manual", "MANUAL", "Open the user manual (in the browser).", 24),
                 (KeysButton, "Keys", "KEYS", "List of the keyboard and mouse shortcuts (F1).", 24)
@@ -1685,7 +1690,7 @@ namespace AuroraPAR
                     button.Height = height;
                     button.Margin = new Thickness(button == KeysButton ? 2 : 0, 4, 0, 0);
                     button.Tag = null;
-                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == BasicButton || button == InstructorButton || button == ManualButton || button == KeysButton ? tip : null;
+                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == BasicButton || button == ManualButton || button == KeysButton ? tip : null;
                 }
             }
             SpareKey.Visibility = Visibility.Collapsed;
@@ -1697,7 +1702,6 @@ namespace AuroraPAR
             CoordinationButton.Tag = analog ? (coordinationWindow != null ? "Lit" : "Unlit") : null;
             TestButton.Tag = analog ? (quickTestCallsign != null ? "Lit" : "Unlit") : null;
             BasicButton.Tag = analog ? (testTrafficWindow != null ? "Lit" : "Unlit") : null;
-            InstructorButton.Tag = analog ? (instructorWindow != null ? "Lit" : "Unlit") : null;
             KeysButton.Tag = analog ? (shortcutsWindow != null ? "Lit" : "Unlit") : null;
             // Display mode locked in the profile: no mode button (analog: a blank key keeps the place of the others).
             bool locked = settings.Active.LockDisplayMode;
@@ -2380,12 +2384,11 @@ namespace AuroraPAR
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            SettingsWindow window = new(settings, ApplyProfile, OpenRunwayEditor, OpenTestTraffic, OpenJoystick, OpenInstructor)
+            SettingsWindow window = new(settings, ApplyProfile, OpenRunwayEditor, OpenTestTraffic, OpenJoystick)
             {
                 Owner = this
             };
             window.ShowDialog();
-            UpdateInstructorButton();
         }
 
         /// <summary>
@@ -2442,7 +2445,7 @@ namespace AuroraPAR
                 case Key.A: ToggleDisplayMode(); break;
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
                 case Key.T when modifiers == 0: ToggleQuickTest(); break;
-                case Key.I when modifiers == ModifierKeys.Shift && settings.Instructor.Enabled: OpenInstructor(); break;
+                case Key.I when modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && settings.Instructor.Enabled: OpenInstructor(); break;
                 case Key.I when modifiers == 0: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
