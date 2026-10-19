@@ -249,7 +249,8 @@ namespace AuroraPAR
             LogButton.Click += (s, e) => SetDistanceScale(log: true);
             ModeButton.Click += (s, e) => ToggleDisplayMode();
             CoordinationButton.Click += (s, e) => OpenCoordination();
-            TestButton.Click += (s, e) => OpenTestTraffic();
+            TestButton.Click += (s, e) => ToggleQuickTest();
+            BasicButton.Click += (s, e) => OpenTestTraffic();
             InstructorButton.Click += (s, e) => OpenInstructor();
             UpdateInstructorButton();
             BuildKnobs();
@@ -1181,7 +1182,9 @@ namespace AuroraPAR
             {
                 testTrafficWindow = new TestTrafficWindow(testTraffic, OpenJoystick,
                     () => runway.MagneticVariation ?? settings.Active.MagneticVariation,
-                    () => aurora.LastMetar is MetarReport report && string.Equals(report.Icao, runway.ICAO, StringComparison.OrdinalIgnoreCase) ? report.Text : null)
+                    () => aurora.LastMetar is MetarReport report && string.Equals(report.Icao, runway.ICAO, StringComparison.OrdinalIgnoreCase) ? report.Text : null,
+                    () => viewOptions.Qfe,
+                    () => runway.Elevation)
                 { Owner = this };
                 testTrafficWindow.Left = Math.Max(0, Left + 40);
                 testTrafficWindow.Top = Math.Max(0, Top + 60);
@@ -1192,13 +1195,13 @@ namespace AuroraPAR
                 {
                     testTrafficWindow = null;
                     rainOverride = null;
-                    TestButton.Tag = viewOptions.Analog ? "Unlit" : null;
+                    BasicButton.Tag = viewOptions.Analog ? "Unlit" : null;
                     Redraw();
                 };
                 testTrafficWindow.Activated += (s, e) => lastAircraftWindow = s as IJoystickTarget;
                 lastAircraftWindow = testTrafficWindow;
                 testTrafficWindow.Show();
-                TestButton.Tag = viewOptions.Analog ? "Lit" : null;
+                BasicButton.Tag = viewOptions.Analog ? "Lit" : null;
             }
             else
             {
@@ -1265,6 +1268,9 @@ namespace AuroraPAR
         /// </summary>
         private void UpdateTestTrafficSign()
         {
+            // The TEST key is lit while its aircraft flies (it may have landed meanwhile).
+            if (quickTestCallsign != null && !testTraffic.List().Any(p => p.Callsign == quickTestCallsign)) quickTestCallsign = null;
+            if (viewOptions.Analog) TestButton.Tag = quickTestCallsign != null ? "Lit" : "Unlit";
             bool test = testTraffic.Count > 0;
             bool sim = instructor.Count > 0 && aurora.Connected;
             bool on = test || sim;
@@ -1293,6 +1299,27 @@ namespace AuroraPAR
             }
             if (testTrafficSignText != null) testTrafficSignText.Text = test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC";
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>Aircraft added by the Test key (null: none).</summary>
+        private string? quickTestCallsign;
+
+        /// <summary>
+        /// Key T / Test: one aircraft on final at 10 NM, on the centreline and the glide path, descending by itself
+        /// (to see the tracks and labels of a profile); again: removed.
+        /// </summary>
+        private void ToggleQuickTest()
+        {
+            if (quickTestCallsign != null && testTraffic.List().Any(p => p.Callsign == quickTestCallsign))
+            {
+                testTraffic.Remove(quickTestCallsign);
+                quickTestCallsign = null;
+            }
+            else
+            {
+                quickTestCallsign = testTraffic.Add(10, 140, null, 0, 0);
+            }
+            Redraw();
         }
 
         /// <summary>The Instructor button is there only with the Instructor turned on in the Settings; turned off, its window closes.</summary>
@@ -1632,8 +1659,9 @@ namespace AuroraPAR
             [
                 (ModeButton, "Analog (A)", "MODERN", "Switch to the modern display (key A).", 26),
                 (CoordinationButton, "Coordination", "COORD", "Coordination light panel with the tower (voiceless coordination).", 26),
-                (TestButton, "Test traffic (T)", "TEST", "Test traffic: aircraft to practise with (key T).", 26),
-                (InstructorButton, "Instructor (I)", "INSTR", "Instructor: simulated aircraft for training (key I).", 26),
+                (TestButton, "Test (T)", "TEST", "Test: one aircraft on final at 10 NM, to see the tracks and labels of a profile (key T; again: removed).", 26),
+                (BasicButton, "Instructor (I)", "INSTR", "Instructor (basic): a small window to fly aircraft for practice or a lesson at the same PC (key I).", 26),
+                (InstructorButton, "Advanced (⇧I)", "ADV", "Instructor (advanced, preview): the full instructor station (Shift+I). Turned on in the Settings.", 26),
                 (SettingsButton, "Settings...", "SETUP", "Settings.", 30),
                 (ManualButton, "Manual", "MANUAL", "Open the user manual (in the browser).", 24),
                 (KeysButton, "Keys", "KEYS", "List of the keyboard and mouse shortcuts (F1).", 24)
@@ -1657,7 +1685,7 @@ namespace AuroraPAR
                     button.Height = height;
                     button.Margin = new Thickness(button == KeysButton ? 2 : 0, 4, 0, 0);
                     button.Tag = null;
-                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == InstructorButton || button == ManualButton || button == KeysButton ? tip : null;
+                    button.ToolTip = button == ModeButton ? "Switch between the modern display and the analog scope (key A)." : button == CoordinationButton || button == TestButton || button == BasicButton || button == InstructorButton || button == ManualButton || button == KeysButton ? tip : null;
                 }
             }
             SpareKey.Visibility = Visibility.Collapsed;
@@ -1667,7 +1695,8 @@ namespace AuroraPAR
             SystemPlate.Padding = analog ? new Thickness(0, 2, 0, 0) : new Thickness(0);
             // Lamp: the coordination key is lit while its panel is open. The mode key is a plain command.
             CoordinationButton.Tag = analog ? (coordinationWindow != null ? "Lit" : "Unlit") : null;
-            TestButton.Tag = analog ? (testTrafficWindow != null ? "Lit" : "Unlit") : null;
+            TestButton.Tag = analog ? (quickTestCallsign != null ? "Lit" : "Unlit") : null;
+            BasicButton.Tag = analog ? (testTrafficWindow != null ? "Lit" : "Unlit") : null;
             InstructorButton.Tag = analog ? (instructorWindow != null ? "Lit" : "Unlit") : null;
             KeysButton.Tag = analog ? (shortcutsWindow != null ? "Lit" : "Unlit") : null;
             // Display mode locked in the profile: no mode button (analog: a blank key keeps the place of the others).
@@ -2412,8 +2441,9 @@ namespace AuroraPAR
                 case Key.L: ToggleLabels(); break;
                 case Key.A: ToggleDisplayMode(); break;
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
-                case Key.T: OpenTestTraffic(); break;
-                case Key.I when modifiers == 0 && settings.Instructor.Enabled: OpenInstructor(); break;
+                case Key.T when modifiers == 0: ToggleQuickTest(); break;
+                case Key.I when modifiers == ModifierKeys.Shift && settings.Instructor.Enabled: OpenInstructor(); break;
+                case Key.I when modifiers == 0: OpenTestTraffic(); break;
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
                 case Key.X when modifiers == 0: ToggleCrosshair(); break;

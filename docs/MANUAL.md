@@ -16,7 +16,7 @@ This manual describes AuroraPAR v2, a fork of [AuroraPAR](https://github.com/bor
 4. [Tracks and labels](#4-tracks-and-labels)
 5. [Working an approach](#5-working-an-approach)
 6. [Analog mode](#6-analog-mode)
-7. [Practising: test traffic and joystick](#7-practising-test-traffic-and-joystick)
+7. [Practising: Test, Instructor and joystick](#7-practising-test-instructor-and-joystick)
 8. [Coordination panel](#8-coordination-panel)
 9. [Bundled profiles](#9-bundled-profiles)
 10. [Settings and customization](#10-settings-and-customization)
@@ -61,7 +61,7 @@ The QNH is taken from the METAR of the airport in Aurora and refreshed every min
 
 - At the first start (no settings file yet) the bundled profiles become your profiles, with **Default** active. Press **P** to go through them, or choose one in *Settings* ([section 9](#9-bundled-profiles)).
 - Type the **ICAO** of your airport in the box at the top right and pick the runway. With a callsign of an airport in `runways.par` (e.g. `LIPC_APP`) the airport is set by itself when you connect. If your runway is missing, add it with the runway editor ([section 11](#11-runways-and-data)).
-- No traffic yet? Press **T** and add a test aircraft to see how the display works ([section 7](#7-practising-test-traffic-and-joystick)).
+- No traffic yet? Press **T** for a test aircraft on final, or **I** for the Instructor, to see how the display works ([section 7](#7-practising-test-instructor-and-joystick)).
 - **F1** (or the **Keys** button) lists every key; **Manual** opens this manual.
 
 ### 1.4 Where the settings are stored
@@ -90,7 +90,7 @@ All profiles and options are in one file:
 | **2** | Elevation view ([3.2](#32-elevation-view-top)) |
 | **3** | Azimuth view ([3.3](#33-azimuth-view-bottom)) |
 
-**Right column, from the top (4–11).** The selectors "on the fly" are at the top; **Hide labels** (a quick switch of the display) comes after them, a little apart from the antenna tilt; the buttons Analog, Coordination, Test traffic (T), Settings..., **Manual** and **Keys** (or F1) are fixed at the bottom edge of the window, apart from them. In the analog mode the buttons are square keys like those of a real console (big capital letters; the whole key lights up in warm white when active: the runway and approach in use, COORD and TEST while their windows are open) and the text fields are readout windows. The bottom keys are **MODERN** (back to the modern display), **COORD**, **TEST** (test traffic, as the key T), **SETUP** (Settings), **MANUAL** and **KEYS**:
+**Right column, from the top (4–11).** The selectors "on the fly" are at the top; **Hide labels** (a quick switch of the display) comes after them, a little apart from the antenna tilt; the buttons Analog, Coordination, **Test (T)**, **Instructor (I)**, Settings..., **Manual** and **Keys** (or F1) are fixed at the bottom edge of the window, apart from them. In the analog mode the buttons are square keys like those of a real console (big capital letters; the whole key lights up in warm white when active: the runway and approach in use, COORD and INSTR while their windows are open, TEST while its aircraft flies) and the text fields are readout windows. The bottom keys are **MODERN** (back to the modern display), **COORD**, **TEST** (one test aircraft, as the key T), **INSTR** (Instructor, as the key I), **SETUP** (Settings), **MANUAL** and **KEYS**:
 
 | | Control | Use |
 |---|---|---|
@@ -259,7 +259,7 @@ The DH of each runway comes from `runways.par`. During the session it can be cha
 
 The DH selector (box with **−** / **+** in the modern display, knob or keys in the analog one) is an advanced function and is **hidden by default**: tick *Settings → Approach and DH → DH selector* (visible with *Show advanced*) to show it (per profile). Hidden, the runway value is used, and **Shift+↑ / ↓ / Home** still change it.
 
-**Free CRS selector** (optional, e.g. for a ship): *Settings → Approach and DH → CRS selector* (advanced, off by default). Modern display: box **CRS (°)** with **−** / **+** (1°) under the DH box; type a course and press **Enter** (Esc: back to the one in use). Analog: keys **− RWY +** in a CRS group. Keys **Alt+← / Alt+→** (1°) and **Alt+Home** (course of the runway) work also with the selector hidden. The course is changed **for this session only**: the extended centreline, approach limits, lateral offsets and the test traffic follow it, turning around the **threshold**; it goes back to the runway course when the runway is chosen again (another published glide path angle of the same runway keeps it). A course that is not the one of `runways.par` is shown **orange** (*CRS xxx SELECTED* on the information line). The position stays that of `runways.par` (a moving ship is not followed).
+**Free CRS selector** (optional, e.g. for a ship): *Settings → Approach and DH → CRS selector* (advanced, off by default). Modern display: box **CRS (°)** with **−** / **+** (1°) under the DH box; type a course and press **Enter** (Esc: back to the one in use). Analog: keys **− RWY +** in a CRS group. Keys **Alt+← / Alt+→** (1°) and **Alt+Home** (course of the runway) work also with the selector hidden. The course is changed **for this session only**: the extended centreline, approach limits, lateral offsets and the aircraft of the basic Instructor follow it, turning around the **threshold**; it goes back to the runway course when the runway is chosen again (another published glide path angle of the same runway keeps it). A course that is not the one of `runways.par` is shown **orange** (*CRS xxx SELECTED* on the information line). The position stays that of `runways.par` (a moving ship is not followed).
 
 The name shown (DA/DH, OCA/OCH, MDA/MDH) is chosen in *Settings → Approach and DH*.
 
@@ -295,7 +295,7 @@ Some runways have approaches with different glide path angles. In `runways.par` 
 - No labels and no altitude scale, as on the real scopes. The history tail fades with age.
 - The tooltips (help bubbles) are dark with amber text, like the console.
 - **Afterglow**: like the phosphor of the old screens, a faint trail of the echo stays where the aircraft was in the last seconds, and the history dots glow slightly when the beam passes over them.
-- **Rain clutter** (*Settings → Display → Rain clutter*, advanced, per profile, **off by default**): irregular green patches alternating with dots, only **inside the antenna beam** (it moves with the tilt; a short fade at its edges, no sharp cut), stronger towards the far end of the range. The intensity follows the **precipitation of the METAR** of the airport in use (received from Aurora): drizzle or light rain = a few dots and small patches, rain = patches, heavy rain or thunderstorm = large bright patches. Like the echoes, the clutter **lights up when the scan beam passes over it** and fades; the dots stay in place (their light changes with the beam) and the **patches drift with the wind** (METAR wind, or the wind set in Test traffic): real speed, in scale with the range, so slow with a light wind (about half a pixel per second at 15 kt and 10 NM) and faster at short ranges. When the **tilt** moves, the picture stays a moment where the beam was and fades out (about 2 s). The tracks are not hidden: they are drawn in the same green and **get lost in the clutter**. The **CLUTTER knob** (appears with the option) reduces the clutter, but dims the tracks too (OFF = no filter). To try it without waiting for a METAR with rain: *Test traffic → Rain* (From METAR / None / Light / Moderate / Heavy / Thunderstorm, works also with the option off, and the filter slider). Modern display: no clutter.
+- **Rain clutter** (*Settings → Display → Rain clutter*, advanced, per profile, **off by default**): irregular green patches alternating with dots, only **inside the antenna beam** (it moves with the tilt; a short fade at its edges, no sharp cut), stronger towards the far end of the range. The intensity follows the **precipitation of the METAR** of the airport in use (received from Aurora): drizzle or light rain = a few dots and small patches, rain = patches, heavy rain or thunderstorm = large bright patches. Like the echoes, the clutter **lights up when the scan beam passes over it** and fades; the dots stay in place (their light changes with the beam) and the **patches drift with the wind** (METAR wind, or the wind set in the Instructor): real speed, in scale with the range, so slow with a light wind (about half a pixel per second at 15 kt and 10 NM) and faster at short ranges. When the **tilt** moves, the picture stays a moment where the beam was and fades out (about 2 s). The tracks are not hidden: they are drawn in the same green and **get lost in the clutter**. The **CLUTTER knob** (appears with the option) reduces the clutter, but dims the tracks too (OFF = no filter). To try it without waiting for a METAR with rain: *Instructor → Rain* (From METAR / None / Light / Moderate / Heavy / Thunderstorm, works also with the option off, and the filter slider). Modern display: no clutter.
 - **Readouts**: the windows of the left column (airport, runway, course, glide path, MAPt, DH, QNH, range, tilt) are 14-segment displays (default) or **mechanical drum counters** (*Settings → Analog console → Readouts*): off-white digits and letters on black wheels behind a window; when a value changes the wheels roll to the new character, and each wheel is a little off, as on worn counters. Same data, only the look changes. The digits are in the Carlito font (SIL Open Font License, included).
 - **Edge of the antenna beam**: near the edge of the beam (the last half degree) the echo gets weaker; out of the beam it goes dark, and its afterglow and dots fade in about 6 s.
 - In a low window the screen is cut at the top and bottom (only frame and glass), so the views stay large.
@@ -359,13 +359,23 @@ The airport is the same as in the modern display (ICAO box and runway keys there
 
 ---
 
-## 7. Practising: test traffic and joystick
+## 7. Practising: Test, Instructor and joystick
 
-**Test traffic** (key **T**, the **Test traffic** button, or *Settings → Test traffic...*). Virtual aircraft to test the radar without waiting for real traffic, also without Aurora. While test aircraft are flying, **TEST TRAFFIC** is shown at the top of the views; closing the window removes them, nothing is saved. The window has:
+AuroraPAR has three ways to fly aircraft without real traffic, also without Aurora. While they fly, **TEST TRAFFIC** is shown at the top of the views (never mixed up with real traffic).
 
-![Test traffic window](images/test-traffic.png)
+| | For | How |
+| --- | --- | --- |
+| **Test** (key **T**) | seeing the tracks and labels of a profile | one aircraft, no window |
+| **Instructor** (key **I**) | practising alone, or a lesson with two people at the same PC, with one monitor | a small window in a corner of the screen |
+| **Advanced instructor** (**Shift+I**, preview) | the full instructor station: two monitors, later two PCs at a distance | still in development: turn it on in *Settings → Advanced instructor (preview)* |
 
-- **New aircraft**: distance from touchdown, speed, SSR code and the initial offsets (m right + / left −, ft above + / below − the glide path), then **Add**. It appears as TEST1, TEST2... on the final course, descending at the glide path rate, and flies towards touchdown (it disappears when it lands, or when it goes far away).
+**Test** (key **T** or the **Test** button). One aircraft on final at **10 NM**, on the centreline and the glide path at 140 kt, descending by itself until it lands. Press T again to remove it. Nothing to set: it is there to see how the tracks and the labels of a profile look while you make it.
+
+**Instructor** (key **I**, the **Instructor** button, or *Settings → Instructor...*). A small window that fits in a corner of the screen, with everything needed to fly the aircraft as a controller instructs them. Closing the window removes them, nothing is saved. The window has:
+
+![Instructor window](images/test-traffic.png)
+
+- **New aircraft**: distance from touchdown, speed, SSR code and the initial offsets (m right + / left −, ft above + / below − the glide path), or a start **Altitude**, then **Add**. The **Altitude** is as the radar shows it (QNH: altitude; QFE: height above the threshold; the unit is shown beside it; mouse wheel 100 ft, +Shift 1000): with it the aircraft starts **level** at that altitude, and **Normal** (or a rate) starts the descent; empty = on the glide path plus the height offset. It appears as TEST1, TEST2... on the final course, descending at the glide path rate, and flies towards touchdown (it disappears when it lands, or when it goes far away).
   **Start**: *On final* (as above) or an **intercept start** (30°, 45°, 90°, from the left or from the right): the aircraft is aimed at the point of the centreline at the **Distance**, with that intercept angle, starting about 3 NM from the centreline and **level, below the glide path** (the height offset, default −300 ft, is measured at that point; the lateral offset is not used). It is for practising the turn onto the final and the moment of the descent: when it reaches the glide path (the aircraft information shows *GP in … NM (about … s)*) give **Normal** and it starts to descend after the pilot reaction.
 - **Wind** (rough model: the same at all heights): direction it blows from in degrees true (as in the METAR; the magnetic value is shown beside it), speed, and **gusts** (the wind grows at random up to this much more; 0 = none). **From METAR** copies the wind of the METAR of the airport in use received from Aurora. The aircraft fly their **heading** through the air: with a **crosswind** they drift off the centreline unless the heading is corrected into the wind; with a **headwind** the ground speed is lower and so is the rate of descent needed on the glide path (BEST VS follows the ground speed).
 - **Aircraft**: the list (the selected one is the one you command) with distance, speed and code.
@@ -374,10 +384,12 @@ The airport is the same as in the modern display (ICAO box and runway keys there
   - **Manual (pilot flying)**: the turn rate 1.5°/s, 3°/s or **Free** (the longer the stick is held at its edge, the faster the turn, up to 10°/s) and the **stick** (left/right turns, up/down changes the vertical speed, at once; released, the heading and the vertical speed reached stay, as with a real aircraft; the knob also follows a real joystick).
 - **On GP / CL** (exactly on the centreline and the glide path at once, with the heading that holds the final course in this wind), **Auto** (intercepts the centreline and the glide path by itself, correcting the drift), **Pause**, **Remove**, **Remove all**, **Joystick...**, and **Aurora-like data** (positions every about 0.5 s and the altitude in steps, as the real data, to test the track smoothing).
 
-**Joystick or gamepad** (*Settings → Joystick...* or *Test traffic → Joystick...*). Any USB joystick or gamepad seen by Windows works, without a driver, also while AuroraPAR is not the window in front. The window shows the device in use (or *First found*), a **live test** of the X/Y axes and of the buttons pressed, and the settings, saved at once:
+**Advanced instructor (preview).** The full instructor station is being built: plan view, a PAR monitor for the instructor, start positions, and later the link between two PCs. Until it is finished it is hidden: turn it on in *Settings → Advanced instructor (preview)* to try it (then **Shift+I** or the **Advanced** button). Its data files are described in [SIM-FORMAT.md](SIM-FORMAT.md).
 
-- **The stick moves**: **Automatic** (default: the selected test aircraft while the test traffic window is open, otherwise the antenna), **Always the antenna tilt** or **Always the test aircraft**. Test aircraft: as the stick of the window (left/right turns, back/forward changes the vertical speed; released, course and vertical speed stay); the stick of the window follows the real one. With *pull back to climb* (default) the stick works as in an aircraft. Antenna: forward/back tilts up/down, left/right tilts left/right, one step and then repeated while held. **Dead zone** around the centre: default 10 %.
-- **Buttons and hat**: each command can have a button or a hat direction, chosen in the list or with **Press...** and then the button (within 5 s); a button belongs to one command only. Defaults: button 1 Final CRS, 2 normal rate of descent (=), 3 next test aircraft, 4 switch the stick between aircraft and antenna (shown for 2 s), hat = antenna tilt. Other commands: − / + rate of descent, On GP / CL, pause, next turn rate, antenna neutral.
+**Joystick or gamepad** (*Settings → Joystick...* or *Instructor → Joystick...*). Any USB joystick or gamepad seen by Windows works, without a driver, also while AuroraPAR is not the window in front. The window shows the device in use (or *First found*), a **live test** of the X/Y axes and of the buttons pressed, and the settings, saved at once:
+
+- **The stick moves**: **Automatic** (default: the selected aircraft while an Instructor window is open, otherwise the antenna), **Always the antenna tilt** or **Always the Instructor's aircraft**. Aircraft: as the stick of the window (left/right turns, back/forward changes the vertical speed; released, course and vertical speed stay); the stick of the window follows the real one. With *pull back to climb* (default) the stick works as in an aircraft. Antenna: forward/back tilts up/down, left/right tilts left/right, one step and then repeated while held. **Dead zone** around the centre: default 10 %.
+- **Buttons and hat**: each command can have a button or a hat direction, chosen in the list or with **Press...** and then the button (within 5 s); a button belongs to one command only. Defaults: button 1 Final CRS, 2 normal rate of descent (=), 3 next aircraft, 4 switch the stick between aircraft and antenna (shown for 2 s), hat = antenna tilt. Other commands: − / + rate of descent, On GP / CL, pause, next turn rate, antenna neutral.
 
 ---
 
@@ -505,7 +517,7 @@ From a picture of the U.S. Army **AN/TPN-31** ATNAVICS display: almost black bac
 
 **Settings...** opens the options of the **active profile**. Every change is applied and saved immediately.
 
-The window has the **profile** bar at the top (everything below belongs to that profile), the **sections** on the left — *Display*, *Range and scale*, *Approach and DH*, *Tracks and labels*, *Radar*, *Units*, *Analog console*, *Colours and lines*, *Reminders* — and the tools at the bottom (runway editor, test traffic, joystick). One section is shown at a time; it scrolls only on a small screen.
+The window has the **profile** bar at the top (everything below belongs to that profile), the **sections** on the left — *Display*, *Range and scale*, *Approach and DH*, *Tracks and labels*, *Radar*, *Units*, *Analog console*, *Colours and lines*, *Reminders* — and the tools at the bottom (runway editor, Instructor, joystick, Advanced instructor). One section is shown at a time; it scrolls only on a small screen.
 
 **Show advanced** (above the sections, off by default, remembered): shows the options that are seldom changed — lock of the display mode, rain clutter, marks per range, DH selector, DH vertical and azimuth lines and DH symbols, history interval, track smoothing, coasting tracks and the symbols other than track and history, everything of the radar except the approach limits, magnetic variation; the glide path near the runway; in the range marks, the table of the marks per range, *Distance text on all ranges* and its *Default* button. Off, they are only hidden: their values stay as set.
 
@@ -802,7 +814,9 @@ A heading taken from the runway number or from the magnetic value on a chart is 
 | L | Hide / show all labels (modern display) |
 | A | Modern / Analog display |
 | P / Shift+P | Next / previous profile (its name is shown for 2 s; runway and traffic stay, the antenna goes back to neutral) |
-| T | Test traffic window (virtual aircraft, [section 7](#7-practising-test-traffic-and-joystick)) |
+| T | Test: one aircraft on final at 10 NM; again: removed ([section 7](#7-practising-test-instructor-and-joystick)) |
+| I | Instructor (basic) window |
+| Shift+I | Advanced instructor (preview, turned on in the Settings) |
 | C | Linear / log distance scale (LIN / LOG keys; saved in the profile, see [10.3](#103-range-and-scale)) |
 | 1 – 5 / 0 | Coordination panel (must be open, see [section 8](#8-coordination-panel)): press lights 1–5 / Reset (0); also the numeric keypad |
 | F1 | List of all the keys and mouse actions (also the **Keys** button) |
@@ -813,7 +827,7 @@ A heading taken from the runway number or from the magnetic value on a chart is 
 | O | Terrain / obstacles (terrain.par, modern display): stepped line → filled → hidden (saved in the profile, as the box in Settings) |
 | Left click on a track or label | Select it for the deviation crosshair |
 | Esc / Enter in a text box | Cancel / confirm what is typed |
-| Joystick / gamepad | Test aircraft and antenna tilt (see [section 7](#7-practising-test-traffic-and-joystick)) |
+| Joystick / gamepad | Instructor's aircraft and antenna tilt (see [section 7](#7-practising-test-instructor-and-joystick)) |
 
 Keys are ignored while you are typing in a text box (e.g. the DH box).
 
@@ -827,6 +841,6 @@ Keys are ignored while you are typing in a text box (e.g. the DH box).
 | DH | − / + · type in the box · DH knob (double click on the centre = runway value) |
 | Glide path | GP box: published angles, or type an angle + Enter (unpublished, orange) · GP DEG keys (analog) |
 | Labels | L = all · drag = move · double click = back · right click = hide |
-| Display | A = Modern / Analog (unless locked in the profile) · P / Shift+P = next / previous profile · T = test traffic · C = linear / log distance scale (LIN / LOG keys) |
+| Display | A = Modern / Analog (unless locked in the profile) · P / Shift+P = next / previous profile · T = Test aircraft · I = Instructor · C = linear / log distance scale (LIN / LOG keys) |
 | Distances | Always from the **touchdown point** |
 | Colours | Green inside the approach limits, red outside |

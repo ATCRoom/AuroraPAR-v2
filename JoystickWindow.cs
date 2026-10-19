@@ -21,8 +21,8 @@ namespace AuroraPAR
             (JoystickCommand.ReduceRate, "Reduce rate of descent (−)"),
             (JoystickCommand.IncreaseRate, "Increase rate of descent (+)"),
             (JoystickCommand.OnPath, "On GP / CL"),
-            (JoystickCommand.NextAircraft, "Next test aircraft"),
-            (JoystickCommand.Pause, "Pause / resume test traffic"),
+            (JoystickCommand.NextAircraft, "Next aircraft"),
+            (JoystickCommand.Pause, "Pause / resume the Instructor's aircraft"),
             (JoystickCommand.TurnRate, "Next turn rate (1.5°/s, 3°/s, Free)"),
             (JoystickCommand.TiltUp, "Antenna tilt up"),
             (JoystickCommand.TiltDown, "Antenna tilt down"),
@@ -43,11 +43,11 @@ namespace AuroraPAR
         private readonly Canvas yCanvas = new() { Width = BarWidth, Height = 10, Background = Brushes.Gainsboro };
         private readonly TextBlock otherAxes = new() { Foreground = Brushes.Gray, Margin = new Thickness(0, 4, 0, 0) };
         private readonly TextBlock pressed = new() { Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap };
-        private readonly RadioButton automaticRadio = new() { Content = "Automatic: the selected test aircraft while the test traffic window is open, else the antenna", GroupName = "JoystickRole" };
+        private readonly RadioButton automaticRadio = new() { Content = "Automatic: the selected aircraft while an Instructor window is open, else the antenna", GroupName = "JoystickRole" };
         private readonly RadioButton antennaRadio = new() { Content = "Always the antenna tilt", GroupName = "JoystickRole" };
-        private readonly RadioButton aircraftRadio = new() { Content = "Always the test aircraft", GroupName = "JoystickRole" };
+        private readonly RadioButton aircraftRadio = new() { Content = "Always the Instructor's aircraft", GroupName = "JoystickRole" };
         private readonly ComboBox deadZoneBox = new() { Width = 70 };
-        private readonly CheckBox pullCheck = new() { Content = "Test aircraft: pull back to climb / reduce the descent (as in an aircraft)", Margin = new Thickness(0, 6, 0, 0) };
+        private readonly CheckBox pullCheck = new() { Content = "Aircraft: pull back to climb / reduce the descent (as in an aircraft)", Margin = new Thickness(0, 6, 0, 0) };
         private readonly Dictionary<JoystickCommand, ComboBox> inputBoxes = [];
         private readonly Dictionary<JoystickCommand, Button> detectButtons = [];
         private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(50) };

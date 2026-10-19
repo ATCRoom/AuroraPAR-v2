@@ -6,7 +6,7 @@ namespace AuroraPAR
     /// <summary>What the stick (X/Y axes) of the joystick moves.</summary>
     internal enum JoystickRole
     {
-        /// <summary>The selected test aircraft while the test traffic window is open with one selected, else the antenna.</summary>
+        /// <summary>The selected aircraft while an Instructor window is open with one selected, else the antenna.</summary>
         Automatic,
         AntennaTilt,
         TestAircraft
@@ -560,7 +560,7 @@ namespace AuroraPAR
             IJoystickTarget? window = aircraftWindow();
             if (window == null)
             {
-                banner("NO AIRCRAFT WINDOW (KEY T OR I)");
+                banner("NO INSTRUCTOR WINDOW (KEY I)");
                 return;
             }
             window.RunJoystickCommand(command);

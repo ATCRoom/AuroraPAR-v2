@@ -11,8 +11,8 @@ using System.Windows.Threading;
 namespace AuroraPAR
 {
     /// <summary>
-    /// Window of the test traffic (key T). Top: new aircraft (distance, speed, SSR, initial offsets), the wind and the
-    /// list. Control: the readouts the instructor needs while flying (best vertical speed of the glide path, actual
+    /// Window of the basic Instructor, the former test traffic window (key I). Top: new aircraft (distance, speed, SSR,
+    /// initial offsets or a start altitude), the wind and the list. Control: the readouts the instructor needs while flying (best vertical speed of the glide path, actual
     /// vertical speed, actual turn rate, heading, drift), the turn rate (1.5°/s, 3°/s, Free), the rate of descent keys
     /// (reduce / normal / increase, in steps aligned on the best vertical speed) beside the stick, ▲ UP / ▼ DN and
     /// ◀ L / Final CRS / R ▶ under it, and the heading given by the controller. Closing the window removes the test
@@ -38,6 +38,10 @@ namespace AuroraPAR
         private readonly TextBox squawkBox = NumberBox("7001");
         private readonly TextBox lateralBox = NumberBox("0");
         private readonly TextBox heightBox = NumberBox("0");
+        private readonly TextBox altitudeBox = NumberBox("");
+        private readonly TextBlock altitudeUnit = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 4, 0) };
+        private readonly Func<bool> qfe;
+        private readonly Func<double> elevation;
         private readonly ComboBox startBox = new() { Width = 130, Margin = new Thickness(4, 0, 0, 0), ItemsSource = new[] { "On final", "30° from left", "30° from right", "45° from left", "45° from right", "90° from left", "90° from right" }, SelectedIndex = 0, ToolTip = "Start: on the final course (as before), or heading towards the point of the centreline at the Distance (NM), with this intercept angle, about 3 NM off the centreline and level below the glide path (the height offset is measured at that point). The Normal button then starts the descent." };
         private readonly TextBox windFromBox = NumberBox("0");
         private readonly TextBox windSpeedBox = NumberBox("0");
@@ -91,12 +95,15 @@ namespace AuroraPAR
             filterSlider.Value = Math.Clamp(filterStep, 0, 10);
         }
 
-        internal TestTrafficWindow(TestTraffic traffic, Action<Window>? openJoystick = null, Func<double>? variation = null, Func<string?>? metar = null)
+        internal TestTrafficWindow(TestTraffic traffic, Action<Window>? openJoystick = null, Func<double>? variation = null, Func<string?>? metar = null,
+            Func<bool>? qfe = null, Func<double>? elevation = null)
         {
             this.traffic = traffic;
             this.variation = variation ?? (() => 0);
             this.metar = metar ?? (() => null);
-            Title = "Aurora PAR - Test traffic";
+            this.qfe = qfe ?? (() => false);
+            this.elevation = elevation ?? (() => 0);
+            Title = "Aurora PAR - Instructor (basic)";
             SizeToContent = SizeToContent.WidthAndHeight;
             ResizeMode = ResizeMode.NoResize;
             ShowInTaskbar = false;
@@ -132,6 +139,24 @@ namespace AuroraPAR
             startRow.Children.Add(startBox);
             startRow.Children.Add(Caption("aimed at the Distance, level below the GP"));
             newPanel.Children.Add(startRow);
+            // Start altitude: empty = on the glide path plus the height offset (as before); set = level at it.
+            StackPanel altitudeRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+            altitudeRow.Children.Add(Caption("Altitude"));
+            altitudeRow.Children.Add(altitudeBox);
+            altitudeRow.Children.Add(altitudeUnit);
+            altitudeRow.Children.Add(new TextBlock { Text = "empty: on the GP + offset; set: level at it (then Normal)", VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.Gray });
+            altitudeBox.ToolTip = "Start altitude of the new aircraft, as the radar shows it (QNH: altitude; QFE: height above the threshold). The aircraft starts level there; Normal or a rate starts the descent. Empty: on the glide path plus the height offset. Mouse wheel: 100 ft (+Shift: 1000).";
+            altitudeBox.TextChanged += (s, e) => heightBox.IsEnabled = string.IsNullOrWhiteSpace(altitudeBox.Text);
+            altitudeBox.PreviewMouseWheel += (s, e) =>
+            {
+                double step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 1000 : 100;
+                double value = TryNumber(altitudeBox, -2000, 40000, out double current) ? current : this.qfe() ? 2000 : Math.Round((this.elevation() + 2000) / 100) * 100;
+                value = Math.Clamp(Math.Round((value + (e.Delta > 0 ? step : -step)) / 100) * 100, this.qfe() ? 0 : Math.Ceiling(this.elevation() / 100) * 100, 40000);
+                altitudeBox.Text = value.ToString("0", CultureInfo.InvariantCulture);
+                altitudeBox.CaretIndex = altitudeBox.Text.Length;
+                e.Handled = true;
+            };
+            newPanel.Children.Add(altitudeRow);
             startBox.SelectionChanged += (s, e) =>
             {
                 bool intercept = startBox.SelectedIndex > 0;
@@ -620,7 +645,24 @@ namespace AuroraPAR
             int start = startBox.SelectedIndex;
             double intercept = start <= 0 ? 0 : new[] { 30.0, 45.0, 90.0 }[(start - 1) / 2];
             int side = start <= 0 ? 0 : start % 2 == 1 ? -1 : 1;
-            string callsign = traffic.Add(distance, speed, squawk, lateral, height, intercept, side);
+            // Start altitude as the radar shows it: QFE = height above the threshold, QNH = altitude.
+            double startHeight = double.NaN;
+            if (!string.IsNullOrWhiteSpace(altitudeBox.Text))
+            {
+                if (!TryNumber(altitudeBox, -2000, 40000, out double typed))
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    return;
+                }
+                startHeight = qfe() ? typed : typed - elevation();
+                if (startHeight < 0)
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    MessageBox.Show(this, "The altitude is below the runway threshold.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+            }
+            string callsign = traffic.Add(distance, speed, squawk, lateral, height, intercept, side, startHeight);
             RefreshList();
             list.SelectedItem = callsign;
         }
@@ -917,6 +959,7 @@ namespace AuroraPAR
         /// <summary>The list follows the aircraft (landed ones go away); the selection stays.</summary>
         private void RefreshList()
         {
+            altitudeUnit.Text = qfe() ? "ft QFE" : "ft QNH";
             List<string> callsigns = traffic.List().Select(p => p.Callsign).ToList();
             if (list.ItemsSource is not List<string> current || !current.SequenceEqual(callsigns))
             {
