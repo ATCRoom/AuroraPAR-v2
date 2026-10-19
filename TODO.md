@@ -2,6 +2,7 @@
 
 ## Next update
 
+- **Instructor (basic), leftover old texts (19 Oct, from the user's screenshot):** the window still says "No test aircraft: Add one above." when the list is empty (TestTrafficWindow.cs) and the joystick tooltip says "the test aircraft". Change to "No aircraft" / "the aircraft", and check the other tooltips and texts for "test traffic". In the next grouped build, with the Instructor+ work.
 
 
 
