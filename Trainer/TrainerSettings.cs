@@ -17,10 +17,31 @@ namespace AuroraPAR
         public bool RadarShown { get; set; }
         /// <summary>Size and position of the RDR window, restored when it opens again.</summary>
         public WindowPlacement? RadarWindow { get; set; }
+        /// <summary>Maps of the RDR, by file name in the Maps folder: shown or not, and the colours chosen (null: the file's).</summary>
+        public Dictionary<string, MapDisplaySettings> Maps { get; set; } = [];
+        /// <summary>QNH typed by hand while Aurora is not connected (hPa), used again at the next start; null: none.</summary>
+        public int? ManualQnh { get; set; }
 
         public void Normalize()
         {
             RadarRange = NearestRange(RadarRange);
+            Maps ??= [];
+            foreach (string key in Maps.Keys.ToList())
+            {
+                if (Maps[key] == null) Maps.Remove(key);
+            }
+            if (ManualQnh is int q && (q < 850 || q > 1090)) ManualQnh = null;
+        }
+
+        /// <summary>The settings of a map (created when it is new: shown, with the colours of its file).</summary>
+        public MapDisplaySettings MapDisplay(string fileName)
+        {
+            if (!Maps.TryGetValue(fileName, out MapDisplaySettings? display) || display == null)
+            {
+                display = new MapDisplaySettings();
+                Maps[fileName] = display;
+            }
+            return display;
         }
 
         /// <summary>The range of the list closest to a value (the default for a value that is not a number).</summary>
@@ -29,5 +50,15 @@ namespace AuroraPAR
             if (!double.IsFinite(range) || range <= 0) return DefaultRadarRange;
             return RadarRanges.OrderBy(r => Math.Abs(r - range)).First();
         }
+    }
+
+    /// <summary>How a map is shown on the RDR.</summary>
+    internal sealed class MapDisplaySettings
+    {
+        public bool Visible { get; set; } = true;
+        /// <summary>Colour of the lines (#RRGGBB), null: the colour of the map file.</summary>
+        public string? LineColour { get; set; }
+        /// <summary>Colour of the labels (#RRGGBB), null: the colour of the map file.</summary>
+        public string? LabelColour { get; set; }
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,6 +19,12 @@ namespace AuroraPAR
         private Button? parButton;
         /// <summary>One window: RDR is shown in place of the PAR.</summary>
         private bool radarInMain;
+        /// <summary>The maps of the Maps folder (and the files that could not be read).</summary>
+        private (List<LoadedMap> Maps, List<string> Errors) maps = (new List<LoadedMap>(), new List<string>());
+        private MapsWindow? mapsWindow;
+        /// <summary>QNH typed by hand, shown only while Aurora is not connected.</summary>
+        private StackPanel? qnhPanel;
+        private TextBox? qnhBox;
 
         partial void TrainerStart()
         {
@@ -26,6 +33,10 @@ namespace AuroraPAR
             radarPanel.View.Range = trainer.RadarRange;
             radarPanel.View.RangeStepRequested += StepRadarRange;
             radarPanel.PlaceClicked += MoveRadar;
+            radarPanel.MapsClicked += OpenMapsWindow;
+            LoadMaps();
+            BuildQnhBox();
+            if (trainer.ManualQnh is int manual && qnh == 0) qnh = manual;
             rdrButton = new Button { Content = "RDR", Focusable = false };
             parButton = new Button { Content = "PAR", Focusable = false };
             rdrButton.Click += (s, e) => ShowView(radar: true);
@@ -54,6 +65,16 @@ namespace AuroraPAR
             // The history dots are kept also while the RDR is hidden.
             radarPanel.View.Update(aircrafts, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
             if (radarWindow != null || radarInMain) RefreshRadar();
+            // QNH by hand only without Aurora (with Aurora the METAR gives it).
+            if (qnhPanel != null)
+            {
+                Visibility shown = aurora.Connected ? Visibility.Collapsed : Visibility.Visible;
+                if (qnhPanel.Visibility != shown)
+                {
+                    qnhPanel.Visibility = shown;
+                    if (shown == Visibility.Visible) ShowManualQnh();
+                }
+            }
         }
 
         partial void TrainerKey(KeyEventArgs e, ModifierKeys modifiers)
@@ -74,6 +95,7 @@ namespace AuroraPAR
 
         partial void TrainerClosing()
         {
+            mapsWindow?.Close();
             if (radarWindow != null)
             {
                 radarWindow.Close();
@@ -105,6 +127,121 @@ namespace AuroraPAR
                 }
             }
             UpdateViewButtons();
+        }
+
+        /// <summary>Reads the Maps folder again and gives the maps to the RDR.</summary>
+        private (List<LoadedMap> Maps, List<string> Errors) LoadMaps()
+        {
+            maps = MapLibrary.Load();
+            ApplyMapLayers();
+            return maps;
+        }
+
+        /// <summary>The maps shown on the RDR, with their colours (chosen in the Maps window, else those of the file).</summary>
+        private void ApplyMapLayers()
+        {
+            if (radarPanel == null) return;
+            List<MapLayer> layers = [];
+            foreach (LoadedMap map in maps.Maps)
+            {
+                MapDisplaySettings display = settings.Trainer.MapDisplay(map.FileName);
+                if (!display.Visible) continue;
+                Color line = ColorText.Parse(display.LineColour ?? map.Map.LineColour, Color.FromRgb(0x2F, 0x6F, 0x86));
+                Color label = ColorText.Parse(display.LabelColour ?? map.Map.LabelColour, line);
+                SolidColorBrush lineBrush = new(line);
+                lineBrush.Freeze();
+                SolidColorBrush labelBrush = new(label);
+                labelBrush.Freeze();
+                layers.Add(new MapLayer(map.Map, lineBrush, labelBrush));
+            }
+            radarPanel.View.Layers = layers;
+            RefreshRadar();
+        }
+
+        private void OpenMapsWindow()
+        {
+            if (mapsWindow != null)
+            {
+                mapsWindow.Activate();
+                return;
+            }
+            MapsWindow window = new(settings.Trainer, maps, LoadMaps, () =>
+            {
+                ApplyMapLayers();
+                SettingsStore.Save(settings);
+            })
+            {
+                Owner = radarWindow != null ? radarWindow : this
+            };
+            window.Closed += (s, e) =>
+            {
+                if (mapsWindow == window) mapsWindow = null;
+                SettingsStore.Save(settings);
+            };
+            mapsWindow = window;
+            window.Show();
+        }
+
+        /// <summary>The QNH box at the top of the keys on the right, for lessons without Aurora.</summary>
+        private void BuildQnhBox()
+        {
+            qnhBox = new TextBox { Height = 26, VerticalContentAlignment = VerticalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Center };
+            qnhPanel = new StackPanel
+            {
+                Margin = new Thickness(0, 0, 0, 8),
+                Visibility = Visibility.Collapsed,
+                ToolTip = "Without Aurora: the QNH typed by hand, in hPa (or inHg, e.g. 29.92). Enter to apply. Hidden while Aurora is connected (the METAR gives it)."
+            };
+            qnhPanel.Children.Add(new TextBlock { Text = "QNH (no Aurora)", Margin = new Thickness(2, 0, 0, 2) });
+            qnhPanel.Children.Add(qnhBox);
+            SelectorStack.Children.Insert(0, qnhPanel);
+            qnhBox.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    ApplyManualQnh();
+                    FocusHelper.ReleaseKeyboard(this);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    ShowManualQnh();
+                    FocusHelper.ReleaseKeyboard(this);
+                    e.Handled = true;
+                }
+            };
+            qnhBox.LostKeyboardFocus += (s, e) => ApplyManualQnh();
+        }
+
+        private void ShowManualQnh()
+        {
+            if (qnhBox == null) return;
+            qnhBox.ClearValue(BackgroundProperty);
+            qnhBox.Text = qnh > 0 ? qnh.ToString(CultureInfo.InvariantCulture) : "";
+        }
+
+        /// <summary>The QNH typed: hPa (850–1090), or inHg (a value below 40, e.g. 29.92) turned into hPa.</summary>
+        private void ApplyManualQnh()
+        {
+            if (qnhBox == null || aurora.Connected) return;
+            string text = qnhBox.Text.Trim().Replace(',', '.');
+            if (text.Length == 0) return;
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+            {
+                qnhBox.Background = new SolidColorBrush(Color.FromRgb(255, 215, 215));
+                return;
+            }
+            int hpa = (int)Math.Round(value < 40 ? value * 33.8639 : value);
+            if (hpa < 850 || hpa > 1090)
+            {
+                qnhBox.Background = new SolidColorBrush(Color.FromRgb(255, 215, 215));
+                return;
+            }
+            qnh = hpa;
+            settings.Trainer.ManualQnh = hpa;
+            SettingsStore.Save(settings);
+            ShowManualQnh();
+            Redraw();
         }
 
         /// <summary>RDR or PAR key: one window, that view; two windows, that window to the front.</summary>

@@ -59,11 +59,31 @@ jobs:
       - name: Add the user manual to the Trainer
         run: Copy-Item docs/MANUAL.md publish-trainer/MANUAL.md
 
+      # Checks the map format and the importers (Aurora, EuroScope .ese, AIP table): the build fails if a check fails.
+      - name: Self-test of the map format and importers
+        run: dotnet run --project MapCreator/SelfTest/ATCRoom.Maps.SelfTest.csproj -c Release
+
+      # ATCRoom Map Creator: converts map files into the format of the Trainer; also put beside the Trainer.
+      - name: Build ATCRoom Map Creator
+        run: >
+          dotnet publish MapCreator/App/ATCRoomMapCreator.csproj -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -o publish-mapcreator
+
+      - name: Add ATCRoom Map Creator to the Trainer
+        run: Copy-Item publish-mapcreator/ATCRoomMapCreator.exe publish-trainer/ATCRoomMapCreator.exe
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ATCRoomMapCreator-win-x64
+          path: publish-mapcreator/ATCRoomMapCreator.exe
+
       - uses: actions/upload-artifact@v5
         with:
           name: AuroraPARTrainer-win-x64
           path: |
             publish-trainer/AuroraPARTrainer.exe
+            publish-trainer/ATCRoomMapCreator.exe
             publish-trainer/runways.par
             publish-trainer/terrain.par
             publish-trainer/MANUAL.md

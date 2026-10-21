@@ -55,6 +55,11 @@
     <None Remove="Trainer\**" />
     <Page Remove="Trainer\**" />
     <Resource Remove="Trainer\**" />
+    <!-- ATCRoom Map Creator and the map format library are separate projects (MapCreator folder). -->
+    <Compile Remove="MapCreator\**" />
+    <None Remove="MapCreator\**" />
+    <Page Remove="MapCreator\**" />
+    <Resource Remove="MapCreator\**" />
   </ItemGroup>
 
   <!-- The simulation engine (ATCRoom Sim, no WPF): built into AuroraPAR.exe, one download as before. -->

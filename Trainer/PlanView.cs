@@ -3,9 +3,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ATCRoom.Maps;
 
 namespace AuroraPAR
 {
+    /// <summary>A map shown on the RDR, with the colours chosen for it.</summary>
+    internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush);
+
     /// <summary>
     /// Surveillance radar of the Trainer (RDR): plan view, north up, centred on the threshold of the runway in use.
     /// Range rings, the runways of the airport, the extended centreline (a tick every NM, a longer one every 5 NM) and
@@ -29,6 +33,10 @@ namespace AuroraPAR
         private static readonly Brush InfoBrush = Freeze(new SolidColorBrush(Colors.White));
         private static readonly Brush SignBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0x8C, 0x00)));
         private static readonly Typeface MonoFace = new(new FontFamily("Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        private static readonly Typeface MapFace = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        /// <summary>Runways of the other airports of runways.par, and their ICAO.</summary>
+        private static readonly Pen OtherRunwayPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x70, 0x70, 0x70))), 2));
+        private static readonly Brush OtherAirportBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x9A, 0x9A, 0x9A)));
         /// <summary>History dots: older ones dimmer (10 steps of brightness).</summary>
         private static readonly Brush[] HistoryBrushes = Enumerable.Range(1, 10)
             .Select(i => Freeze(new SolidColorBrush(Color.FromArgb((byte)(255 * (0.15 + 0.85 * i / 10.0)), TrackColor.R, TrackColor.G, TrackColor.B))))
@@ -57,6 +65,13 @@ namespace AuroraPAR
         public double Range { get; set; } = TrainerSettings.DefaultRadarRange;
         /// <summary>The traffic of the last refresh.</summary>
         public IReadOnlyList<Aircraft> Traffic { get; private set; } = [];
+        /// <summary>The maps shown, under everything else.</summary>
+        public IReadOnlyList<MapLayer> Layers { get; set; } = [];
+
+        /// <summary>A map placed on the plane of the view (NM east and north of the centre), kept until the centre or the maps change.</summary>
+        private sealed record PlacedLayer(MapLayer Layer, Geometry Lines, List<(Vector At, MapLabel Label)> Labels, List<(Vector At, MapPoint Point)> Points);
+        private List<PlacedLayer> placed = [];
+        private (double Latitude, double Longitude, IReadOnlyList<MapLayer>? Layers) placedFor;
 
         /// <summary>Mouse wheel: one step of the range list (+1 larger, −1 smaller); the owner changes <see cref="Range"/>.</summary>
         public event Action<int>? RangeStepRequested;
@@ -99,6 +114,46 @@ namespace AuroraPAR
             {
                 histories.Remove(callsign);
             }
+        }
+
+        /// <summary>The maps on the plane of the view around this centre (computed again only when the centre or the maps change).</summary>
+        private List<PlacedLayer> PlaceMaps(Runway runway)
+        {
+            if (placedFor.Latitude == runway.Latitude && placedFor.Longitude == runway.Longitude && ReferenceEquals(placedFor.Layers, Layers)) return placed;
+            double radius = Earth.Radius(runway);
+            Vector Local(double latitude, double longitude)
+            {
+                double distance = Earth.DistanceNM(runway.Latitude, runway.Longitude, latitude, longitude, radius);
+                double bearing = Earth.Bearing(runway.Latitude, runway.Longitude, latitude, longitude) * Math.PI / 180;
+                return new Vector(distance * Math.Sin(bearing), distance * Math.Cos(bearing));
+            }
+            List<PlacedLayer> result = [];
+            foreach (MapLayer layer in Layers)
+            {
+                // All the lines of a map as one geometry, in NM (north up = minus Y), drawn with a scale transform.
+                StreamGeometry geometry = new();
+                using (StreamGeometryContext context = geometry.Open())
+                {
+                    foreach (MapLine line in layer.Map.Lines)
+                    {
+                        if (line.Points.Count < 2) continue;
+                        Vector first = Local(line.Points[0][0], line.Points[0][1]);
+                        context.BeginFigure(new Point(first.X, -first.Y), false, false);
+                        for (int i = 1; i < line.Points.Count; i++)
+                        {
+                            Vector next = Local(line.Points[i][0], line.Points[i][1]);
+                            context.LineTo(new Point(next.X, -next.Y), true, false);
+                        }
+                    }
+                }
+                geometry.Freeze();
+                result.Add(new PlacedLayer(layer, geometry,
+                    layer.Map.Labels.Select(l => (Local(l.Latitude, l.Longitude), l)).ToList(),
+                    layer.Map.Points.Select(p => (Local(p.Latitude, p.Longitude), p)).ToList()));
+            }
+            placed = result;
+            placedFor = (runway.Latitude, runway.Longitude, Layers);
+            return placed;
         }
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -146,6 +201,68 @@ namespace AuroraPAR
                 FormattedText text = Text(ring.ToString("0", CultureInfo.InvariantCulture), 10, RingTextBrush, pixelsPerDip);
                 double angle = 30 * Math.PI / 180;
                 dc.DrawText(text, new Point(centre.X + ring * scale * Math.Sin(angle) + 3, centre.Y - ring * scale * Math.Cos(angle) - text.Height));
+            }
+
+            // Maps, under everything else: lines (one geometry per map, scaled), labels and points.
+            Rect view = new(-40, -40, width + 80, height + 80);
+            foreach (PlacedLayer layer in PlaceMaps(runway))
+            {
+                dc.PushTransform(new MatrixTransform(scale, 0, 0, scale, centre.X, centre.Y));
+                dc.DrawGeometry(null, new Pen(layer.Layer.LineBrush, 1 / scale), layer.Lines);
+                dc.Pop();
+                foreach ((Vector at, MapLabel label) in layer.Labels)
+                {
+                    Point p = new(centre.X + at.X * scale, centre.Y - at.Y * scale);
+                    if (!view.Contains(p)) continue;
+                    FormattedText text = new(label.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, label.Size + 3, layer.Layer.LabelBrush, pixelsPerDip);
+                    dc.DrawText(text, new Point(p.X - text.Width / 2, p.Y - text.Height / 2));
+                }
+                foreach ((Vector at, MapPoint point) in layer.Points)
+                {
+                    Point p = new(centre.X + at.X * scale, centre.Y - at.Y * scale);
+                    if (!view.Contains(p)) continue;
+                    Pen symbolPen = new(layer.Layer.LabelBrush, 1);
+                    if (point.Symbol == MapSymbol.Airport)
+                    {
+                        dc.DrawEllipse(null, symbolPen, p, 4, 4);
+                    }
+                    else
+                    {
+                        StreamGeometry triangle = new();
+                        using (StreamGeometryContext context = triangle.Open())
+                        {
+                            context.BeginFigure(new Point(p.X, p.Y - 4.5), false, true);
+                            context.LineTo(new Point(p.X + 4, p.Y + 3), true, false);
+                            context.LineTo(new Point(p.X - 4, p.Y + 3), true, false);
+                        }
+                        dc.DrawGeometry(null, symbolPen, triangle);
+                    }
+                    if (point.Name.Length > 0)
+                    {
+                        dc.DrawText(new FormattedText(point.Name, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, 11, layer.Layer.LabelBrush, pixelsPerDip),
+                            new Point(p.X + 6, p.Y - 7));
+                    }
+                }
+            }
+
+            // The other airports of runways.par: their runways in grey, with the ICAO beside the first threshold.
+            foreach (IGrouping<string, Runway> airport in Runways
+                .Where(r => !string.Equals(r.ICAO, runway.ICAO, StringComparison.OrdinalIgnoreCase))
+                .GroupBy(r => r.ICAO.ToUpperInvariant()))
+            {
+                Point? first = null;
+                foreach (Runway line in airport)
+                {
+                    Point start = Place(line.Latitude, line.Longitude);
+                    if (!view.Contains(start)) continue;
+                    first ??= start;
+                    dc.DrawLine(OtherRunwayPen, start, start + Direction(line.Heading) * Math.Max(2, line.LengthM / 1852 * scale));
+                }
+                if (first is Point at)
+                {
+                    dc.DrawText(new FormattedText(airport.Key, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, 11, OtherAirportBrush, pixelsPerDip),
+                        new Point(at.X + 6, at.Y + 4));
+                }
             }
 
             // Runways of the airport: from the threshold, along the heading, as long as the runway.
@@ -225,30 +342,48 @@ namespace AuroraPAR
     internal sealed class RadarPanel : Grid
     {
         public PlanView View { get; } = new();
-        private readonly Button placeButton = new()
+        private readonly Button placeButton = NewButton();
+        private readonly Button mapsButton = NewButton();
+
+        /// <summary>The button "Own window" / "Back into the main window" was clicked: the owner moves the panel.</summary>
+        public event Action? PlaceClicked;
+        /// <summary>The button "Maps..." was clicked.</summary>
+        public event Action? MapsClicked;
+
+        /// <summary>The buttons over the RDR: well visible on the black screen (light border, light text).</summary>
+        private static Button NewButton() => new()
         {
             Focusable = false,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 6, 6, 0),
-            Padding = new Thickness(8, 2, 8, 2),
-            FontSize = 11,
-            Foreground = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD)),
-            Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x20, 0x20, 0x20)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55))
+            Margin = new Thickness(6, 0, 0, 0),
+            Padding = new Thickness(12, 4, 12, 4),
+            FontSize = 13,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = Brushes.White,
+            Background = new SolidColorBrush(Color.FromArgb(0xE0, 0x2A, 0x3A, 0x4A)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8)),
+            BorderThickness = new Thickness(1.5)
         };
-
-        /// <summary>The button was clicked: the owner moves the panel.</summary>
-        public event Action? PlaceClicked;
 
         public RadarPanel()
         {
             Background = Brushes.Black;
-            // The wheel over the button too: never to the PAR range below.
-            placeButton.MouseWheel += (s, e) => e.Handled = true;
+            StackPanel buttons = new()
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 8, 8, 0)
+            };
+            mapsButton.Content = "Maps...";
+            mapsButton.ToolTip = "The maps of the surveillance radar: which are shown, their colours; new maps are made with ATCRoom Map Creator.";
+            buttons.Children.Add(mapsButton);
+            buttons.Children.Add(placeButton);
+            // The wheel over the buttons too: never to the PAR range below.
+            buttons.MouseWheel += (s, e) => e.Handled = true;
             Children.Add(View);
-            Children.Add(placeButton);
+            Children.Add(buttons);
             placeButton.Click += (s, e) => PlaceClicked?.Invoke();
+            mapsButton.Click += (s, e) => MapsClicked?.Invoke();
             InWindow = false;
         }
 
@@ -259,7 +394,7 @@ namespace AuroraPAR
             set
             {
                 inWindow = value;
-                placeButton.Content = value ? "Back into the main window" : "Own window";
+                placeButton.Content = value ? "⇲ Back into the main window" : "⧉ Own window";
                 placeButton.ToolTip = value
                     ? "Put the surveillance radar back into the main window (then R switches between RDR and PAR)."
                     : "Move the surveillance radar into its own window, for example on a second monitor.";

@@ -44,6 +44,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sim\Engine\ATCRoom.Sim.csproj" />
+    <!-- The open map format of the RDR maps (made by ATCRoom Map Creator). -->
+    <ProjectReference Include="..\MapCreator\Core\ATCRoom.Maps.csproj" />
   </ItemGroup>
 
   <ItemGroup>

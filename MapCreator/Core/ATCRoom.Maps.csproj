@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ATCRoom Maps: the open map format (read by AuroraPAR v2 Trainer, written by ATCRoom Map Creator) and the
+       importers of other formats. No WPF, no other library: usable by other ATCRoom projects. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ATCRoom.Maps</RootNamespace>
+    <AssemblyName>ATCRoom.Maps</AssemblyName>
+  </PropertyGroup>
+
+</Project>

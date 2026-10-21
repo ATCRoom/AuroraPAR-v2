@@ -1857,6 +1857,14 @@ namespace AuroraPAR
         /// <summary>Aurora has been connected at least once in this session.</summary>
         private bool auroraEverConnected;
 
+#if TRAINER
+        /// <summary>STS green: connected to Aurora, or (Trainer) simulated aircraft flying without Aurora.</summary>
+        private bool StatusGreen => aurora.Connected || instructor.Count > 0 || testTraffic.Count > 0;
+#else
+        /// <summary>STS green: connected to Aurora.</summary>
+        private bool StatusGreen => aurora.Connected;
+#endif
+
         /// <summary>
         /// One minute after the start, still no connection to Aurora (STS FAIL): most likely the access of third-party
         /// programs is off in Aurora. Said once per session.
@@ -1891,7 +1899,10 @@ namespace AuroraPAR
                 await Task.Delay(TimeSpan.FromSeconds(5));
                 await UpdateCheck.RunAsync(this, settings);
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+#if !TRAINER
+            // (The Trainer also works without Aurora, with simulated traffic only: no reminder there.)
             StartAuroraConnectionHint();
+#endif
             try
             {
                 runways = await DataFile.GetRunways(dataPath);
@@ -2865,7 +2876,7 @@ namespace AuroraPAR
                     radar.TiltElevation,
                     radar.TiltAzimuth,
                     profile.AzimuthTiltSwapped,
-                    aurora.Connected,
+                    StatusGreen,
                     dataInterval,
                     !double.IsNaN(dataInterval) && dataInterval > MaxGoodDataInterval));
             }
@@ -2895,6 +2906,14 @@ namespace AuroraPAR
                 statusText.Text = "STS OK";
                 statusText.Foreground = Brushes.Green;
             }
+#if TRAINER
+            else if (StatusGreen)
+            {
+                // Trainer without Aurora, with simulated aircraft flying ("full virtual" lesson).
+                statusText.Text = "STS SIM";
+                statusText.Foreground = Brushes.Green;
+            }
+#endif
             else
             {
                 statusText.Text = "STS FAIL";
