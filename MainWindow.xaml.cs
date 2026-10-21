@@ -170,7 +170,7 @@ namespace AuroraPAR
             // Bundled profiles of a new version: added / updated without losing the user's changes (message once loaded).
             bundledSync = BundledProfiles.Sync(settings, SettingsStore.FirstStart);
             if (bundledSync.Changed) SettingsStore.Save(settings);
-            Title = $"AuroraPAR v2 ({AppInfo.Version})";
+            Title = $"{AppInfo.ProductName} ({AppInfo.Version})";
             RestoreWindowPlacement();
             this.Loaded += MainWindow_Loaded;
             DistanceComboBox.ItemsSource = distances;
@@ -313,7 +313,16 @@ namespace AuroraPAR
             ApplyProfile();
             // Antenna scan effect: redrawn at every frame of the screen (graphic only, independent of the traffic refresh).
             CompositionTarget.Rendering += (s, e) => RenderSweep();
+            TrainerStart();
         }
+
+        // AuroraPAR v2 Trainer: its own parts are in the Trainer folder (MainWindow.Trainer.cs). In AuroraPAR v2 these
+        // methods have no body, and the compiler removes their calls.
+        partial void TrainerStart();
+        partial void TrainerRedraw(List<Aircraft> aircrafts);
+        partial void TrainerKey(KeyEventArgs e, ModifierKeys modifiers);
+        partial void TrainerClosing();
+        partial void TrainerControlStyles(bool analog);
 
         /// <summary>Coordination light panel (one window, opened on demand).</summary>
         private CoordinationWindow? coordinationWindow;
@@ -1711,6 +1720,7 @@ namespace AuroraPAR
                 ModeButton.Content = "";
                 ModeButton.ToolTip = "Display mode locked in this profile (Settings): change profile with P / Shift+P.";
             }
+            TrainerControlStyles(analog);
         }
 
         /// <summary>
@@ -1778,6 +1788,7 @@ namespace AuroraPAR
                 settings.LastRange = runway.Distance;
                 settings.LastGlideSlope = selectedApproach?.GlideSlope;
             }
+            TrainerClosing();
             SaveWindowPlacement();
             SettingsStore.Save(settings);
         }
@@ -1871,7 +1882,7 @@ namespace AuroraPAR
         {
             if (BundledProfiles.Message(bundledSync) is string news)
             {
-                Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(this, news, "AuroraPAR v2 (" + AppInfo.Version + ") - profiles", MessageBoxButton.OK, MessageBoxImage.Information)),
+                Dispatcher.BeginInvoke(new Action(() => MessageBox.Show(this, news, AppInfo.ProductName + " (" + AppInfo.Version + ") - profiles", MessageBoxButton.OK, MessageBoxImage.Information)),
                     System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
             // New version notice (once a day, in the background; silent without internet).
@@ -2411,6 +2422,8 @@ namespace AuroraPAR
             // Shift + arrows / Home: decision height; Ctrl + arrows / Home: brightness; Page up / down / End: range.
             // (Same actions as the keys and knobs of the analog console, with the window in front.)
             ModifierKeys modifiers = Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control | ModifierKeys.Alt);
+            TrainerKey(e, modifiers);
+            if (e.Handled) return;
             if (modifiers == ModifierKeys.Shift && e.Key is Key.Up or Key.Down or Key.Home)
             {
                 SetDecisionHeight(e.Key == Key.Up ? runway.MDH + DecisionHeightStep : e.Key == Key.Down ? runway.MDH - DecisionHeightStep : runway.DefaultMDH);
@@ -2783,6 +2796,7 @@ namespace AuroraPAR
                 : aircrafts.Where(a => radar.IsSeen(a, runway) && a.DistanceFromTouchdown(runway) > 0).OrderBy(a => a.DistanceFromTouchdown(runway)).FirstOrDefault();
             // Beside the information area (its width changes with the text), never over it.
             profileView.SetCrosshair(target, infoMargin + (infoPanel.IsVisible ? infoPanel.ActualWidth : 0) + 12);
+            TrainerRedraw(aircrafts);
         }
         private static void SetText(TextBlock block, string text)
         {

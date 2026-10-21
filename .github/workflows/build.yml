@@ -47,6 +47,29 @@ jobs:
             publish/Profiles/
             publish/Profiles/*.json
 
+      # AuroraPAR v2 Trainer: a separate program built from the same files plus its own (Trainer folder). Only an
+      # artifact for now: its releases come with its first version.
+      - name: Build AuroraPAR v2 Trainer
+        run: >
+          dotnet publish Trainer/AuroraPARTrainer.csproj -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:BuildCommit=${{ github.sha }}
+          -o publish-trainer
+
+      - name: Add the user manual to the Trainer
+        run: Copy-Item docs/MANUAL.md publish-trainer/MANUAL.md
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: AuroraPARTrainer-win-x64
+          path: |
+            publish-trainer/AuroraPARTrainer.exe
+            publish-trainer/runways.par
+            publish-trainer/terrain.par
+            publish-trainer/MANUAL.md
+            publish-trainer/Profiles/
+            publish-trainer/Profiles/*.json
+
       - name: Build AuroraCoord (standalone coordination panel)
         run: >
           dotnet publish Coord/AuroraCoord.csproj -c Release -r win-x64 --self-contained true

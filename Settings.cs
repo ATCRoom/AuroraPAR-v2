@@ -859,6 +859,10 @@ namespace AuroraPAR
         public DateTime? LastUpdateCheck { get; set; }
         /// <summary>Commit of the published build the user chose not to be told about again.</summary>
         public string? SkippedRelease { get; set; }
+#if TRAINER
+        /// <summary>AuroraPAR v2 Trainer only: the surveillance radar (RDR) and the other parts of the Trainer.</summary>
+        public TrainerSettings Trainer { get; set; } = new();
+#endif
 
         /// <summary>Reminders of a runway (created empty if needed).</summary>
         public List<DistanceReminder> RemindersOf(string runway)
@@ -906,6 +910,10 @@ namespace AuroraPAR
             Joystick.Normalize();
             Instructor ??= new();
             Instructor.Normalize();
+#if TRAINER
+            Trainer ??= new();
+            Trainer.Normalize();
+#endif
             BundledProfiles ??= [];
             foreach (string key in RunwayReminders.Keys.ToList())
             {
@@ -958,7 +966,7 @@ namespace AuroraPAR
     /// </summary>
     internal static class SettingsStore
     {
-        public const string FileName = "AuroraPAR.settings.json";
+        public const string FileName = AppInfo.SettingsFileName;
 
         public static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -969,7 +977,7 @@ namespace AuroraPAR
         };
 
         public static string PortablePath => Path.Combine(AppContext.BaseDirectory, FileName);
-        public static string UserPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AuroraPAR", FileName);
+        public static string UserPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.SettingsFolderName, FileName);
         public static bool IsPortable => File.Exists(PortablePath);
         public static string FilePath => IsPortable ? PortablePath : UserPath;
 

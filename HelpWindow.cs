@@ -38,6 +38,10 @@ namespace AuroraPAR
             ]),
             ("Display", [
                 ("A", "Modern / analog display (unless locked in the profile)"),
+#if TRAINER
+                ("R", "Surveillance radar (RDR) / PAR; with RDR in its own window: the other window to the front"),
+                ("Page up / Page down over RDR", "RDR range larger / smaller (also the mouse wheel)"),
+#endif
                 ("P / Shift+P", "Next / previous profile"),
                 ("C", "Linear / log distance scale"),
                 ("S", "Track smoothing On / Off (this session only)"),
@@ -86,7 +90,7 @@ namespace AuroraPAR
     {
         internal ShortcutsWindow()
         {
-            Title = $"AuroraPAR v2 {AppInfo.FullVersion} — keys and mouse";
+            Title = $"{AppInfo.ProductName} {AppInfo.FullVersion} — keys and mouse";
             SizeToContent = SizeToContent.WidthAndHeight;
             ResizeMode = ResizeMode.NoResize;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;

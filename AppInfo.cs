@@ -5,6 +5,22 @@ namespace AuroraPAR
     /// <summary>Version of the program (csproj Version) and the date and commit of the build (set by the build).</summary>
     internal static class AppInfo
     {
+#if TRAINER
+        /// <summary>Name of the program, shown in the title bar and in the messages.</summary>
+        public const string ProductName = "AuroraPAR v2 Trainer";
+        /// <summary>Folder of the settings in the user's settings folder (%AppData% on Windows): apart from AuroraPAR v2.</summary>
+        public const string SettingsFolderName = "AuroraPARTrainer";
+        /// <summary>Name of the settings file (also the file that turns on the portable mode, next to the program).</summary>
+        public const string SettingsFileName = "AuroraPARTrainer.settings.json";
+#else
+        /// <summary>Name of the program, shown in the title bar and in the messages.</summary>
+        public const string ProductName = "AuroraPAR v2";
+        /// <summary>Folder of the settings in the user's settings folder (%AppData% on Windows).</summary>
+        public const string SettingsFolderName = "AuroraPAR";
+        /// <summary>Name of the settings file (also the file that turns on the portable mode, next to the program).</summary>
+        public const string SettingsFileName = "AuroraPAR.settings.json";
+#endif
+
         private static readonly Assembly Assembly = typeof(AppInfo).Assembly;
 
         /// <summary>e.g. "2.0.0-beta" (the Version of the csproj).</summary>

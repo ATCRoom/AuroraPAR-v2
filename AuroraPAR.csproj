@@ -50,6 +50,11 @@
     <None Remove="Sim\**" />
     <Page Remove="Sim\**" />
     <Resource Remove="Sim\**" />
+    <!-- AuroraPAR v2 Trainer is a separate program (Trainer folder): it builds these same files plus its own parts. -->
+    <Compile Remove="Trainer\**" />
+    <None Remove="Trainer\**" />
+    <Page Remove="Trainer\**" />
+    <Resource Remove="Trainer\**" />
   </ItemGroup>
 
   <!-- The simulation engine (ATCRoom Sim, no WPF): built into AuroraPAR.exe, one download as before. -->

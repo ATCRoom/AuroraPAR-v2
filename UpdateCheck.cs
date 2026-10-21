@@ -19,6 +19,12 @@ namespace AuroraPAR
 
         public static async Task RunAsync(Window owner, AppSettings settings)
         {
+#if TRAINER
+            // The Trainer has no releases yet: its own check comes with its first release (the newest release of the
+            // repository may be one of AuroraPAR v2).
+            await Task.CompletedTask;
+            return;
+#else
             if (!settings.CheckForUpdates) return;
             string commit = AppInfo.FullCommit;
             if (commit.Length == 0 || AppInfo.BuildTime == null) return; // not a GitHub build: nothing to compare
@@ -49,6 +55,7 @@ namespace AuroraPAR
                 settings.SkippedRelease = release.Commit;
                 SettingsStore.Save(settings);
             }
+#endif
         }
 
         private static async Task<Release?> FetchAsync()

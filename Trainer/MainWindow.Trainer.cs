@@ -1,0 +1,270 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+
+namespace AuroraPAR
+{
+    /// <summary>
+    /// AuroraPAR v2 Trainer: its parts in the main window. The surveillance radar (RDR) is shown in place of the PAR
+    /// (one monitor: R or the RDR / PAR keys switch) or in its own window (two monitors). The bodies of the partial
+    /// methods declared in MainWindow.xaml.cs are here, so AuroraPAR v2 (which does not build this folder) is not changed.
+    /// </summary>
+    public partial class MainWindow
+    {
+        private RadarPanel? radarPanel;
+        private RadarWindow? radarWindow;
+        private Button? rdrButton;
+        private Button? parButton;
+        /// <summary>One window: RDR is shown in place of the PAR.</summary>
+        private bool radarInMain;
+
+        partial void TrainerStart()
+        {
+            TrainerSettings trainer = settings.Trainer;
+            radarPanel = new RadarPanel();
+            radarPanel.View.Range = trainer.RadarRange;
+            radarPanel.View.RangeStepRequested += StepRadarRange;
+            radarPanel.PlaceClicked += MoveRadar;
+            rdrButton = new Button { Content = "RDR", Focusable = false };
+            parButton = new Button { Content = "PAR", Focusable = false };
+            rdrButton.Click += (s, e) => ShowView(radar: true);
+            parButton.Click += (s, e) => ShowView(radar: false);
+            // First row of the system keys.
+            if (ModeButton.Parent is Panel keys)
+            {
+                keys.Children.Insert(0, parButton);
+                keys.Children.Insert(0, rdrButton);
+            }
+            TrainerControlStyles(viewOptions.Analog);
+            if (trainer.RadarSeparateWindow)
+            {
+                Loaded += (s, e) => OpenRadarWindow(activate: false);
+            }
+            else
+            {
+                AttachRadarToMain();
+                SetRadarInMain(trainer.RadarShown);
+            }
+        }
+
+        partial void TrainerRedraw(List<Aircraft> aircrafts)
+        {
+            if (radarPanel == null) return;
+            // The history dots are kept also while the RDR is hidden.
+            radarPanel.View.Update(aircrafts, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
+            if (radarWindow != null || radarInMain) RefreshRadar();
+        }
+
+        partial void TrainerKey(KeyEventArgs e, ModifierKeys modifiers)
+        {
+            if (radarPanel == null || modifiers != 0) return;
+            if (e.Key == Key.R)
+            {
+                if (settings.Trainer.RadarSeparateWindow) OpenRadarWindow(activate: true);
+                else SetRadarInMain(!radarInMain);
+                e.Handled = true;
+            }
+            else if (radarInMain && e.Key is Key.PageUp or Key.PageDown)
+            {
+                StepRadarRange(e.Key == Key.PageUp ? 1 : -1);
+                e.Handled = true;
+            }
+        }
+
+        partial void TrainerClosing()
+        {
+            if (radarWindow != null)
+            {
+                radarWindow.Close();
+            }
+        }
+
+        partial void TrainerControlStyles(bool analog)
+        {
+            if (rdrButton == null || parButton == null) return;
+            foreach ((Button button, string text, string tip) in new[]
+            {
+                (rdrButton!, "RDR", "Surveillance radar: the plan view (key R switches between RDR and PAR)."),
+                (parButton!, "PAR", "Precision approach radar (key R switches between RDR and PAR).")
+            })
+            {
+                button.ToolTip = tip;
+                button.Content = text;
+                if (analog)
+                {
+                    StyleAsKey(button, text);
+                }
+                else
+                {
+                    button.ClearValue(StyleProperty);
+                    button.ClearValue(FontSizeProperty);
+                    button.Width = 48;
+                    button.Height = 26;
+                    button.Margin = new Thickness(button == parButton ? 2 : 0, 4, 0, 0);
+                }
+            }
+            UpdateViewButtons();
+        }
+
+        /// <summary>RDR or PAR key: one window, that view; two windows, that window to the front.</summary>
+        private void ShowView(bool radar)
+        {
+            if (settings.Trainer.RadarSeparateWindow)
+            {
+                if (radar) OpenRadarWindow(activate: true);
+                else BringMainToFront();
+            }
+            else
+            {
+                SetRadarInMain(radar);
+            }
+        }
+
+        /// <summary>One window: RDR in place of the PAR (true), or the PAR back.</summary>
+        private void SetRadarInMain(bool show)
+        {
+            if (radarPanel == null) return;
+            radarInMain = show;
+            settings.Trainer.RadarShown = show;
+            radarPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            // Hidden, not collapsed: the PAR views keep their size (no redraw of everything at every switch).
+            ScopeArea.Visibility = show ? Visibility.Hidden : Visibility.Visible;
+            BezelLayer.Visibility = show ? Visibility.Hidden : Visibility.Visible;
+            if (show) RefreshRadar();
+            UpdateViewButtons();
+        }
+
+        private void AttachRadarToMain()
+        {
+            if (radarPanel == null || radarPanel.Parent == ScopeHost) return;
+            radarPanel.InWindow = false;
+            ScopeHost.Children.Add(radarPanel);
+            Panel.SetZIndex(radarPanel, 100);
+        }
+
+        private void DetachRadarFromMain()
+        {
+            if (radarPanel == null || radarPanel.Parent != ScopeHost) return;
+            ScopeHost.Children.Remove(radarPanel);
+            radarInMain = false;
+            ScopeArea.Visibility = Visibility.Visible;
+            BezelLayer.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>Opens the RDR window (or brings it to the front).</summary>
+        private void OpenRadarWindow(bool activate)
+        {
+            if (radarPanel == null) return;
+            if (radarWindow != null)
+            {
+                if (radarWindow.WindowState == WindowState.Minimized) radarWindow.WindowState = WindowState.Normal;
+                radarWindow.Activate();
+                return;
+            }
+            DetachRadarFromMain();
+            RadarWindow window = new(radarPanel, settings.Trainer.RadarWindow, Icon) { ShowActivated = activate };
+            window.SwitchRequested += BringMainToFront;
+            window.RangeStepRequested += StepRadarRange;
+            window.Closed += (s, e) =>
+            {
+                if (window.LastPlacement != null) settings.Trainer.RadarWindow = window.LastPlacement;
+                if (radarWindow == window) radarWindow = null;
+                UpdateViewButtons();
+            };
+            radarWindow = window;
+            window.Show();
+            RefreshRadar();
+            UpdateViewButtons();
+        }
+
+        /// <summary>The button on the RDR: into its own window, or back into the main window.</summary>
+        private void MoveRadar()
+        {
+            if (settings.Trainer.RadarSeparateWindow)
+            {
+                settings.Trainer.RadarSeparateWindow = false;
+                radarWindow?.Close();
+                AttachRadarToMain();
+                SetRadarInMain(true);
+                BringMainToFront();
+            }
+            else
+            {
+                settings.Trainer.RadarSeparateWindow = true;
+                OpenRadarWindow(activate: true);
+            }
+            SettingsStore.Save(settings);
+        }
+
+        /// <summary>The main window to the front (also when it was minimized).</summary>
+        private void BringMainToFront()
+        {
+            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void StepRadarRange(int step)
+        {
+            if (radarPanel == null) return;
+            double[] ranges = TrainerSettings.RadarRanges;
+            int index = Array.IndexOf(ranges, TrainerSettings.NearestRange(radarPanel.View.Range));
+            double range = ranges[Math.Clamp(index + step, 0, ranges.Length - 1)];
+            radarPanel.View.Range = range;
+            settings.Trainer.RadarRange = range;
+            RefreshRadar();
+        }
+
+        /// <summary>Redraws the RDR with the runway, the pressure and the last traffic.</summary>
+        private void RefreshRadar()
+        {
+            if (radarPanel == null) return;
+            PlanView view = radarPanel.View;
+            Profile profile = settings.Active;
+            bool qfe = profile.PressureReference == PressureReference.QFE;
+            string pressure = qnh == 0 ? "----" : Pressure.Format(qfe ? Pressure.QfeFromQnh(qnh, runway.Elevation) : qnh, profile.PressureUnit);
+            view.Runway = runway;
+            view.Runways = runways;
+            view.ShowLabels = viewOptions.ShowLabels;
+            view.InfoText = $"RWY {runway.DisplayName}   {(qfe ? "QFE" : "QNH")} {pressure}";
+            // In the main window the sign of the main window is over the RDR too; its own window needs its own.
+            bool test = testTraffic.Count > 0;
+            bool sim = instructor.Count > 0 && aurora.Connected;
+            view.SignText = radarWindow == null || !(test || sim) ? "" : test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC";
+            view.InvalidateVisual();
+        }
+
+        /// <summary>The RDR and PAR keys show which view is in use (two windows: RDR lit while its window is open).</summary>
+        private void UpdateViewButtons()
+        {
+            if (rdrButton == null || parButton == null) return;
+            bool separate = settings.Trainer.RadarSeparateWindow;
+            bool rdrOn = separate ? radarWindow != null : radarInMain;
+            bool parOn = separate || !radarInMain;
+            bool analog = viewOptions.Analog;
+            foreach ((Button button, bool on) in new[] { (rdrButton!, rdrOn), (parButton!, parOn) })
+            {
+                if (analog)
+                {
+                    button.Tag = on ? "Lit" : "Unlit";
+                    button.ClearValue(BackgroundProperty);
+                    button.ClearValue(FontWeightProperty);
+                }
+                else
+                {
+                    button.Tag = null;
+                    if (on)
+                    {
+                        button.Background = new SolidColorBrush(Color.FromRgb(0xB8, 0xD6, 0xEE));
+                        button.FontWeight = FontWeights.Bold;
+                    }
+                    else
+                    {
+                        button.ClearValue(BackgroundProperty);
+                        button.ClearValue(FontWeightProperty);
+                    }
+                }
+            }
+        }
+    }
+}

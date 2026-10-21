@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- AuroraPAR v2 Trainer: a separate program built from the same source files as AuroraPAR v2 (the folder above),
+       plus its own parts (this folder). Its code in the shared files is inside "#if TRAINER" (or in partial methods
+       that have a body only here), so AuroraPAR v2 does not change. Own name, version, settings folder and exe. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>AuroraPARTrainer</AssemblyName>
+    <RootNamespace>AuroraPAR</RootNamespace>
+    <ApplicationIcon>..\AuroraPAR.ico</ApplicationIcon>
+    <DefineConstants>$(DefineConstants);TRAINER</DefineConstants>
+    <!-- Version of the Trainer, shown in the title bar. Raise it at every release of the Trainer. -->
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <!-- Date and commit of the build (the commit is given by the GitHub build: -p:BuildCommit=...), read by AppInfo. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>BuildTime</_Parameter1>
+      <_Parameter2>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Commit</_Parameter1>
+      <_Parameter2>$(BuildCommit)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- The shared files of AuroraPAR v2 (only the top folder: the other programs are in subfolders). -->
+  <ItemGroup>
+    <Compile Include="..\*.cs" Link="%(Filename)%(Extension)" />
+    <ApplicationDefinition Include="..\App.xaml" Link="App.xaml" />
+    <Page Include="..\*.xaml" Exclude="..\App.xaml" Link="%(Filename)%(Extension)" />
+    <Resource Include="..\AuroraPAR.ico" Link="AuroraPAR.ico" />
+    <Resource Include="..\Fonts\B612-Bold.ttf" Link="Fonts\B612-Bold.ttf" />
+    <Resource Include="..\Fonts\B612-Regular.ttf" Link="Fonts\B612-Regular.ttf" />
+    <Resource Include="..\Fonts\BarlowCondensed-Bold.ttf" Link="Fonts\BarlowCondensed-Bold.ttf" />
+    <Resource Include="..\Fonts\Carlito-Bold.ttf" Link="Fonts\Carlito-Bold.ttf" />
+    <Resource Include="..\Sounds\coord-beep.wav" Link="Sounds\coord-beep.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sim\Engine\ATCRoom.Sim.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\runways.par" Link="runways.par" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\terrain.par" Link="terrain.par" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Profiles\*.json" Link="Profiles\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
