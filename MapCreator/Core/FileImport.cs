@@ -125,6 +125,7 @@ namespace ATCRoom.Maps
                 case ".mva": result = FromAurora(fileName, lines); break;
                 case ".ese": result = FromEuroScope(fileName, lines); break;
                 case ".sct": result = ImportSct(fileName, lines); break;
+                case ".kml": result = ImportKml(fileName, lines); break;
                 case ".json": result = ImportMapJson(fileName, lines); break;
                 default:
                     switch (Sniff(lines))
@@ -156,7 +157,7 @@ namespace ATCRoom.Maps
         private static FileImport Unknown(string fileName)
         {
             FileImport result = new() { FileName = fileName, FormatName = "not recognised" };
-            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese and .sct; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
+            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese and .sct; KML / KMZ; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
             return result;
         }
 

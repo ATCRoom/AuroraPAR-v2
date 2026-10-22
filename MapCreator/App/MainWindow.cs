@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -22,7 +23,7 @@ namespace ATCRoom.MapCreator
     {
         private static readonly HashSet<string> KnownExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".geo", ".fix", ".vor", ".ndb", ".ap", ".apt", ".vfi", ".str", ".mva", ".lartcc", ".hartcc", ".artcc", ".ese", ".sct", ".pdf"
+            ".geo", ".fix", ".vor", ".ndb", ".ap", ".apt", ".vfi", ".str", ".mva", ".lartcc", ".hartcc", ".artcc", ".ese", ".sct", ".kml", ".kmz", ".pdf"
         };
 
         private readonly Dictionary<string, FileImport> files = new(StringComparer.OrdinalIgnoreCase);
@@ -95,7 +96,7 @@ namespace ATCRoom.MapCreator
             dropText.Children.Add(new TextBlock { Text = "Drop the map files here (many at once, or a folder)", FontSize = 15, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
             dropText.Children.Add(new TextBlock
             {
-                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese .sct · AIP table (PDF) · a map already made (.json)",
+                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese .sct · KML/KMZ · AIP table (PDF) · a map already made (.json)",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 HorizontalAlignment = HorizontalAlignment.Center
@@ -236,7 +237,7 @@ namespace ATCRoom.MapCreator
             {
                 Title = "Map files",
                 Multiselect = true,
-                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.sct;*.pdf;*.txt;*.json|All files (*.*)|*.*"
+                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.sct;*.kml;*.kmz;*.pdf;*.txt;*.json|All files (*.*)|*.*"
             };
             if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
         }
@@ -290,6 +291,18 @@ namespace ATCRoom.MapCreator
                 int read;
                 using (FileStream stream = File.OpenRead(path)) read = stream.Read(head, 0, head.Length);
                 if (read >= 4 && Encoding.ASCII.GetString(head, 0, 4) == "%PDF") return MapImport.Read(path, null, PdfWords.Read(path));
+                if (IoPath.GetExtension(path).Equals(".kmz", StringComparison.OrdinalIgnoreCase))
+                {
+                    // A KMZ is a zip with the KML inside (doc.kml, or the first .kml).
+                    using ZipArchive zip = ZipFile.OpenRead(path);
+                    ZipArchiveEntry? entry = zip.Entries.FirstOrDefault(e => e.Name.Equals("doc.kml", StringComparison.OrdinalIgnoreCase))
+                        ?? zip.Entries.FirstOrDefault(e => e.Name.EndsWith(".kml", StringComparison.OrdinalIgnoreCase));
+                    if (entry == null) throw new InvalidDataException("no .kml file inside the KMZ");
+                    using StreamReader reader = new(entry.Open(), Encoding.UTF8);
+                    List<string> kmlLines = [];
+                    while (reader.ReadLine() is { } kmlLine) kmlLines.Add(kmlLine);
+                    return MapImport.Read(IoPath.ChangeExtension(path, ".kml"), kmlLines, null);
+                }
                 string[] lines = File.ReadAllLines(path);
                 // Aurora and EuroScope files are often in the Windows code page: read again so the accents survive.
                 if (lines.Any(l => l.Contains('�'))) lines = File.ReadAllLines(path, Encoding.Latin1);

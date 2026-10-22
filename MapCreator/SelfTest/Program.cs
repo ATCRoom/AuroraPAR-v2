@@ -433,6 +433,33 @@ string[] ese =
         && sctCoast.Content.Lines[0].Name == "LMML VFR sectors" && sct.Entries.Any(e => e.Title.Contains("Taxiway") && e.Content.Lines[0].Name == "LIAP Groundlayout"),
         ".sct: GEO segments joined by colour, name of the group, the coast as boundaries", sctCoast == null ? "no coast" : string.Join(",", sctCoast.Content.Lines.Select(l => l.Name + ":" + l.Points.Count)));
 
+    // KML: 3D airspace (ceiling, floor, wall) → one outline; the point with the same name skipped; CTR apart; a stray point and a line
+    string[] kmlLines =
+    [
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<kml xmlns = \"http://www.opengis.net/kml/2.2\"><Document>",
+        "<Folder><name>CLASS D</name>",
+        "<Placemark><name>TEST CTR Z1</name><MultiGeometry>",
+        "<Polygon><outerBoundaryIs><LinearRing><coordinates>10,40,900 11,40,900 11,41,900 10,41,900</coordinates></LinearRing></outerBoundaryIs></Polygon>",
+        "<Polygon><outerBoundaryIs><LinearRing><coordinates>10,40,100 11,40,100 11,41,100 10,41,100 10,40,100</coordinates></LinearRing></outerBoundaryIs></Polygon>",
+        "<Polygon><outerBoundaryIs><LinearRing><coordinates>10,40,900 11,40,900 11,40,100 10,40,100 10,40,900</coordinates></LinearRing></outerBoundaryIs></Polygon>",
+        "</MultiGeometry></Placemark>",
+        "<Placemark><name>TEST CTR Z1</name><Point><coordinates>10.5,40.5,900</coordinates></Point></Placemark>",
+        "<Placemark><name>TEST TMA</name><Polygon><outerBoundaryIs><LinearRing><coordinates>12,40,0 13,40,0 13,41,0 12,41,0 12,40,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>",
+        "</Folder><Folder><name>DANGER</name>",
+        "<Placemark><name>LIP 1</name><Polygon><outerBoundaryIs><LinearRing><coordinates>14,40,0 15,40,0 15,41,0 14,40,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>",
+        "<Placemark><name>Lonely</name><Point><coordinates>9,39,0</coordinates></Point></Placemark>",
+        "<Placemark><name>Route</name><LineString><coordinates>9,38,0 9.5,38.5,0</coordinates></LineString></Placemark>",
+        "</Folder></Document></kml>"
+    ];
+    FileImport kml = MapImport.Read("airspaces.kml", kmlLines, null);
+    ImportEntry? kmlCtr = kml.Entries.FirstOrDefault(e => e.Suggested == MapCategory.Ctr);
+    ImportEntry? kmlTma = kml.Entries.FirstOrDefault(e => e.Title == "CLASS D");
+    ImportEntry? kmlDanger = kml.Entries.FirstOrDefault(e => e.Title == "DANGER");
+    Check(kmlCtr != null && kmlCtr.Content.Lines.Count == 1 && kmlCtr.Content.Lines[0].Points.Count == 5 && kmlCtr.Content.Labels.Count == 1 && kmlCtr.Content.Labels[0].Text == "TEST CTR Z1"
+        && kmlCtr.Content.Points.Count == 0 && kmlTma != null && kmlTma.Content.Lines.Count == 1 && kmlTma.Content.Lines[0].Name == "TEST TMA"
+        && kmlDanger != null && kmlDanger.Content.Lines.Count == 2 && kmlDanger.Content.Points.Count == 1 && kmlDanger.Content.Points[0].Name == "Lonely",
+        "KML: outline of a 3D area once, label point skipped, CTR apart, one part for each folder, stray point and line", string.Join(",", kml.Entries.Select(e => e.Title + ":" + e.Content.Lines.Count + "/" + e.Content.Points.Count)));
+
     // lartcc: one part per ID, the name suggests the category
     FileImport art = MapImport.Read("libb_cs0_app.lartcc",
     [
