@@ -460,7 +460,7 @@ namespace AuroraPAR
             pauseButton.Click += (s, e) => TogglePause();
             service.Children.Add(pauseButton);
             Button joystickButton = SmallButton("Joystick...");
-            joystickButton.ToolTip = "A real joystick or gamepad for the test aircraft and the antenna tilt: device, buttons, live test.";
+            joystickButton.ToolTip = "A real joystick or gamepad for the aircraft and the antenna tilt: device, buttons, live test.";
             joystickButton.Click += (s, e) => openJoystick?.Invoke(this);
             if (openJoystick != null) service.Children.Add(joystickButton);
             root.Children.Add(service);
@@ -1017,7 +1017,7 @@ namespace AuroraPAR
             {
                 finalCourseButton.Content = "Final CRS";
                 normalButton.Content = "Normal";
-                info.Text = traffic.Count == 0 ? "No test aircraft:\nAdd one above." : "";
+                info.Text = traffic.Count == 0 ? "No aircraft:\nAdd one above." : "";
                 bestValue.Text = actualValue.Text = turnValue.Text = headingValue.Text = driftValue.Text = "---";
                 bestLabel.Text = "BEST VS";
                 return;

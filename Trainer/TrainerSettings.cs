@@ -96,6 +96,8 @@ namespace AuroraPAR
         public string? ShapeColour { get; set; }
         /// <summary>Colour of the labels (#RRGGBB); null: the colour of the lines and symbols.</summary>
         public string? LabelColour { get; set; }
+        /// <summary>Symbol of the points of the category (name of a <see cref="ATCRoom.Maps.MapSymbol"/>); null: the one saved in the map.</summary>
+        public string? Symbol { get; set; }
     }
 
     /// <summary>How a map is shown on the RDR.</summary>

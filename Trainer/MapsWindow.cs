@@ -123,6 +123,18 @@ namespace AuroraPAR
             errorsText.Visibility = maps.Errors.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
 
+        private static string SymbolName(MapSymbol symbol) => symbol switch
+        {
+            MapSymbol.Point => "Point (triangle)",
+            MapSymbol.Airport => "Airport (circle)",
+            MapSymbol.Vrp => "VRP (square)",
+            MapSymbol.Vor => "VOR (hexagon)",
+            MapSymbol.Vortac => "VORTAC",
+            MapSymbol.Tacan => "TACAN (diamond)",
+            MapSymbol.Ndb => "NDB (circle, dot)",
+            _ => symbol.ToString()
+        };
+
         /// <summary>A category: lines / symbols shown and their colour, labels shown and their colour.</summary>
         private StackPanel CategoryRow(string icao, MapCategoryInfo category, List<LoadedMap> mine)
         {
@@ -148,6 +160,21 @@ namespace AuroraPAR
                 // Labels without a colour of their own follow the lines: show it.
                 if (display.LabelColour == null && category.HasLabels) Dispatcher.BeginInvoke(new Action(() => ShowMaps(current())));
             }));
+            // The points of the category can be drawn with another symbol (the map file is not changed).
+            if (mine.Any(m => m.Map.OfCategory(category.Id).Points.Count > 0))
+            {
+                ComboBox symbols = new() { MinWidth = 150, Margin = new Thickness(12, 0, 0, 0), ToolTip = "The symbol of the points. \"As in the map\": the one saved in the map file." };
+                symbols.Items.Add("Symbol: as in the map");
+                foreach (MapSymbol symbol in Enum.GetValues<MapSymbol>()) symbols.Items.Add(SymbolName(symbol));
+                symbols.SelectedIndex = Enum.TryParse(display.Symbol, ignoreCase: true, out MapSymbol saved) && Enum.IsDefined(saved) ? (int)saved + 1 : 0;
+                symbols.SelectionChanged += (s, e) =>
+                {
+                    if (symbols.SelectedIndex < 0) return;
+                    display.Symbol = symbols.SelectedIndex == 0 ? null : ((MapSymbol)(symbols.SelectedIndex - 1)).ToString();
+                    changed();
+                };
+                shapesRow.Children.Add(symbols);
+            }
             row.Children.Add(shapesRow);
 
             if (category.HasLabels)

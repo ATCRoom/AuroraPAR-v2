@@ -123,7 +123,7 @@ jobs:
 
       # Public download without a GitHub account: one release per version (tag v<Version of the csproj>, e.g. v2.0.0-beta),
       # replaced at every push to master while the version stays the same; a version with a suffix (-beta) is a
-      # pre-release. The three programs as zip files, with their SHA-256. AuroraPAR checks the newest release at start.
+      # pre-release. The three programs as zip files, with their SHA-256. AuroraPAR checks the newest release at start (the releases of the Trainer will have tags trainer-v<Version> and are skipped by that check).
       - name: Publish the release of this version (Releases)
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
