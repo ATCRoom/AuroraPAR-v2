@@ -72,7 +72,7 @@ existing file of the airport).
 | IVAO `.fix` | `NAME;lat;lon;TYPE;`: terminal and both (suggested: FIX), en-route apart, hidden skipped |
 | IVAO `.vor`, `.ndb` | navaids with symbol (VOR, VORTAC, TACAN, NDB); hidden and impossible rows skipped and named |
 | IVAO `.ap` | airports (label ICAO, name as description); ICAO ending ZZ and hidden skipped |
-| IVAO `.vfi` | VFR points (label = code, description = name) |
+| IVAO `.vfi` | VFR points `NAME;CODE;lat;lon;` or `NAME;lat;lon;`: the label is the first block, the second or both (`PI-SIERRA`), chosen by the user (first choice: both when the second block repeats, as a prefix) |
 | IVAO `lartcc` / `hartcc` | one part per airspace ID (T rows = border, L rows = label); CTR / ATZ suggested by the name |
 | IVAO `.str` | only the groups with `MAPS` in the second field (CTR, ATZ...), `<br>` starts a new path; procedures (STAR, IAP) not used yet |
 | Aurora map file (IVAO) `.mva` | `T;NAME;lat;lon;` lines, `L;NAME;lat;lon;TEXT;SIZE;` labels (suggested: MVA); coordinates `N047.10.47.653` |

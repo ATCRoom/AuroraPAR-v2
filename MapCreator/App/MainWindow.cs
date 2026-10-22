@@ -392,6 +392,34 @@ namespace ATCRoom.MapCreator
                 };
                 text.Children.Add(choose);
             }
+            if (entry.Blocks.Count > 0)
+            {
+                // The rows have two names ("SIERRA;PI;..."): the user chooses which one is the label.
+                StackPanel labelRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
+                labelRow.Children.Add(new TextBlock { Text = "Label from: ", VerticalAlignment = VerticalAlignment.Center });
+                ComboBox labelBox = new()
+                {
+                    MinWidth = 190,
+                    ToolTip = "Which name of the row is shown beside the point. Changing it drops the renamings made in Choose points."
+                };
+                LabelBlocks sample = entry.Blocks.Values.Any(b => b.Second.Length > 0)
+                    ? entry.Blocks.Values.First(b => b.Second.Length > 0)
+                    : entry.Blocks.Values.First();
+                labelBox.Items.Add($"First block ({ImportEntry.LabelOf(sample, LabelFrom.First)})");
+                labelBox.Items.Add($"Second block ({ImportEntry.LabelOf(sample, LabelFrom.Second)})");
+                labelBox.Items.Add($"Both ({ImportEntry.LabelOf(sample, LabelFrom.Both)})");
+                labelBox.SelectedIndex = (int)entry.LabelFrom;
+                labelBox.SelectionChanged += (s, e) =>
+                {
+                    if (updating || labelBox.SelectedIndex < 0) return;
+                    entry.SetLabelFrom((LabelFrom)labelBox.SelectedIndex);
+                    if (pointWindows.TryGetValue(entry, out PointsWindow? open)) open.RefreshNames();
+                    ShowSummary();
+                    RefreshPicture(refit: false);
+                };
+                labelRow.Children.Add(labelBox);
+                text.Children.Add(labelRow);
+            }
             ComboBox box = new() { Width = 200, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
             box.Items.Add("— not used —");
             foreach (MapCategoryInfo category in MapCategory.All) box.Items.Add(category.Name);

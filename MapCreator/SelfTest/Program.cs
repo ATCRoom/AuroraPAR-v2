@@ -260,6 +260,23 @@ string[] ese =
     Check(vrp.Entries[0].Content.Points.Count == 2 && vrp.Entries[0].Content.Points[0].Name == "ROS" && vrp.Entries[0].Content.Points[0].Description == "PONTE ROSSO"
         && vrp.Entries[0].Content.Points[1].Name == "LAGO" && vrp.Airport == "LIBC", ".vfi: code as label, altitude form, airport from the name");
 
+    // .vfi with the same prefix on every row and a row with one name (lipi.vfi): both blocks, nothing skipped
+    FileImport lipi = MapImport.Read("lipi.vfi",
+    [
+        "SIERRA;PI;N045.47.20.000;E012.47.20.000;",
+        "PI-NOVEMBER;N046.05.42.000;E013.03.33.000;",
+        "A;PI;N045.57.17.000;E012.59.22.000;",
+        "B;PI;N045.59.44.620;E013.05.18.200;"
+    ], null);
+    ImportEntry lipiEntry = lipi.Entries[0];
+    string LipiNames() => string.Join(",", lipiEntry.Content.Points.Select(p => p.Name));
+    Check(lipiEntry.Content.Points.Count == 4 && lipiEntry.LabelFrom == LabelFrom.Both && LipiNames() == "PI-SIERRA,PI-NOVEMBER,PI-A,PI-B" && lipi.Notes.Count == 0,
+        ".vfi: a repeated second block gives both (PI-SIERRA), a row with one name is kept", LipiNames());
+    lipiEntry.SetLabelFrom(LabelFrom.First);
+    Check(LipiNames() == "SIERRA,PI-NOVEMBER,A,B" && lipiEntry.Content.Points[0].Description == "PI", ".vfi: label from the first block", LipiNames());
+    lipiEntry.SetLabelFrom(LabelFrom.Second);
+    Check(LipiNames() == "PI,PI-NOVEMBER,PI,PI" && lipiEntry.Content.Points[0].Description == "SIERRA", ".vfi: label from the second block", LipiNames());
+
     // lartcc: one part per ID, the name suggests the category
     FileImport art = MapImport.Read("libb_cs0_app.lartcc",
     [

@@ -18,12 +18,49 @@ namespace ATCRoom.Maps
         public string? Category { get; set; }
         /// <summary>The items, without a category.</summary>
         public MapFile Content { get; init; } = new();
-        /// <summary>The points the user switched off ("Choose points"); they do not go into the map.</summary>
         /// <summary>Where the data come from (text of the file it was read from, when it has one).</summary>
         public string Source { get; init; } = "";
+        /// <summary>The points the user switched off ("Choose points"); they do not go into the map.</summary>
         public HashSet<MapPoint> Excluded { get; } = [];
         /// <summary>The points that were renamed in "Choose points", with the name they had in the file (for "Restore names").</summary>
         public Dictionary<MapPoint, string> OriginalNames { get; } = [];
+
+        /// <summary>
+        /// The two names a point has in the source file (a VRP of a .vfi: "SIERRA;PI;..."), for the choice "Label from".
+        /// Empty: the part has no such choice.
+        /// </summary>
+        public Dictionary<MapPoint, LabelBlocks> Blocks { get; } = [];
+        /// <summary>Where the labels of the points come from (only when <see cref="Blocks"/> is not empty).</summary>
+        public LabelFrom LabelFrom { get; private set; } = LabelFrom.Second;
+
+        /// <summary>
+        /// Gives every point the label of the choice (the second block missing: the first one). The renamings of
+        /// "Choose points" are dropped: "Restore names" then goes back to these labels.
+        /// </summary>
+        public void SetLabelFrom(LabelFrom mode)
+        {
+            LabelFrom = mode;
+            OriginalNames.Clear();
+            foreach (KeyValuePair<MapPoint, LabelBlocks> pair in Blocks)
+            {
+                LabelBlocks b = pair.Value;
+                pair.Key.Name = LabelOf(b, mode);
+                // The block that is not in the label is kept as the long name (an altitude always).
+                pair.Key.Description = b.Altitude.Length > 0 ? b.Altitude
+                    : b.Second.Length == 0 ? "" : mode switch { LabelFrom.First => b.Second, LabelFrom.Second => b.First, _ => "" };
+            }
+        }
+
+        public static string LabelOf(LabelBlocks b, LabelFrom mode)
+        {
+            if (b.Second.Length == 0) return b.First;
+            return mode switch
+            {
+                LabelFrom.First => b.First,
+                LabelFrom.Second => b.Second,
+                _ => b.First.StartsWith(b.Second + "-", StringComparison.OrdinalIgnoreCase) ? b.First : b.Second + "-" + b.First
+            };
+        }
 
         /// <summary>The content without the points switched off (the lines and labels are shared, not copied).</summary>
         public MapFile Selected()
@@ -37,6 +74,12 @@ namespace ATCRoom.Maps
             };
         }
     }
+
+    /// <summary>Where the label of a point comes from: the first block of the row, the second one, or both ("PI-SIERRA").</summary>
+    public enum LabelFrom { First, Second, Both }
+
+    /// <summary>The two names of a point in its row (Second empty: the row has one name); an altitude is kept apart.</summary>
+    public readonly record struct LabelBlocks(string First, string Second, string Altitude);
 
     /// <summary>What was read from one file: its parts (entries) and notes on what was skipped.</summary>
     public sealed class FileImport
@@ -448,30 +491,47 @@ namespace ATCRoom.Maps
         // ----- VRP (.vfi) --------------------------------------------------------------------------------------------
 
         /// <summary>
-        /// "NAME;CODE;lat;lon;" (the Italian files: a short code of the point) or "NAME;ALTITUDE;lat;lon;" (the IVAO
-        /// description: an altitude or a range). The label is the code (short), the name is kept as the description; with
-        /// an altitude the label is the name.
+        /// "NAME;CODE;lat;lon;" (the Italian files: a short code of the point, or the same prefix for all the points of an
+        /// airport, "SIERRA;PI;..."), "NAME;ALTITUDE;lat;lon;" (the IVAO description: an altitude or a range) or
+        /// "NAME;lat;lon;" (one name). The user chooses the label from the first block, the second or both ("PI-SIERRA");
+        /// the first choice: the code when every point has its own, both when the second block repeats (a prefix).
         /// </summary>
         public static FileImport ImportVrp(string fileName, IReadOnlyList<string> lines)
         {
             FileImport result = new() { FileName = fileName, FormatName = "IVAO VFR points (.vfi)" };
             MapFile content = new();
+            List<(MapPoint Point, LabelBlocks Blocks)> read = [];
             int bad = 0;
             foreach (string raw in lines)
             {
                 if (raw.Trim().Length == 0 || IsComment(raw)) continue;
                 string[] f = Fields(raw);
-                if (f.Length < 4 || f[0].Length == 0 || !Coordinate(f[2], f[3], out double lat, out double lon))
+                if (f.Length == 0 || f[0].Length == 0)
                 {
                     bad++;
                     continue;
                 }
-                bool altitude = Altitude.IsMatch(f[1]);
-                string label = altitude || f[1].Length == 0 ? f[0] : f[1];
-                string description = altitude ? f[1] : f[0];
-                content.Points.Add(new MapPoint { Name = label, Description = description, Latitude = lat, Longitude = lon, Symbol = MapSymbol.Vrp });
+                double lat, lon;
+                string second;
+                if (f.Length >= 4 && Coordinate(f[2], f[3], out lat, out lon)) second = f[1];
+                else if (f.Length >= 3 && Coordinate(f[1], f[2], out lat, out lon)) second = "";
+                else
+                {
+                    bad++;
+                    continue;
+                }
+                bool altitude = Altitude.IsMatch(second);
+                LabelBlocks blocks = new(f[0], altitude ? "" : second, altitude ? second : "");
+                MapPoint point = new() { Name = f[0], Latitude = lat, Longitude = lon, Symbol = MapSymbol.Vrp };
+                content.Points.Add(point);
+                read.Add((point, blocks));
             }
-            result.Entries.Add(NewEntry(fileName, "VFR reporting points", MapCategory.Vrp, content));
+            ImportEntry entry = NewEntry(fileName, "VFR reporting points", MapCategory.Vrp, content);
+            foreach ((MapPoint point, LabelBlocks blocks) in read) entry.Blocks[point] = blocks;
+            List<string> seconds = read.Select(r => r.Blocks.Second).Where(s => s.Length > 0).ToList();
+            bool repeated = seconds.Count != seconds.Distinct(StringComparer.OrdinalIgnoreCase).Count();
+            entry.SetLabelFrom(repeated ? LabelFrom.Both : LabelFrom.Second);
+            result.Entries.Add(entry);
             if (bad > 0) result.Notes.Add($"{Plural(bad, "row", "rows")} not understood, skipped.");
             return result;
         }

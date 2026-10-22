@@ -60,7 +60,7 @@ namespace ATCRoom.MapCreator
         private readonly ListBox list = new();
         private readonly TextBlock countText = new() { Margin = new Thickness(0, 8, 0, 0), Foreground = System.Windows.Media.Brushes.DimGray };
         private bool bulk;
-        private readonly TextBox prefixBox = new() { Width = 70, Margin = new Thickness(0, 0, 4, 0), ToolTip = "A prefix to take away from the names, for example PI-" };
+        private readonly TextBox prefixBox = new() { Width = 70, Margin = new Thickness(0, 0, 4, 0), ToolTip = "A text to add to the names or to take away, for example PI-" };
         private readonly Button renameButton = new() { Content = "Rename selected...", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 12, 0), IsEnabled = false };
 
         /// <param name="entry">The part: its points are listed.</param>
@@ -99,15 +99,24 @@ namespace ATCRoom.MapCreator
 
             WrapPanel rename = new() { Margin = new Thickness(0, 0, 0, 8) };
             renameButton.Click += (s, e) => RenameSelected();
-            Button removePrefix = new() { Content = "Remove prefix", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 6, 0) };
+            Button addPrefix = new() { Content = "Add prefix", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 4, 0), ToolTip = "RULFE becomes PI-RULFE (the text in the box before the name)." };
+            addPrefix.Click += (s, e) => RenameVisible(name => AddPrefix(name, prefixBox.Text.Trim()));
+            Button addSuffix = new() { Content = "Add suffix", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 4, 0), ToolTip = "The text in the box after the name." };
+            addSuffix.Click += (s, e) => RenameVisible(name => AddSuffix(name, prefixBox.Text.Trim()));
+            Button removePrefix = new() { Content = "Remove prefix", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 4, 0) };
             removePrefix.Click += (s, e) => RenameVisible(name => RemovePrefix(name, prefixBox.Text.Trim()));
+            Button removeSuffix = new() { Content = "Remove suffix", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 12, 0) };
+            removeSuffix.Click += (s, e) => RenameVisible(name => RemoveSuffix(name, prefixBox.Text.Trim()));
             Button removeHyphen = new() { Content = "Remove up to the hyphen", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 6, 0), ToolTip = "PI-RULFE becomes RULFE: everything up to the first hyphen goes." };
             removeHyphen.Click += (s, e) => RenameVisible(RemoveUpToHyphen);
             Button restore = new() { Content = "Restore names", Padding = new Thickness(8, 1, 8, 1) };
             restore.Click += (s, e) => RestoreVisible();
             rename.Children.Add(renameButton);
             rename.Children.Add(prefixBox);
+            rename.Children.Add(addPrefix);
+            rename.Children.Add(addSuffix);
             rename.Children.Add(removePrefix);
+            rename.Children.Add(removeSuffix);
             rename.Children.Add(removeHyphen);
             rename.Children.Add(restore);
             DockPanel.SetDock(rename, Dock.Top);
@@ -222,6 +231,22 @@ namespace ATCRoom.MapCreator
 
         private static string? RemovePrefix(string name, string prefix) =>
             prefix.Length > 0 && name.Length > prefix.Length && name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? name[prefix.Length..] : null;
+
+        private static string? AddPrefix(string name, string prefix) =>
+            prefix.Length > 0 && !name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? prefix + name : null;
+
+        private static string? AddSuffix(string name, string suffix) =>
+            suffix.Length > 0 && !name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) ? name + suffix : null;
+
+        private static string? RemoveSuffix(string name, string suffix) =>
+            suffix.Length > 0 && name.Length > suffix.Length && name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) ? name[..^suffix.Length] : null;
+
+        /// <summary>The labels were chosen again ("Label from"): the rows are read again.</summary>
+        public void RefreshNames()
+        {
+            foreach (PointRow row in rows) row.Refresh();
+            Refill();
+        }
 
         private static string? RemoveUpToHyphen(string name)
         {
