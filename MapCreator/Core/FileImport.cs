@@ -155,7 +155,7 @@ namespace ATCRoom.Maps
         private static FileImport Unknown(string fileName)
         {
             FileImport result = new() { FileName = fileName, FormatName = "not recognised" };
-            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese; AIP table of minimum altitudes (PDF).");
+            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2).");
             return result;
         }
 
@@ -248,6 +248,13 @@ namespace ATCRoom.Maps
 
         private static FileImport FromAip(string fileName, IReadOnlyList<PdfWord> words)
         {
+            switch (AipKind(words))
+            {
+                case "vrp": return ImportAipVrp(fileName, AipLines(words));
+                case "fix": return ImportAipFixes(fileName, AipLines(words));
+                case "vor1": return ImportAipNavaids(fileName, words, "ENR 4.1.1");
+                case "vor2": return ImportAipNavaids(fileName, words, "ENR 4.1.2");
+            }
             ImportResult r = ImportAipTable(words);
             FileImport result = new() { FileName = fileName, FormatName = "AIP table of minimum altitudes (PDF)" };
             if (r.Map.Lines.Count > 0) result.Entries.Add(NewEntry(fileName, "Areas with their minimum altitude", MapCategory.Mva, r.Map));

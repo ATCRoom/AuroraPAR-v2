@@ -17,7 +17,7 @@ namespace ATCRoom.MapCreator
                 {
                     if (string.IsNullOrWhiteSpace(word.Text)) continue;
                     // Y from the top of the page, as the table is read.
-                    words.Add(new PdfWord(page.Number, word.BoundingBox.Left, page.Height - word.BoundingBox.Top, word.Text));
+                    words.Add(new PdfWord(page.Number, word.BoundingBox.Left, page.Height - word.BoundingBox.Top, word.Text, word.BoundingBox.Right));
                 }
             }
             return words;

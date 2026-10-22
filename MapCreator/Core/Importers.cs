@@ -32,7 +32,7 @@ namespace ATCRoom.Maps
     }
 
     /// <summary>A word of a PDF page with its place (points, Y from the top of the page), for the AIP tables.</summary>
-    public sealed record PdfWord(int Page, double X, double Y, string Text);
+    public sealed record PdfWord(int Page, double X, double Y, string Text, double Right = 0);
 
     public static partial class MapImport
     {

@@ -277,6 +277,52 @@ string[] ese =
     lipiEntry.SetLabelFrom(LabelFrom.Second);
     Check(LipiNames() == "PI,PI-NOVEMBER,PI,PI" && lipiEntry.Content.Points[0].Description == "SIERRA", ".vfi: label from the second block", LipiNames());
 
+    // AIP lists (PDF): VRP of ENR 6.3.1 (name first in the first list, code first in the second), significant points of ENR 4.4
+    FileImport aipVrp = MapImport.ImportAipVrp("LI-ENR_6.3.1.pdf",
+    [
+        "          Geographical Name         Code              Coordinates                        Radio AID or next visual REP",
+        "    1NM NORTH SALERNO TOWN                      RINW1             40°41'47''N       014°47'06''E   FROM SOR VOR: 069°/22NM",
+        "                TODI                       RZSW1       42°46'56''N       012°24'57''E   FROM PRU VOR: 191°/20NM",
+        "                                                                                                   TO Orvieto Scalo: 027°/7NM",
+        "       Code         Geographical Name          Coordinates                        Radio AID or next visual REP",
+        "      RZSW1                    TODI      42°46'56''N       012°24'57''E   FROM PRU VOR: 191°/20NM",
+        "      RZNE                 VALFABBRICA      43°09'33''N       012°36'02''E   FROM PRU VOR: 046°/5NM"
+    ]);
+    List<MapPoint> vrpPoints = aipVrp.Entries.Count == 1 ? aipVrp.Entries[0].Content.Points : [];
+    Check(vrpPoints.Count == 3 && vrpPoints[0].Name == "RINW1" && vrpPoints[0].Description == "1NM NORTH SALERNO TOWN" && vrpPoints[0].Symbol == MapSymbol.Vrp
+        && vrpPoints[2].Name == "RZNE" && vrpPoints[2].Description == "VALFABBRICA" && Near(vrpPoints[0].Latitude, 40.6963889, 1e-6) && Near(vrpPoints[0].Longitude, 14.785, 1e-6)
+        && aipVrp.Entries[0].Suggested == MapCategory.Vrp, "AIP ENR 6.3.1: both lists, a point listed twice kept once", string.Join(",", vrpPoints.Select(p => p.Name)));
+    FileImport aipFix = MapImport.ImportAipFixes("LI-ENR_4.4.pdf",
+    [
+        "    CODICE ICAO               COORDINATE                     ROTTE INTERESSATE",
+        "          ABADI        40°45'19''N       018°38'30''E   P92                           BR star, BR sid                          FRA(I)",
+        "          ABESI        46°09'35''N       009°02'34''E   N851                          MF sid, MZ sid                          FRA(X):",
+        "                                                                                                                           FRA(D): LIMC,",
+        "          ABADI        40°45'19''N       018°38'30''E   P92"
+    ]);
+    List<MapPoint> fixPoints = aipFix.Entries.Count == 1 ? aipFix.Entries[0].Content.Points : [];
+    Check(fixPoints.Count == 2 && fixPoints[1].Name == "ABESI" && Near(fixPoints[1].Longitude, 9.0427778, 1e-6) && aipFix.Entries[0].Suggested == MapCategory.Fix,
+        "AIP ENR 4.4: a point per code, as FIX", string.Join(",", fixPoints.Select(p => p.Name)));
+
+    // AIP radio aids (ENR 4.1.1): the cells are read by the place of the words (a table made by hand: header ID, column numbers, two aids)
+    PdfWord W(double x, double y, string text) => new(1, x, y, text, x + text.Length * 5);
+    List<PdfWord> navWords =
+    [
+        W(60, 40, "ENR"), W(90, 40, "4.1.1"), W(120, 160, "ID"), W(120, 247, "9"),
+        W(224, 340, "VOR"), W(142, 352, "113.80"), W(211, 352, "40°37'41''N"), W(65, 358, "ALGHERO"), W(209, 364, "008°14'38''E"),
+        W(68, 370, "VORTAC"), W(119, 370, "ALG"), W(58, 382, "(1°"), W(220, 376, "TACAN"), W(211, 388, "40°37'42''N"), W(209, 400, "008°14'38''E"),
+        W(211, 516, "43°35'11''N"), W(67, 522, "GIOIA"), W(96, 522, "DEL"), W(209, 528, "013°28'16''E"), W(65, 534, "COLLE"), W(119, 534, "ANC"),
+        W(65, 546, "VOR/DME"), W(211, 552, "43°35'11''N"), W(209, 564, "013°28'17''E"),
+        W(211, 700, "45°55'28''N"), W(67, 700, "AVIANO"), W(209, 712, "012°25'43''E"), W(65, 712, "NDB"), W(119, 712, "AVI"), W(146, 712, "KHZ")
+    ];
+    FileImport aipNav = MapImport.Read("LI-ENR_4.1.1.pdf", null, navWords);
+    List<MapPoint> navPoints = aipNav.Entries.Count == 1 ? aipNav.Entries[0].Content.Points : [];
+    Check(navPoints.Count == 3 && navPoints[0].Name == "ALG" && navPoints[0].Symbol == MapSymbol.Vortac && navPoints[0].Description == "ALGHERO VORTAC"
+        && Near(navPoints[0].Latitude, 40.6280556, 1e-6) && Near(navPoints[0].Longitude, 8.2438889, 1e-6)
+        && navPoints[1].Name == "ANC" && navPoints[1].Symbol == MapSymbol.Vor && navPoints[1].Description == "GIOIA DEL COLLE VOR/DME"
+        && navPoints[2].Name == "AVI" && navPoints[2].Symbol == MapSymbol.Ndb && aipNav.Entries[0].Suggested == MapCategory.Navaids,
+        "AIP ENR 4.1.1: aids by the place of the words (ID, name over several lines, type, first coordinate pair)", string.Join(",", navPoints.Select(p => p.Name + ":" + p.Symbol)));
+
     // lartcc: one part per ID, the name suggests the category
     FileImport art = MapImport.Read("libb_cs0_app.lartcc",
     [
