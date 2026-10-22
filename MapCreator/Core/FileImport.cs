@@ -104,7 +104,7 @@ namespace ATCRoom.Maps
         /// Reads a file (the lines of a text file, or the words of a PDF) with the importer of its kind, from its
         /// extension, else from its content. Kinds: IVAO geographic lines (.geo), FIX (.fix), VOR (.vor), NDB (.ndb),
         /// airports (.ap), VRP (.vfi), maps of an airport (.str: its MAPS groups), polygons (lartcc / hartcc), Aurora
-        /// map (.mva, T and L lines), EuroScope .ese, AIP table (PDF).
+        /// map (.mva, T and L lines), EuroScope .ese and .sct, AIP table (PDF).
         /// </summary>
         public static FileImport Read(string fileName, IReadOnlyList<string>? lines, IReadOnlyList<PdfWord>? words)
         {
@@ -124,6 +124,7 @@ namespace ATCRoom.Maps
                 case ".lartcc": case ".hartcc": case ".artcc": result = ImportPolygons(fileName, lines); break;
                 case ".mva": result = FromAurora(fileName, lines); break;
                 case ".ese": result = FromEuroScope(fileName, lines); break;
+                case ".sct": result = ImportSct(fileName, lines); break;
                 case ".json": result = ImportMapJson(fileName, lines); break;
                 default:
                     switch (Sniff(lines))
@@ -155,7 +156,7 @@ namespace ATCRoom.Maps
         private static FileImport Unknown(string fileName)
         {
             FileImport result = new() { FileName = fileName, FormatName = "not recognised" };
-            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
+            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese and .sct; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
             return result;
         }
 

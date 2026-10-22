@@ -406,6 +406,33 @@ string[] ese =
         && aspAtz.Lines[0].Points.All(p => Near(DistanceNM(38 + 59 / 60.0 + 48 / 3600.0, 17 + 4 / 60.0 + 45 / 3600.0, p[0], p[1]), 6, 0.02)),
         "AIP ATZ: circular area", aspAtz == null ? "no ATZ" : $"{aspAtz.Lines.Count} lines");
 
+    // EuroScope sector file .sct (VATSIM): navaids, fixes, airports, GEO segments joined by colour
+    string[] sctLines =
+    [
+        "; comment", "[INFO]", "vACC Italy", "[VOR]", "AEA  111.650 N040.38.17.401 E008.17.30.400", "AJO  114.800 N041.46.13.901 E008.46.28.800", "AJO  114.800 N041.46.13.900 E008.46.28.801",
+        "[NDB]", "ALG  341.000 N047.59.50.571 E010.15.43.880", "[FIXES]", "004   N047.23.03.300 E019.19.29.600 ; fix", "005   N047.24.52.198 E019.03.22.100",
+        "[AIRPORT]", "LIBC 000.000 N039.00.00.000 E017.04.00.000 D", "LIZZ 000.000 N039.10.00.000 E017.10.00.000 D",
+        "[RUNWAY]", "04  22  041 221 N035.19.31.378 E004.11.52.339 N035.20.24.619 E004.12.50.518 DAAD",
+        "[GEO]",
+        "LMML VFR sectors                         N035.51.27.151 E014.28.38.780 N036.04.05     E014.09.31     COLOR_Coastline",
+        "                                         N036.04.05     E014.09.31     N036.02.53     E014.48.53     COLOR_Coastline",
+        "                                         N035.00.00     E014.00.00     N035.10.00     E014.10.00     COLOR_Coastline",
+        "",
+        "LIAP Groundlayout                        N042.23.10.016 E013.18.31.671 N042.22.24.370 E013.18.33.548 COLOR_Taxiway"
+    ];
+    FileImport sct = MapImport.Read("LIXX.sct", sctLines, null);
+    ImportEntry? sctVor = sct.Entries.FirstOrDefault(e => e.Title.StartsWith("VOR"));
+    ImportEntry? sctFix = sct.Entries.FirstOrDefault(e => e.Title.StartsWith("Fixes"));
+    ImportEntry? sctAp = sct.Entries.FirstOrDefault(e => e.Title.StartsWith("Airports"));
+    ImportEntry? sctCoast = sct.Entries.FirstOrDefault(e => e.Title.Contains("Coastline"));
+    Check(sctVor != null && sctVor.Content.Points.Count == 2 && sctVor.Content.Points[0].Symbol == MapSymbol.Vor && Near(sctVor.Content.Points[0].Latitude, 40.6381, 1e-3)
+        && sct.Entries.Any(e => e.Title.StartsWith("NDB") && e.Content.Points.Count == 1 && e.Content.Points[0].Symbol == MapSymbol.Ndb)
+        && sctFix != null && sctFix.Content.Points.Count == 2 && sctAp != null && sctAp.Content.Points.Count == 1 && sctAp.Content.Points[0].Name == "LIBC",
+        ".sct: VOR (repeated point once), NDB, fixes, airports (ZZ skipped)", string.Join(",", sct.Entries.Select(e => e.Title + ":" + e.Content.Points.Count)));
+    Check(sctCoast != null && sctCoast.Suggested == MapCategory.Boundaries && sctCoast.Content.Lines.Count == 2 && sctCoast.Content.Lines[0].Points.Count == 3
+        && sctCoast.Content.Lines[0].Name == "LMML VFR sectors" && sct.Entries.Any(e => e.Title.Contains("Taxiway") && e.Content.Lines[0].Name == "LIAP Groundlayout"),
+        ".sct: GEO segments joined by colour, name of the group, the coast as boundaries", sctCoast == null ? "no coast" : string.Join(",", sctCoast.Content.Lines.Select(l => l.Name + ":" + l.Points.Count)));
+
     // lartcc: one part per ID, the name suggests the category
     FileImport art = MapImport.Read("libb_cs0_app.lartcc",
     [

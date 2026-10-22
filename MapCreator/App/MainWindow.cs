@@ -22,7 +22,7 @@ namespace ATCRoom.MapCreator
     {
         private static readonly HashSet<string> KnownExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".geo", ".fix", ".vor", ".ndb", ".ap", ".apt", ".vfi", ".str", ".mva", ".lartcc", ".hartcc", ".artcc", ".ese", ".pdf"
+            ".geo", ".fix", ".vor", ".ndb", ".ap", ".apt", ".vfi", ".str", ".mva", ".lartcc", ".hartcc", ".artcc", ".ese", ".sct", ".pdf"
         };
 
         private readonly Dictionary<string, FileImport> files = new(StringComparer.OrdinalIgnoreCase);
@@ -95,7 +95,7 @@ namespace ATCRoom.MapCreator
             dropText.Children.Add(new TextBlock { Text = "Drop the map files here (many at once, or a folder)", FontSize = 15, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
             dropText.Children.Add(new TextBlock
             {
-                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese · AIP table (PDF) · a map already made (.json)",
+                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese .sct · AIP table (PDF) · a map already made (.json)",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 HorizontalAlignment = HorizontalAlignment.Center
@@ -236,7 +236,7 @@ namespace ATCRoom.MapCreator
             {
                 Title = "Map files",
                 Multiselect = true,
-                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.pdf;*.txt;*.json|All files (*.*)|*.*"
+                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.sct;*.pdf;*.txt;*.json|All files (*.*)|*.*"
             };
             if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
         }
