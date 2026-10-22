@@ -323,6 +323,16 @@ string[] ese =
         && navPoints[2].Name == "AVI" && navPoints[2].Symbol == MapSymbol.Ndb && aipNav.Entries[0].Suggested == MapCategory.Navaids,
         "AIP ENR 4.1.1: aids by the place of the words (ID, name over several lines, type, first coordinate pair)", string.Join(",", navPoints.Select(p => p.Name + ":" + p.Symbol)));
 
+    // Arc of the AIP sent the long way round (Napoli, area 6000 SOUTH-WEST): 326° anti-clockwise from the first point to the second is turned
+    double[] napoli = [40.8841667, 14.2944444], napoliP1 = [40.4244444, 13.9383333], napoliP2 = [40.6533333, 13.6613889];
+    List<double[]> longArc = MapCoordinates.ArcChecked(napoli, 32, napoliP1, napoliP2, clockwise: false, out bool turned1);
+    List<double[]> shortArc = MapCoordinates.ArcChecked(napoli, 32, napoliP2, napoliP1, clockwise: false, out bool turned2);
+    double MiddleBearing(List<double[]> arc) => MapCoordinates.Bearing(napoli[0], napoli[1], arc[arc.Count / 2][0], arc[arc.Count / 2][1]);
+    Check(turned1 && !turned2 && longArc.Count > 10 && longArc.Count < 40 && Near(MiddleBearing(longArc), 227, 3) && Near(MiddleBearing(shortArc), 227, 3),
+        "AIP arc: more than 300° between two close points is turned the other way; the right arc is left as it is", $"{longArc.Count} points, middle {MiddleBearing(longArc):F0}°");
+    MapCoordinates.ArcChecked(napoli, 32, [40.8841667, 14.8], [40.8841667, 13.8], clockwise: true, out bool turned3);
+    Check(!turned3, "AIP arc: a half circle is not touched");
+
     // lartcc: one part per ID, the name suggests the category
     FileImport art = MapImport.Read("libb_cs0_app.lartcc",
     [

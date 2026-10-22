@@ -145,6 +145,20 @@ namespace ATCRoom.Maps
             return points;
         }
 
+        /// <summary>
+        /// The arc like <see cref="Arc"/>, but an arc that the text sends the long way round (more than 300° between two end
+        /// points less than 60° apart) is turned the other way: such an arc is an error of the AIP (a keyhole shape is
+        /// described as a circle, never as a long arc), as in the minimum altitudes of Napoli. <paramref name="reversed"/> tells it.
+        /// </summary>
+        public static List<double[]> ArcChecked(double[] centre, double radiusNM, double[] from, double[] to, bool clockwise, out bool reversed)
+        {
+            double start = Bearing(centre[0], centre[1], from[0], from[1]);
+            double end = Bearing(centre[0], centre[1], to[0], to[1]);
+            double declared = clockwise ? (end - start + 360) % 360 : (start - end + 360) % 360;
+            reversed = declared > 300 && declared < 355;
+            return Arc(centre, radiusNM, from, to, reversed ? !clockwise : clockwise);
+        }
+
         /// <summary>Centre of an area (centroid of the polygon; the mean of the points for a degenerate one).</summary>
         public static double[] Centroid(IReadOnlyList<double[]> points)
         {

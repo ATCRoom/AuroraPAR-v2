@@ -312,6 +312,7 @@ namespace ATCRoom.Maps
             (double[] Centre, double Radius, bool Clockwise, bool WaitingEnd)? arc = null;
             bool arcNeedsCentre = false;
             int arcs = 0;
+            HashSet<int> reversedAreas = [];
             foreach (var row in rows)
             {
                 if (split.TryGetValue(row.Page, out double s)) lastSplit = s;
@@ -356,8 +357,9 @@ namespace ATCRoom.Maps
                     {
                         if (area.Points.Count > 0)
                         {
-                            area.Points.AddRange(MapCoordinates.Arc(arc.Value.Centre, arc.Value.Radius, area.Points[^1], [lat, lon], arc.Value.Clockwise));
+                            area.Points.AddRange(MapCoordinates.ArcChecked(arc.Value.Centre, arc.Value.Radius, area.Points[^1], [lat, lon], arc.Value.Clockwise, out bool turned));
                             arcs++;
+                            if (turned) reversedAreas.Add(areas.Count);
                         }
                         arc = null;
                     }
@@ -371,6 +373,11 @@ namespace ATCRoom.Maps
                 var near = rightRows.Where(r => r.Page == page).OrderBy(r => Math.Abs(r.Y - y)).FirstOrDefault();
                 if (near.Page != page || near.Area < 0 || near.Area >= areas.Count) continue;
                 if (areas[near.Area].Altitude == null) areas[near.Area] = (areas[near.Area].Line, text);
+            }
+            if (reversedAreas.Count > 0)
+            {
+                string names = string.Join(", ", reversedAreas.Where(i => i - 1 >= 0 && i - 1 < areas.Count).Select(i => areas[i - 1].Altitude ?? $"area {i}"));
+                result.Notes.Add($"An arc of circle was turned the other way (the AIP text sends it more than 300° round, which is an error of the table): {names}. Check it on the picture.");
             }
             int unnamed = 0, open = 0;
             foreach ((MapLine line, string? altitude) in areas)
