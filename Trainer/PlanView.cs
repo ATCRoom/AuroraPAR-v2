@@ -7,8 +7,11 @@ using ATCRoom.Maps;
 
 namespace AuroraPAR
 {
-    /// <summary>A map shown on the RDR, with the colours chosen for it.</summary>
-    internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush);
+    /// <summary>
+    /// A map shown on the RDR, with the colours chosen for it: the lines and symbols are drawn when <paramref name="ShowShapes"/>,
+    /// the texts (and the names of the points) when <paramref name="ShowTexts"/>.
+    /// </summary>
+    internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush, bool ShowShapes = true, bool ShowTexts = true);
 
     /// <summary>
     /// Surveillance radar of the Trainer (RDR): plan view, north up, centred on the threshold of the runway in use.
@@ -67,6 +70,8 @@ namespace AuroraPAR
         public IReadOnlyList<Aircraft> Traffic { get; private set; } = [];
         /// <summary>The maps shown, under everything else.</summary>
         public IReadOnlyList<MapLayer> Layers { get; set; } = [];
+        /// <summary>ICAO codes of the airports the maps show with their names (their grey ICAO from runways.par is then not written twice).</summary>
+        public HashSet<string> MapAirports { get; set; } = [];
 
         /// <summary>A map placed on the plane of the view (NM east and north of the centre), kept until the centre or the maps change.</summary>
         private sealed record PlacedLayer(MapLayer Layer, Geometry Lines, List<(Vector At, MapLabel Label)> Labels, List<(Vector At, MapPoint Point)> Points);
@@ -207,37 +212,29 @@ namespace AuroraPAR
             Rect view = new(-40, -40, width + 80, height + 80);
             foreach (PlacedLayer layer in PlaceMaps(runway))
             {
-                dc.PushTransform(new MatrixTransform(scale, 0, 0, scale, centre.X, centre.Y));
-                dc.DrawGeometry(null, new Pen(layer.Layer.LineBrush, 1 / scale), layer.Lines);
-                dc.Pop();
-                foreach ((Vector at, MapLabel label) in layer.Labels)
+                if (layer.Layer.ShowShapes)
                 {
-                    Point p = new(centre.X + at.X * scale, centre.Y - at.Y * scale);
-                    if (!view.Contains(p)) continue;
-                    FormattedText text = new(label.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, label.Size + 3, layer.Layer.LabelBrush, pixelsPerDip);
-                    dc.DrawText(text, new Point(p.X - text.Width / 2, p.Y - text.Height / 2));
+                    dc.PushTransform(new MatrixTransform(scale, 0, 0, scale, centre.X, centre.Y));
+                    dc.DrawGeometry(null, new Pen(layer.Layer.LineBrush, 1 / scale), layer.Lines);
+                    dc.Pop();
                 }
+                if (layer.Layer.ShowTexts)
+                {
+                    foreach ((Vector at, MapLabel label) in layer.Labels)
+                    {
+                        Point p = new(centre.X + at.X * scale, centre.Y - at.Y * scale);
+                        if (!view.Contains(p)) continue;
+                        FormattedText text = new(label.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, label.Size + 3, layer.Layer.LabelBrush, pixelsPerDip);
+                        dc.DrawText(text, new Point(p.X - text.Width / 2, p.Y - text.Height / 2));
+                    }
+                }
+                Pen symbolPen = new(layer.Layer.LineBrush, 1);
                 foreach ((Vector at, MapPoint point) in layer.Points)
                 {
                     Point p = new(centre.X + at.X * scale, centre.Y - at.Y * scale);
                     if (!view.Contains(p)) continue;
-                    Pen symbolPen = new(layer.Layer.LabelBrush, 1);
-                    if (point.Symbol == MapSymbol.Airport)
-                    {
-                        dc.DrawEllipse(null, symbolPen, p, 4, 4);
-                    }
-                    else
-                    {
-                        StreamGeometry triangle = new();
-                        using (StreamGeometryContext context = triangle.Open())
-                        {
-                            context.BeginFigure(new Point(p.X, p.Y - 4.5), false, true);
-                            context.LineTo(new Point(p.X + 4, p.Y + 3), true, false);
-                            context.LineTo(new Point(p.X - 4, p.Y + 3), true, false);
-                        }
-                        dc.DrawGeometry(null, symbolPen, triangle);
-                    }
-                    if (point.Name.Length > 0)
+                    if (layer.Layer.ShowShapes) DrawSymbol(dc, point.Symbol, p, symbolPen);
+                    if (layer.Layer.ShowTexts && point.Name.Length > 0)
                     {
                         dc.DrawText(new FormattedText(point.Name, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, 11, layer.Layer.LabelBrush, pixelsPerDip),
                             new Point(p.X + 6, p.Y - 7));
@@ -258,7 +255,7 @@ namespace AuroraPAR
                     first ??= start;
                     dc.DrawLine(OtherRunwayPen, start, start + Direction(line.Heading) * Math.Max(2, line.LengthM / 1852 * scale));
                 }
-                if (first is Point at)
+                if (first is Point at && !MapAirports.Contains(airport.Key))
                 {
                     dc.DrawText(new FormattedText(airport.Key, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, 11, OtherAirportBrush, pixelsPerDip),
                         new Point(at.X + 6, at.Y + 4));
@@ -323,6 +320,68 @@ namespace AuroraPAR
             {
                 dc.DrawText(Text(SignText, 13, SignBrush, pixelsPerDip), new Point(8, 10 + info.Height));
             }
+        }
+
+        /// <summary>The symbol of a point of a map (about 9 pixels): FIX triangle, VRP square, airport circle, VOR hexagon, VORTAC hexagon with ticks, TACAN diamond, NDB circle with a dot.</summary>
+        private static void DrawSymbol(DrawingContext dc, MapSymbol symbol, Point p, Pen pen)
+        {
+            switch (symbol)
+            {
+                case MapSymbol.Airport:
+                    dc.DrawEllipse(null, pen, p, 4, 4);
+                    break;
+                case MapSymbol.Vrp:
+                    dc.DrawRectangle(null, pen, new Rect(p.X - 3.5, p.Y - 3.5, 7, 7));
+                    break;
+                case MapSymbol.Vor:
+                case MapSymbol.Vortac:
+                    Point[] corners = Hexagon(p, 5.5);
+                    ClosedShape(dc, pen, corners);
+                    dc.DrawEllipse(pen.Brush, null, p, 1.2, 1.2);
+                    if (symbol == MapSymbol.Vortac)
+                    {
+                        for (int i = 0; i < 6; i += 2)
+                        {
+                            Vector outward = corners[i] - p;
+                            outward.Normalize();
+                            dc.DrawLine(pen, corners[i], corners[i] + outward * 3.5);
+                        }
+                    }
+                    break;
+                case MapSymbol.Tacan:
+                    ClosedShape(dc, pen, [new Point(p.X, p.Y - 5.5), new Point(p.X + 5.5, p.Y), new Point(p.X, p.Y + 5.5), new Point(p.X - 5.5, p.Y)]);
+                    dc.DrawEllipse(pen.Brush, null, p, 1.2, 1.2);
+                    break;
+                case MapSymbol.Ndb:
+                    dc.DrawEllipse(null, pen, p, 4, 4);
+                    dc.DrawEllipse(pen.Brush, null, p, 1.2, 1.2);
+                    break;
+                default:
+                    ClosedShape(dc, pen, [new Point(p.X, p.Y - 4.5), new Point(p.X + 4, p.Y + 3), new Point(p.X - 4, p.Y + 3)]);
+                    break;
+            }
+        }
+
+        private static Point[] Hexagon(Point centre, double radius)
+        {
+            Point[] corners = new Point[6];
+            for (int i = 0; i < 6; i++)
+            {
+                double angle = (-90 + 60 * i) * Math.PI / 180;
+                corners[i] = new Point(centre.X + radius * Math.Cos(angle), centre.Y + radius * Math.Sin(angle));
+            }
+            return corners;
+        }
+
+        private static void ClosedShape(DrawingContext dc, Pen pen, Point[] corners)
+        {
+            StreamGeometry geometry = new();
+            using (StreamGeometryContext context = geometry.Open())
+            {
+                context.BeginFigure(corners[0], false, true);
+                for (int i = 1; i < corners.Length; i++) context.LineTo(corners[i], true, false);
+            }
+            dc.DrawGeometry(null, pen, geometry);
         }
 
         private static FormattedText Text(string text, double size, Brush brush, double pixelsPerDip) =>

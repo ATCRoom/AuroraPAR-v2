@@ -22,7 +22,16 @@ namespace ATCRoom.Maps
             if (hemisphere is not ('N' or 'S' or 'E' or 'W')) return false;
             string[] parts = t[1..].Split('.');
             double degrees;
-            if (parts.Length >= 3)
+            if (parts.Length == 1 && parts[0].Length == 10 && parts[0].All(char.IsAsciiDigit))
+            {
+                // Without dots: N0434857348 = N 043 48 57.348 (3 digits of degrees, minutes, seconds, thousandths).
+                int d = int.Parse(parts[0][..3], CultureInfo.InvariantCulture);
+                int m = int.Parse(parts[0][3..5], CultureInfo.InvariantCulture);
+                double s = int.Parse(parts[0][5..7], CultureInfo.InvariantCulture) + int.Parse(parts[0][7..], CultureInfo.InvariantCulture) / 1000.0;
+                if (m >= 60 || s >= 60) return false;
+                degrees = d + m / 60.0 + s / 3600.0;
+            }
+            else if (parts.Length >= 3)
             {
                 if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int d)) return false;
                 if (!int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int m) || m >= 60) return false;
@@ -39,6 +48,21 @@ namespace ATCRoom.Maps
             if (!double.IsFinite(degrees) || Math.Abs(degrees) > limit) return false;
             value = degrees;
             return true;
+        }
+
+        /// <summary>A coordinate as written in the sector files: with a hemisphere letter (any of the forms above) or plain decimal degrees ("41.00850773", negative south / west).</summary>
+        public static bool TryParseAny(string? text, out double value)
+        {
+            if (TryParseHemisphere(text, out value)) return true;
+            string t = (text ?? "").Trim();
+            if (t.Length > 0 && (char.IsAsciiDigit(t[0]) || t[0] == '-') && t.Contains('.')
+                && double.TryParse(t, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value)
+                && Math.Abs(value) <= 180)
+            {
+                return true;
+            }
+            value = double.NaN;
+            return false;
         }
 
         /// <summary>The coordinates written as in the AIP tables: 44°16'56" N 008°39'51" E (also with typographic quotes).</summary>

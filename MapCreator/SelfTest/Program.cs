@@ -176,6 +176,153 @@ string[] ese =
     Check(MapImport.ImportAipTable([new PdfWord(1, 10, 10, "Chart")]).Map.Lines.Count == 0, "AIP: a PDF without the table gives no area");
 }
 
+// --- IVAO files (.geo .fix .vor .ndb .ap .vfi .lartcc .str) ----------------------------------------------------------
+
+{
+    Check(MapCoordinates.TryParseAny("N0434857348", out double c1) && Near(c1, 43 + 48 / 60.0 + 57.348 / 3600, 1e-6), "Compact coordinate without dots", $"{c1:F6}");
+    Check(MapCoordinates.TryParseAny("45.5", out double c2) && Near(c2, 45.5, 1e-9), "Plain decimal degrees");
+
+    // .geo: segments that continue are joined; the tag COAST is suggested as boundaries
+    FileImport geo = MapImport.Read("itgeo.geo",
+    [
+        "// Coast A",
+        "N0440000000;E0080000000;N0441000000;E0080000000;COAST;",
+        "N0441000000;E0080000000;N0441000000;E0081000000;COAST;",
+        "",
+        "N0450000000;E0090000000;N0451000000;E0090000000;LAKE;",
+        "garbage"
+    ], null);
+    ImportEntry? coast = geo.Entries.FirstOrDefault(e => e.Title.StartsWith("Coast"));
+    Check(coast != null && coast.Content.Lines.Count == 1 && coast.Content.Lines[0].Points.Count == 3 && coast.Suggested == MapCategory.Boundaries,
+        ".geo: segments joined, COAST suggested as boundaries", coast == null ? "missing" : coast.Content.Summary);
+    Check(geo.Entries.Count == 2 && geo.Entries.Any(e => e.Title == "LAKE" && e.Suggested == null), ".geo: other tag separate and not suggested");
+    Check(geo.Notes.Any(n => n.Contains("not understood")), ".geo: bad row reported", string.Join(" | ", geo.Notes));
+
+    // .fix: terminal and both are FIX, en-route apart, hidden skipped, comments ignored
+    FileImport fix = MapImport.Read("itfix.fix",
+    [
+        "ABC;N045.00.00.000;E012.00.00.000;1;0;",
+        "DEF;N045.10.00.000;E012.00.00.000;2;0;HLD-DEF;",
+        "GHI;N045.20.00.000;E012.00.00.000;0;0;",
+        "JKL;N045.30.00.000;E012.00.00.000;3;0;",
+        "MNO;N045.40.00.000;E012.00.00.000;1;0; // comment"
+    ], null);
+    Check(fix.Entries.Count == 2 && fix.Entries[0].Content.Points.Count == 3 && fix.Entries[0].Suggested == MapCategory.Fix
+        && fix.Entries[1].Content.Points.Count == 1 && fix.Entries[1].Suggested == null, ".fix: terminal + both, en-route apart, hidden skipped",
+        string.Join(",", fix.Entries.Select(e => e.Content.Points.Count)));
+
+    // .vor and .ndb: symbols, hidden skipped, impossible seconds skipped and named
+    FileImport vor = MapImport.Read("itvor.vor",
+    [
+        "AAA;112.100;N045.00.00.000;E012.00.00.000;0;",
+        "BBB;113.200;N045.10.00.000;E012.00.00.000;0;2;45X;",
+        "CCC;114.300;N045.20.00.000;E012.00.00.000;0;3;50Y;",
+        "DDD;115.400;N045.30.00.000;E012.00.00.000;1;",
+        "KPT;116.500;N045.40.75.000;E012.00.00.000;0;"
+    ], null);
+    List<MapPoint> vp = vor.Entries[0].Content.Points;
+    Check(vp.Count == 3 && vp[0].Symbol == MapSymbol.Vor && vp[1].Symbol == MapSymbol.Vortac && vp[2].Symbol == MapSymbol.Tacan && vor.Entries[0].Suggested == MapCategory.Navaids,
+        ".vor: VOR, VORTAC, TACAN symbols; hidden and bad skipped", string.Join(",", vp.Select(p => p.Name + ":" + p.Symbol)));
+    Check(vor.Notes.Any(n => n.Contains("KPT")), ".vor: bad coordinates named in the notes", string.Join(" | ", vor.Notes));
+    FileImport ndb = MapImport.Read("itndb.ndb", ["NDB1;350;N045.00.00.000;E012.00.00.000;", "NDB2;360;N045.10.00.000;E012.00.00.000;1;"], null);
+    Check(ndb.Entries[0].Content.Points.Count == 1 && ndb.Entries[0].Content.Points[0].Symbol == MapSymbol.Ndb, ".ndb: one NDB, hidden skipped");
+
+    // .ap
+    FileImport ap = MapImport.Read("itap.ap",
+    [
+        "LIPX;100;5000;N045.00.00.000;E012.00.00.000;VERONA;",
+        "LIZZ;0;5000;N045.10.00.000;E012.00.00.000;AIR DEFENCE;",
+        "LIPY;10;5000;N045.20.00.000;E012.00.00.000;ANCONA;1;"
+    ], null);
+    Check(ap.Entries[0].Content.Points.Count == 1 && ap.Entries[0].Content.Points[0].Name == "LIPX" && ap.Entries[0].Content.Points[0].Description == "VERONA"
+        && ap.Entries[0].Suggested == MapCategory.Airports, ".ap: ICAO label, name as description, ZZ and hidden skipped", ap.Entries[0].Content.Summary);
+
+    // .vfi (airport from the file name)
+    FileImport vrp = MapImport.Read("libc.vfi", ["PONTE ROSSO;ROS;N045.00.00.000;E012.00.00.000;", "LAGO;1500;N045.10.00.000;E012.00.00.000;"], null);
+    Check(vrp.Entries[0].Content.Points.Count == 2 && vrp.Entries[0].Content.Points[0].Name == "ROS" && vrp.Entries[0].Content.Points[0].Description == "PONTE ROSSO"
+        && vrp.Entries[0].Content.Points[1].Name == "LAGO" && vrp.Airport == "LIBC", ".vfi: code as label, altitude form, airport from the name");
+
+    // lartcc: one part per ID, the name suggests the category
+    FileImport art = MapImport.Read("libb_cs0_app.lartcc",
+    [
+        "T;LIBB CTR;N045.00.00.000;E012.00.00.000;",
+        "T;LIBB CTR;N045.10.00.000;E012.00.00.000;",
+        "T;LIBB CTR;N045.10.00.000;E012.10.00.000;",
+        "T;LIBB CTR;N045.00.00.000;E012.00.00.000;",
+        "",
+        "T;SECTOR 1;N046.00.00.000;E013.00.00.000;",
+        "T;SECTOR 1;N046.10.00.000;E013.00.00.000;",
+        "T;SECTOR 1;N046.10.00.000;E013.10.00.000;"
+    ], null);
+    Check(art.Entries.Count == 2 && art.Entries[0].Suggested == MapCategory.Ctr && art.Entries[1].Suggested == null
+        && art.Entries[0].Content.Labels.Count == 1, "lartcc: one part per ID, CTR suggested by name, label at the centre");
+
+    // .str: only MAPS groups, CTR + ATZ by name, procedures skipped, inline comments ignored
+    FileImport str = MapImport.Read("libf.str",
+    [
+        "LIBF;MAPS;CTR LIBF; ; ;1;",
+        "N045.00.00.000;E012.00.00.000; // start",
+        "N045.10.00.000;E012.00.00.000;",
+        "N045.10.00.000;E012.10.00.000;",
+        "N045.00.00.000;E012.00.00.000;",
+        "N046.00.00.000;E013.00.00.000;<br>",
+        "N046.10.00.000;E013.00.00.000;",
+        "N046.10.00.000;E013.10.00.000;",
+        "N046.00.00.000;E013.00.00.000;",
+        "LIBF;MAPS;ATZ LIBF; ; ;5;",
+        "45.0;12.0;",
+        "45.05;12.0;",
+        "45.05;12.05;",
+        "45.0;12.0;",
+        "LIBF;MAPS;STAR LOW 29R; ; ;3;",
+        "ABC;ABC;",
+        "DEF;DEF;",
+        "LIBF;STAR;SOMETHING; ; ;3;",
+        "N045.00.00.000;E012.00.00.000;"
+    ], null);
+    ImportEntry? ctr = str.Entries.FirstOrDefault(e => e.Title == "CTR LIBF");
+    Check(ctr != null && ctr.Content.Lines.Count == 2 && ctr.Suggested == MapCategory.Ctr, ".str: CTR group, two zones from <br>", ctr == null ? "missing" : ctr.Content.Summary);
+    ImportEntry? atz = str.Entries.FirstOrDefault(e => e.Title == "ATZ LIBF");
+    Check(atz != null && atz.Content.Lines.Count == 1 && atz.Suggested == MapCategory.Atz, ".str: ATZ group with decimal coordinates");
+    Check(str.Entries.Count == 2 && str.Airport == "LIBF", ".str: STAR group (names of points) and non-MAPS groups skipped, airport from the header",
+        string.Join(",", str.Entries.Select(e => e.Title)));
+
+    // unknown
+    Check(MapImport.Read("x.txt", ["hello"], null).Entries.Count == 0, "Unknown file gives no part");
+}
+
+// --- Categories, cut, file version 2 ---------------------------------------------------------------------------------
+
+{
+    MapFile map = new() { Airport = "lipx" };
+    FileImport fixes = MapImport.Read("a.fix", ["NEAR;N045.00.00.000;E012.00.00.000;1;0;", "FAR;N047.00.00.000;E012.00.00.000;1;0;"], null);
+    map.AddAs(fixes.Entries[0].Content, MapCategory.Fix);
+    map.AddAs(new MapFile { Lines = [new MapLine { Name = "L", Points = [[44.9, 12.0], [45.1, 12.0], [47.0, 12.0]] }], Labels = [new MapLabel { Text = "T", Latitude = 45.0, Longitude = 12.01 }] }, MapCategory.Mva);
+    map.Sources[MapCategory.Fix] = "test";
+    map.Normalize();
+    Check(map.UsedCategories().SequenceEqual([MapCategory.Mva, MapCategory.Fix]) || map.UsedCategories().ToHashSet().SetEquals([MapCategory.Mva, MapCategory.Fix]),
+        "Categories used", string.Join(",", map.UsedCategories()));
+    MapFile cut = MapCut.CutCircle(map, 45.0, 12.0, 10);
+    Check(cut.Points.Count == 1 && cut.Points[0].Name == "NEAR" && cut.Labels.Count == 1, "Cut: points and labels outside dropped");
+    Check(cut.Lines.Count == 1 && cut.Lines[0].Points.Count >= 2 && cut.Lines[0].Points.All(p => DistanceNM(45.0, 12.0, p[0], p[1]) <= 10.05) && cut.Lines[0].Category == MapCategory.Mva,
+        "Cut: line clipped at the circle, category kept", cut.Summary);
+    Check(cut.Airport == "LIPX", "Airport in capitals");
+
+    string folder = Path.Combine(Path.GetTempPath(), "atcroom-maps-selftest2-" + Guid.NewGuid().ToString("N"));
+    string path = Path.Combine(folder, "LIPX.json");
+    cut.Sources[MapCategory.Fix] = "test";
+    cut.Save(path);
+    MapFile back = MapFile.Load(path);
+    Check(back.FormatVersion == 2 && back.Airport == "LIPX" && back.Points.Count == 1 && back.Sources.ContainsKey(MapCategory.Fix), "File v2: airport, categories and sources kept");
+    MapFile other = new() { Airport = "LIPX" };
+    other.AddAs(new MapFile { Points = [new MapPoint { Name = "ZZZ", Latitude = 45, Longitude = 12, Symbol = MapSymbol.Vrp }] }, MapCategory.Vrp);
+    back.RemoveCategories([MapCategory.Fix]);
+    back.Merge(other);
+    Check(back.Points.Count == 1 && back.Points[0].Category == MapCategory.Vrp && !back.Sources.ContainsKey(MapCategory.Fix) && back.OfCategory(MapCategory.Mva).Lines.Count == 1,
+        "Merge: a category replaced, the others kept");
+    try { Directory.Delete(folder, true); } catch (Exception) { }
+}
+
 // --- File ----------------------------------------------------------------------------------------------------------
 
 {

@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- ATCRoom Map Creator: converts map files of other formats (Aurora, EuroScope .ese, AIP tables in PDF) into the
-       open ATCRoom map format read by AuroraPAR v2 Trainer. A window with drag & drop; no settings. -->
+  <!-- ATCRoom Map Creator: converts map files of other formats (IVAO sector files, EuroScope .ese, AIP tables in PDF) into the
+       open ATCRoom map format read by AuroraPAR v2 Trainer: many files at once, one picture, categories, a cut around an
+       airport, one map file per airport. A window with drag & drop; no settings. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
@@ -12,7 +13,7 @@
     <RootNamespace>ATCRoom.MapCreator</RootNamespace>
     <ApplicationIcon>..\..\AuroraPAR.ico</ApplicationIcon>
     <!-- Version of the Map Creator, shown in the title bar. -->
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

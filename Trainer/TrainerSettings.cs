@@ -19,6 +19,8 @@ namespace AuroraPAR
         public WindowPlacement? RadarWindow { get; set; }
         /// <summary>Maps of the RDR, by file name in the Maps folder: shown or not, and the colours chosen (null: the file's).</summary>
         public Dictionary<string, MapDisplaySettings> Maps { get; set; } = [];
+        /// <summary>Maps of an airport (files of version 2): for each airport (ICAO) and category, what is shown and the colours chosen.</summary>
+        public Dictionary<string, Dictionary<string, CategoryDisplaySettings>> AirportMaps { get; set; } = [];
         /// <summary>QNH typed by hand while Aurora is not connected (hPa), used again at the next start; null: none.</summary>
         public int? ManualQnh { get; set; }
 
@@ -29,6 +31,20 @@ namespace AuroraPAR
             foreach (string key in Maps.Keys.ToList())
             {
                 if (Maps[key] == null) Maps.Remove(key);
+            }
+            AirportMaps ??= [];
+            foreach (string airport in AirportMaps.Keys.ToList())
+            {
+                Dictionary<string, CategoryDisplaySettings>? categories = AirportMaps[airport];
+                if (categories == null)
+                {
+                    AirportMaps.Remove(airport);
+                    continue;
+                }
+                foreach (string category in categories.Keys.ToList())
+                {
+                    if (categories[category] == null) categories.Remove(category);
+                }
             }
             if (ManualQnh is int q && (q < 850 || q > 1090)) ManualQnh = null;
         }
@@ -44,12 +60,42 @@ namespace AuroraPAR
             return display;
         }
 
+        /// <summary>The settings of a category of the maps of an airport (created when it is new: the defaults of the category).</summary>
+        public CategoryDisplaySettings CategoryDisplay(string airport, string category)
+        {
+            string key = (airport ?? "").ToUpperInvariant();
+            if (!AirportMaps.TryGetValue(key, out Dictionary<string, CategoryDisplaySettings>? categories) || categories == null)
+            {
+                categories = [];
+                AirportMaps[key] = categories;
+            }
+            if (!categories.TryGetValue(category, out CategoryDisplaySettings? display) || display == null)
+            {
+                display = new CategoryDisplaySettings();
+                categories[category] = display;
+            }
+            return display;
+        }
+
         /// <summary>The range of the list closest to a value (the default for a value that is not a number).</summary>
         public static double NearestRange(double range)
         {
             if (!double.IsFinite(range) || range <= 0) return DefaultRadarRange;
             return RadarRanges.OrderBy(r => Math.Abs(r - range)).First();
         }
+    }
+
+    /// <summary>How a category of the maps of an airport is shown on the RDR; null: the default of the category.</summary>
+    internal sealed class CategoryDisplaySettings
+    {
+        /// <summary>Lines and symbols shown.</summary>
+        public bool? Shapes { get; set; }
+        /// <summary>Labels (texts, names of points) shown.</summary>
+        public bool? Labels { get; set; }
+        /// <summary>Colour of the lines and symbols (#RRGGBB).</summary>
+        public string? ShapeColour { get; set; }
+        /// <summary>Colour of the labels (#RRGGBB); null: the colour of the lines and symbols.</summary>
+        public string? LabelColour { get; set; }
     }
 
     /// <summary>How a map is shown on the RDR.</summary>

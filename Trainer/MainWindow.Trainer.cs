@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ATCRoom.Maps;
 
 namespace AuroraPAR
 {
@@ -137,24 +138,55 @@ namespace AuroraPAR
             return maps;
         }
 
-        /// <summary>The maps shown on the RDR, with their colours (chosen in the Maps window, else those of the file).</summary>
+        /// <summary>The airport (ICAO) whose maps are on the RDR.</summary>
+        private string mapAirport = "";
+
+        private static SolidColorBrush FrozenBrush(Color colour)
+        {
+            SolidColorBrush brush = new(colour);
+            brush.Freeze();
+            return brush;
+        }
+
+        /// <summary>
+        /// The maps shown on the RDR: for the airport in use, each category with the choices made in the Maps window (else its
+        /// defaults); the maps of the old kind (no airport) as before.
+        /// </summary>
         private void ApplyMapLayers()
         {
             if (radarPanel == null) return;
+            string icao = (runway?.ICAO ?? "").Trim().ToUpperInvariant();
+            mapAirport = icao;
             List<MapLayer> layers = [];
+            HashSet<string> airports = new(StringComparer.OrdinalIgnoreCase);
             foreach (LoadedMap map in maps.Maps)
             {
-                MapDisplaySettings display = settings.Trainer.MapDisplay(map.FileName);
-                if (!display.Visible) continue;
-                Color line = ColorText.Parse(display.LineColour ?? map.Map.LineColour, Color.FromRgb(0x2F, 0x6F, 0x86));
-                Color label = ColorText.Parse(display.LabelColour ?? map.Map.LabelColour, line);
-                SolidColorBrush lineBrush = new(line);
-                lineBrush.Freeze();
-                SolidColorBrush labelBrush = new(label);
-                labelBrush.Freeze();
-                layers.Add(new MapLayer(map.Map, lineBrush, labelBrush));
+                if (map.Map.Airport.Length == 0)
+                {
+                    MapDisplaySettings display = settings.Trainer.MapDisplay(map.FileName);
+                    if (!display.Visible) continue;
+                    Color line = ColorText.Parse(display.LineColour ?? map.Map.LineColour, Color.FromRgb(0x2F, 0x6F, 0x86));
+                    Color label = ColorText.Parse(display.LabelColour ?? map.Map.LabelColour, line);
+                    layers.Add(new MapLayer(map.Map, FrozenBrush(line), FrozenBrush(label)));
+                    continue;
+                }
+                if (icao.Length == 0 || !string.Equals(map.Map.Airport, icao, StringComparison.OrdinalIgnoreCase)) continue;
+                foreach (MapCategoryInfo category in MapCategory.All)
+                {
+                    MapFile part = map.Map.OfCategory(category.Id);
+                    if (part.Lines.Count == 0 && part.Labels.Count == 0 && part.Points.Count == 0) continue;
+                    CategoryDisplaySettings display = settings.Trainer.CategoryDisplay(icao, category.Id);
+                    bool shapes = display.Shapes ?? category.ShapesOn;
+                    bool texts = category.HasLabels && (display.Labels ?? category.LabelsOn);
+                    if (!shapes && !texts) continue;
+                    Color line = ColorText.Parse(display.ShapeColour ?? category.DefaultColour, Color.FromRgb(0x2F, 0x6F, 0x86));
+                    Color label = ColorText.Parse(display.LabelColour ?? display.ShapeColour ?? category.DefaultColour, line);
+                    layers.Add(new MapLayer(part, FrozenBrush(line), FrozenBrush(label), shapes, texts));
+                    if (category.Id == MapCategory.Airports) foreach (MapPoint point in part.Points) airports.Add(point.Name);
+                }
             }
             radarPanel.View.Layers = layers;
+            radarPanel.View.MapAirports = airports;
             RefreshRadar();
         }
 
@@ -165,7 +197,7 @@ namespace AuroraPAR
                 mapsWindow.Activate();
                 return;
             }
-            MapsWindow window = new(settings.Trainer, maps, LoadMaps, () =>
+            MapsWindow window = new(settings.Trainer, () => maps, LoadMaps, () => mapAirport, () =>
             {
                 ApplyMapLayers();
                 SettingsStore.Save(settings);
@@ -356,6 +388,14 @@ namespace AuroraPAR
         private void RefreshRadar()
         {
             if (radarPanel == null) return;
+            string icao = (runway?.ICAO ?? "").Trim().ToUpperInvariant();
+            if (icao != mapAirport)
+            {
+                // Another airport: its maps (ApplyMapLayers sets mapAirport first, so this does not repeat).
+                ApplyMapLayers();
+                mapsWindow?.Refresh();
+                return;
+            }
             PlanView view = radarPanel.View;
             Profile profile = settings.Active;
             bool qfe = profile.PressureReference == PressureReference.QFE;
