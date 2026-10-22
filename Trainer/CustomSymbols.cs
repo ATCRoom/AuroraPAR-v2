@@ -11,7 +11,7 @@ namespace AuroraPAR
     /// A shape of a custom symbol, in pixels from the point (x to the right, y down; about -5 to 5): a "line" (a list of points),
     /// a "polygon" (closed; "fill": true fills it) or a "circle" ([x, y, radius]; "fill" too).
     /// </summary>
-    internal sealed class SymbolShape
+    internal sealed class CustomSymbolShape
     {
         [JsonPropertyName("line")] public double[][]? Line { get; set; }
         [JsonPropertyName("polygon")] public double[][]? Polygon { get; set; }
@@ -22,7 +22,7 @@ namespace AuroraPAR
     internal sealed class CustomSymbol
     {
         [JsonPropertyName("name")] public string Name { get; set; } = "";
-        [JsonPropertyName("shapes")] public List<SymbolShape> Shapes { get; set; } = [];
+        [JsonPropertyName("shapes")] public List<CustomSymbolShape> Shapes { get; set; } = [];
     }
 
     internal sealed class SymbolsFile
@@ -72,7 +72,7 @@ namespace AuroraPAR
 
         public static void Draw(DrawingContext dc, CustomSymbol symbol, Point p, Pen pen)
         {
-            foreach (SymbolShape shape in symbol.Shapes)
+            foreach (CustomSymbolShape shape in symbol.Shapes)
             {
                 if (shape.Circle is { Length: >= 3 } c)
                 {
@@ -100,12 +100,12 @@ namespace AuroraPAR
                 Description = "Symbols for the points of the maps. Each symbol: a name and shapes drawn in pixels from the point (x right, y down, about -5 to 5). Shapes: \"line\": [[x,y],...], \"polygon\": [[x,y],...] (closed), \"circle\": [x,y,radius]; \"fill\": true fills a polygon or a circle. Add a symbol = add an entry, then Reload in RDR > Maps.",
                 Symbols =
                 [
-                    new CustomSymbol { Name = "Plus", Shapes = [new SymbolShape { Line = P([-4, 0], [4, 0]) }, new SymbolShape { Line = P([0, -4], [0, 4]) }] },
-                    new CustomSymbol { Name = "Cross", Shapes = [new SymbolShape { Line = P([-3.5, -3.5], [3.5, 3.5]) }, new SymbolShape { Line = P([-3.5, 3.5], [3.5, -3.5]) }] },
-                    new CustomSymbol { Name = "Triangle filled", Shapes = [new SymbolShape { Polygon = P([0, -4.5], [4, 3], [-4, 3]), Fill = true }] },
-                    new CustomSymbol { Name = "Square filled", Shapes = [new SymbolShape { Polygon = P([-3.5, -3.5], [3.5, -3.5], [3.5, 3.5], [-3.5, 3.5]), Fill = true }] },
-                    new CustomSymbol { Name = "Triangle down", Shapes = [new SymbolShape { Polygon = P([0, 4.5], [4, -3], [-4, -3]) }] },
-                    new CustomSymbol { Name = "Triangle down filled", Shapes = [new SymbolShape { Polygon = P([0, 4.5], [4, -3], [-4, -3]), Fill = true }] }
+                    new CustomSymbol { Name = "Plus", Shapes = [new CustomSymbolShape { Line = P([-4, 0], [4, 0]) }, new CustomSymbolShape { Line = P([0, -4], [0, 4]) }] },
+                    new CustomSymbol { Name = "Cross", Shapes = [new CustomSymbolShape { Line = P([-3.5, -3.5], [3.5, 3.5]) }, new CustomSymbolShape { Line = P([-3.5, 3.5], [3.5, -3.5]) }] },
+                    new CustomSymbol { Name = "Triangle filled", Shapes = [new CustomSymbolShape { Polygon = P([0, -4.5], [4, 3], [-4, 3]), Fill = true }] },
+                    new CustomSymbol { Name = "Square filled", Shapes = [new CustomSymbolShape { Polygon = P([-3.5, -3.5], [3.5, -3.5], [3.5, 3.5], [-3.5, 3.5]), Fill = true }] },
+                    new CustomSymbol { Name = "Triangle down", Shapes = [new CustomSymbolShape { Polygon = P([0, 4.5], [4, -3], [-4, -3]) }] },
+                    new CustomSymbol { Name = "Triangle down filled", Shapes = [new CustomSymbolShape { Polygon = P([0, 4.5], [4, -3], [-4, -3]), Fill = true }] }
                 ]
             };
         }
