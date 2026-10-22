@@ -19,9 +19,9 @@ namespace ATCRoom.MapCreator
 
         public MapPoint Point { get; }
 
-        /// <summary>Text of the row: the name, the group (airport) and the long name when there is one.</summary>
+        /// <summary>Text of the row: the name, the group (airport) and the long name when there is one (a check box shows "_" as a key, so it is doubled).</summary>
         public string Label =>
-            Point.Name + (Point.Group.Length > 0 ? $"   [{Point.Group}]" : "") + (Point.Description.Length > 0 ? $"   {Point.Description}" : "");
+            (Point.Name + (Point.Group.Length > 0 ? $"   [{Point.Group}]" : "") + (Point.Description.Length > 0 ? $"   {Point.Description}" : "")).Replace("_", "__");
 
         public bool IsShown
         {

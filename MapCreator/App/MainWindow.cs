@@ -31,6 +31,8 @@ namespace ATCRoom.MapCreator
         private readonly TextBox airportBox = new() { Width = 80, MaxLength = 4, CharacterCasing = CharacterCasing.Upper, Padding = new Thickness(2), HorizontalAlignment = HorizontalAlignment.Left };
         private readonly CheckBox cutBox = new() { Content = "Keep only what is inside a circle", Margin = new Thickness(0, 6, 0, 0) };
         private readonly ComboBox centreBox = new() { Width = 190 };
+        /// <summary>The "Choose points" windows that are open, one for each part.</summary>
+        private readonly Dictionary<ImportEntry, PointsWindow> pointWindows = [];
         private readonly TextBox radiusBox = new() { Text = "60", Width = 52, Padding = new Thickness(2), Margin = new Thickness(0, 0, 4, 0) };
         private readonly TextBlock cutText = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0), Foreground = Brushes.DimGray, FontSize = 12 };
         private readonly TextBox sourceBox = new() { Margin = new Thickness(0, 2, 0, 0), Padding = new Thickness(2) };
@@ -300,6 +302,9 @@ namespace ATCRoom.MapCreator
         /// <summary>The list of the parts found, the notes and the picture, from the files read.</summary>
         private void Rebuild(bool refit)
         {
+            // A "Choose points" window of a part that is gone (files cleared or read again) is closed.
+            HashSet<ImportEntry> current = files.Values.SelectMany(f => f.Entries).ToHashSet();
+            foreach (PointsWindow stale in pointWindows.Where(w => !current.Contains(w.Key)).Select(w => w.Value).ToList()) stale.Close();
             entriesPanel.Children.Clear();
             foreach (FileImport file in files.Values)
             {
@@ -350,6 +355,12 @@ namespace ATCRoom.MapCreator
                 };
                 choose.Click += (s, e) =>
                 {
+                    // One window for a part: a second click brings the first one to the front.
+                    if (pointWindows.TryGetValue(entry, out PointsWindow? open))
+                    {
+                        open.Activate();
+                        return;
+                    }
                     PointsWindow window = new(entry, () =>
                     {
                         ShowSummary();
@@ -358,6 +369,8 @@ namespace ATCRoom.MapCreator
                     {
                         Owner = this
                     };
+                    pointWindows[entry] = window;
+                    window.Closed += (s2, e2) => pointWindows.Remove(entry);
                     window.Show();
                 };
                 text.Children.Add(choose);
