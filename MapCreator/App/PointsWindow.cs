@@ -10,18 +10,24 @@ namespace ATCRoom.MapCreator
     internal sealed class PointRow : INotifyPropertyChanged
     {
         private bool isShown;
+        private readonly ImportEntry entry;
 
-        public PointRow(MapPoint point, bool isShown)
+        public PointRow(ImportEntry entry, MapPoint point, bool isShown)
         {
+            this.entry = entry;
             Point = point;
             this.isShown = isShown;
         }
+
+        /// <summary>The name was changed: the text of the row is read again.</summary>
+        public void Refresh() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
 
         public MapPoint Point { get; }
 
         /// <summary>Text of the row: the name, the group (airport) and the long name when there is one (a check box shows "_" as a key, so it is doubled).</summary>
         public string Label =>
-            (Point.Name + (Point.Group.Length > 0 ? $"   [{Point.Group}]" : "") + (Point.Description.Length > 0 ? $"   {Point.Description}" : "")).Replace("_", "__");
+            (Point.Name + (entry.OriginalNames.TryGetValue(Point, out string? original) ? $"   (was {original})" : "")
+                + (Point.Group.Length > 0 ? $"   [{Point.Group}]" : "") + (Point.Description.Length > 0 ? $"   {Point.Description}" : "")).Replace("_", "__");
 
         public bool IsShown
         {
@@ -54,6 +60,8 @@ namespace ATCRoom.MapCreator
         private readonly ListBox list = new();
         private readonly TextBlock countText = new() { Margin = new Thickness(0, 8, 0, 0), Foreground = System.Windows.Media.Brushes.DimGray };
         private bool bulk;
+        private readonly TextBox prefixBox = new() { Width = 70, Margin = new Thickness(0, 0, 4, 0), ToolTip = "A prefix to take away from the names, for example PI-" };
+        private readonly Button renameButton = new() { Content = "Rename selected...", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 12, 0), IsEnabled = false };
 
         /// <param name="entry">The part: its points are listed.</param>
         /// <param name="changed">A point was switched on or off: redraw the picture and the numbers.</param>
@@ -61,7 +69,7 @@ namespace ATCRoom.MapCreator
         {
             this.entry = entry;
             this.changed = changed;
-            rows = entry.Content.Points.Select(p => new PointRow(p, !entry.Excluded.Contains(p))).ToList();
+            rows = entry.Content.Points.Select(p => new PointRow(entry, p, !entry.Excluded.Contains(p))).ToList();
             foreach (PointRow row in rows) row.PropertyChanged += (s, e) => OnRowChanged(row);
 
             Title = $"Choose points: {entry.Title}";
@@ -89,9 +97,25 @@ namespace ATCRoom.MapCreator
             DockPanel.SetDock(top, Dock.Top);
             root.Children.Add(top);
 
+            WrapPanel rename = new() { Margin = new Thickness(0, 0, 0, 8) };
+            renameButton.Click += (s, e) => RenameSelected();
+            Button removePrefix = new() { Content = "Remove prefix", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 6, 0) };
+            removePrefix.Click += (s, e) => RenameVisible(name => RemovePrefix(name, prefixBox.Text.Trim()));
+            Button removeHyphen = new() { Content = "Remove up to the hyphen", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 0, 6, 0), ToolTip = "PI-RULFE becomes RULFE: everything up to the first hyphen goes." };
+            removeHyphen.Click += (s, e) => RenameVisible(RemoveUpToHyphen);
+            Button restore = new() { Content = "Restore names", Padding = new Thickness(8, 1, 8, 1) };
+            restore.Click += (s, e) => RestoreVisible();
+            rename.Children.Add(renameButton);
+            rename.Children.Add(prefixBox);
+            rename.Children.Add(removePrefix);
+            rename.Children.Add(removeHyphen);
+            rename.Children.Add(restore);
+            DockPanel.SetDock(rename, Dock.Top);
+            root.Children.Add(rename);
+
             TextBlock help = new()
             {
-                Text = "Show all / Hide all act on the points in the list below: type a name (or the start of it) and choose a group to narrow it down.",
+                Text = "Show all / Hide all and the renaming keys act on the points in the list below: type a name (or the start of it) and choose a group to narrow it down.",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = System.Windows.Media.Brushes.DimGray,
                 FontSize = 11,
@@ -110,7 +134,7 @@ namespace ATCRoom.MapCreator
             DataTemplate template = new();
             FrameworkElementFactory box = new(typeof(CheckBox));
             box.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(PointRow.IsShown)) { Mode = BindingMode.TwoWay });
-            box.SetBinding(ContentControl.ContentProperty, new Binding(nameof(PointRow.Label)) { Mode = BindingMode.OneTime });
+            box.SetBinding(ContentControl.ContentProperty, new Binding(nameof(PointRow.Label)) { Mode = BindingMode.OneWay });
             box.SetValue(FrameworkElement.MarginProperty, new Thickness(2));
             template.VisualTree = box;
             list.ItemTemplate = template;
@@ -125,6 +149,7 @@ namespace ATCRoom.MapCreator
             }
             groupBox.SelectedIndex = 0;
             groupBox.Visibility = groupBox.Items.Count > 2 ? Visibility.Visible : Visibility.Collapsed;
+            list.SelectionChanged += (s, e) => renameButton.IsEnabled = list.SelectedItem is PointRow;
             searchBox.TextChanged += (s, e) => Refill();
             groupBox.SelectionChanged += (s, e) => Refill();
             Refill();
@@ -149,7 +174,8 @@ namespace ATCRoom.MapCreator
         private void UpdateCount()
         {
             int shown = rows.Count(r => r.IsShown);
-            countText.Text = $"{shown} of {rows.Count} points shown";
+            int twice = rows.Where(r => r.IsShown).GroupBy(r => r.Point.Name, StringComparer.OrdinalIgnoreCase).Count(g => g.Count() > 1);
+            countText.Text = $"{shown} of {rows.Count} points shown" + (twice > 0 ? $"   ·   {twice} name{(twice == 1 ? " is" : "s are")} used by more than one point" : "");
         }
 
         private void OnRowChanged(PointRow row)
@@ -159,6 +185,99 @@ namespace ATCRoom.MapCreator
             if (bulk) return;
             UpdateCount();
             changed();
+        }
+
+        /// <summary>A new name for a point (the name it had in the file is kept, to restore it).</summary>
+        private void SetName(PointRow row, string newName)
+        {
+            string name = newName.Trim();
+            if (name.Length == 0 || name == row.Point.Name) return;
+            if (!entry.OriginalNames.ContainsKey(row.Point)) entry.OriginalNames[row.Point] = row.Point.Name;
+            row.Point.Name = name;
+            if (entry.OriginalNames[row.Point] == name) entry.OriginalNames.Remove(row.Point);
+            row.Refresh();
+        }
+
+        private void RenameSelected()
+        {
+            if (list.SelectedItem is not PointRow row) return;
+            string? name = AskName(this, row.Point.Name);
+            if (name == null) return;
+            SetName(row, name);
+            UpdateCount();
+            changed();
+        }
+
+        /// <summary>The new name of every point in the list (null: leave it as it is).</summary>
+        private void RenameVisible(Func<string, string?> rule)
+        {
+            foreach (PointRow row in VisibleRows())
+            {
+                string? name = rule(row.Point.Name);
+                if (name != null) SetName(row, name);
+            }
+            UpdateCount();
+            changed();
+        }
+
+        private static string? RemovePrefix(string name, string prefix) =>
+            prefix.Length > 0 && name.Length > prefix.Length && name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? name[prefix.Length..] : null;
+
+        private static string? RemoveUpToHyphen(string name)
+        {
+            int hyphen = name.IndexOf('-');
+            return hyphen >= 0 && hyphen < name.Length - 1 ? name[(hyphen + 1)..] : null;
+        }
+
+        private void RestoreVisible()
+        {
+            foreach (PointRow row in VisibleRows())
+            {
+                if (!entry.OriginalNames.TryGetValue(row.Point, out string? original)) continue;
+                row.Point.Name = original;
+                entry.OriginalNames.Remove(row.Point);
+                row.Refresh();
+            }
+            UpdateCount();
+            changed();
+        }
+
+        /// <summary>A small window to type a name; null when cancelled.</summary>
+        private static string? AskName(Window owner, string current)
+        {
+            Window window = new()
+            {
+                Title = "Rename point",
+                Width = 340,
+                SizeToContent = SizeToContent.Height,
+                ResizeMode = ResizeMode.NoResize,
+                ShowInTaskbar = false,
+                Owner = owner,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            StackPanel panel = new() { Margin = new Thickness(12) };
+            TextBox box = new() { Text = current, Margin = new Thickness(0, 0, 0, 10) };
+            string? result = null;
+            Button ok = new() { Content = "OK", IsDefault = true, Padding = new Thickness(16, 3, 16, 3), Margin = new Thickness(0, 0, 6, 0) };
+            ok.Click += (s, e) =>
+            {
+                result = box.Text;
+                window.DialogResult = true;
+            };
+            Button cancel = new() { Content = "Cancel", IsCancel = true, Padding = new Thickness(12, 3, 12, 3) };
+            StackPanel buttons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            buttons.Children.Add(ok);
+            buttons.Children.Add(cancel);
+            panel.Children.Add(box);
+            panel.Children.Add(buttons);
+            window.Content = panel;
+            window.Loaded += (s, e) =>
+            {
+                box.Focus();
+                box.SelectAll();
+            };
+            window.ShowDialog();
+            return result;
         }
 
         private void SetVisibleRows(bool shown)

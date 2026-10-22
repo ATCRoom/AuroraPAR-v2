@@ -221,6 +221,13 @@ string[] ese =
     ImportEntry chosen = fix.Entries[2];
     chosen.Excluded.Add(chosen.Content.Points[0]);
     Check(chosen.Selected().Points.Count == 3 && chosen.Content.Points.Count == 4, "Choose points: a point switched off is left out of the selection");
+    MapPoint renamed = chosen.Content.Points[1];
+    string oldName = renamed.Name;
+    chosen.OriginalNames[renamed] = oldName;
+    renamed.Name = "NEWNAME";
+    MapFile asMap = new();
+    asMap.AddAs(chosen.Selected(), MapCategory.Fix);
+    Check(asMap.Points.Any(p => p.Name == "NEWNAME") && chosen.OriginalNames[renamed] == oldName, "Choose points: a renamed point goes into the map with its new name and keeps the old one");
 
     // .vor and .ndb: symbols, hidden skipped, impossible seconds skipped and named
     FileImport vor = MapImport.Read("itvor.vor",

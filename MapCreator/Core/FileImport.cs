@@ -20,6 +20,8 @@ namespace ATCRoom.Maps
         public MapFile Content { get; init; } = new();
         /// <summary>The points the user switched off ("Choose points"); they do not go into the map.</summary>
         public HashSet<MapPoint> Excluded { get; } = [];
+        /// <summary>The points that were renamed in "Choose points", with the name they had in the file (for "Restore names").</summary>
+        public Dictionary<MapPoint, string> OriginalNames { get; } = [];
 
         /// <summary>The content without the points switched off (the lines and labels are shared, not copied).</summary>
         public MapFile Selected()

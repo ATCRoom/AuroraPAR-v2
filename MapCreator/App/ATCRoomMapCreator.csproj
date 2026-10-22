@@ -13,7 +13,7 @@
     <RootNamespace>ATCRoom.MapCreator</RootNamespace>
     <ApplicationIcon>..\..\AuroraPAR.ico</ApplicationIcon>
     <!-- Version of the Map Creator, shown in the title bar. -->
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
