@@ -13,7 +13,11 @@ void Check(bool ok, string name, string detail = "")
     checks++;
     if (!ok) failures++;
     Console.WriteLine($"{(ok ? "OK  " : "FAIL")}  {name}{(detail.Length > 0 ? "  (" + detail + ")" : "")}");
+    // On GitHub a line like this becomes an annotation of the build: the failure can be read without the log.
+    if (!ok) Console.WriteLine("::error title=Self-test::" + (name + " " + detail).Replace("\r", " ").Replace("\n", " "));
 }
+AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+    Console.WriteLine("::error title=Self-test crashed::" + e.ExceptionObject.ToString()?.Replace("\r", " ").Replace("\n", " | "));
 
 bool Near(double a, double b, double tolerance) => Math.Abs(a - b) <= tolerance;
 
