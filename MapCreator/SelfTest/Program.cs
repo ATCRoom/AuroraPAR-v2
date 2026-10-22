@@ -173,6 +173,21 @@ string[] ese =
         double[] firstOnArc = onArc[0];
         Check(firstOnArc[0] > centreLat, "AIP: clockwise arc from west to north goes through the north-west", $"{firstOnArc[0]:F4}");
     }
+    // Napoli: altitudes written as plain numbers (4000, "7500 SOUTH-EAST") and a "line joining" after an arc that goes on with the same area
+    words.Clear();
+    Row(100, 300, "Line", "joining", "following", "points:");
+    Row(110, 300, "44°00'00\"", "N", "008°00'00\"", "E");
+    Row(120, 100, "7500", "SOUTH-EAST");
+    Row(130, 300, "then", "arc", "of", "circle", "in", "anti-clockwise", "direction", "radius", "10", "NM", "centred", "on:");
+    Row(140, 300, "44°10'00\"", "N", "008°10'00\"", "E");
+    Row(150, 300, "till", "point");
+    Row(160, 300, "44°10'00\"", "N", "008°00'00\"", "E");
+    Row(170, 300, "line", "joining", "following", "points:");
+    Row(180, 300, "44°10'00\"", "N", "008°20'00\"", "E");
+    Row(190, 300, "44°00'00\"", "N", "008°00'00\"", "E");
+    ImportResult napoliTable = MapImport.ImportAipTable(words);
+    Check(napoliTable.Map.Lines.Count == 1 && Closed(napoliTable.Map.Lines[0]) && napoliTable.Map.Lines[0].Name == "7500 SOUTH-EAST" && napoliTable.Map.Labels.Count == 1 && napoliTable.Map.Labels[0].Text == "75",
+        "AIP: plain altitude with a word (label 75), and a line joining after an arc goes on with the same area", string.Join(",", napoliTable.Map.Lines.Select(l => $"{l.Name}:{l.Points.Count}")));
     Check(MapImport.ImportAipTable([new PdfWord(1, 10, 10, "Chart")]).Map.Lines.Count == 0, "AIP: a PDF without the table gives no area");
 }
 

@@ -188,7 +188,8 @@ namespace ATCRoom.Maps
             if (ft.Success) return (int.Parse(ft.Groups[1].Value, CultureInfo.InvariantCulture) / 100).ToString(CultureInfo.InvariantCulture);
             Match fl = Regex.Match(t, "^FL\\s*(\\d{2,3})$");
             if (fl.Success) return int.Parse(fl.Groups[1].Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-            if (Regex.IsMatch(t, "^\\d{3,5}$")) return (int.Parse(t, CultureInfo.InvariantCulture) / 100).ToString(CultureInfo.InvariantCulture);
+            Match plain = Regex.Match(t, "^(\\d{3,5})(\\s+[A-Z-]+)*$");
+            if (plain.Success) return (int.Parse(plain.Groups[1].Value, CultureInfo.InvariantCulture) / 100).ToString(CultureInfo.InvariantCulture);
             return t;
         }
     }

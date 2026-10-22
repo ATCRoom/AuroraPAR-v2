@@ -252,7 +252,7 @@ namespace ATCRoom.Maps
 
         // ----- AIP table -------------------------------------------------------------------------------------------
 
-        [GeneratedRegex("^(\\d{3,5}\\s*FT(\\s+[A-Z]+)?|FL\\s*\\d{2,3}|TRL|TA)$", RegexOptions.IgnoreCase)]
+        [GeneratedRegex("^(\\d{3,5}(\\s*FT)?(\\s+[A-Z][A-Z-]*)*|FL\\s*\\d{2,3}|TRL|TA)$", RegexOptions.IgnoreCase)]
         private static partial Regex AltitudeText();
 
         [GeneratedRegex("radius\\s+([\\d.,]+)\\s*(NM|KM)", RegexOptions.IgnoreCase)]
@@ -311,6 +311,7 @@ namespace ATCRoom.Maps
             double lastSplit = split.OrderBy(s => s.Key).First().Value;
             (double[] Centre, double Radius, bool Clockwise, bool WaitingEnd)? arc = null;
             bool arcNeedsCentre = false;
+            bool afterArc = false; // the last point read closed an arc: a "line joining" now goes on with the same area
             int arcs = 0;
             HashSet<int> reversedAreas = [];
             foreach (var row in rows)
@@ -323,6 +324,16 @@ namespace ATCRoom.Maps
                 if (right.Length == 0) continue;
                 if (right.Contains("Line joining", StringComparison.OrdinalIgnoreCase))
                 {
+                    // After an arc the text goes on "line joining following points": the same area, not a new one.
+                    MapLine? open = areas.Count > 0 ? areas[^1].Line : null;
+                    if (afterArc && open != null && open.Points.Count > 0
+                        && (open.Points[0][0] != open.Points[^1][0] || open.Points[0][1] != open.Points[^1][1]))
+                    {
+                        rightRows.Add((row.Page, row.Y, areas.Count - 1));
+                        afterArc = false;
+                        continue;
+                    }
+                    afterArc = false;
                     areas.Add((new MapLine(), null));
                     arc = null;
                     arcNeedsCentre = false;
@@ -353,8 +364,10 @@ namespace ATCRoom.Maps
                         arcNeedsCentre = false;
                         continue;
                     }
+                    bool endsArc = false;
                     if (arc != null && (arc.Value.WaitingEnd || (till >= 0 && index > till)))
                     {
+                        endsArc = true;
                         if (area.Points.Count > 0)
                         {
                             area.Points.AddRange(MapCoordinates.ArcChecked(arc.Value.Centre, arc.Value.Radius, area.Points[^1], [lat, lon], arc.Value.Clockwise, out bool turned));
@@ -364,6 +377,7 @@ namespace ATCRoom.Maps
                         arc = null;
                     }
                     area.Points.Add([lat, lon]);
+                    afterArc = endsArc;
                 }
                 if (till >= 0 && arc != null && !arcNeedsCentre) arc = (arc.Value.Centre, arc.Value.Radius, arc.Value.Clockwise, true);
             }
