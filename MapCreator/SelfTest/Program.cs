@@ -348,6 +348,50 @@ string[] ese =
     MapCoordinates.ArcChecked(napoli, 32, [40.8841667, 14.8], [40.8841667, 13.8], clockwise: true, out bool turned3);
     Check(!turned3, "AIP arc: a half circle is not touched");
 
+    // AIP airspaces (CTR with an arc and a zone, circular ATZ), by the place of the words: only the first column is read
+    List<PdfWord> asp = [];
+    void Aw(double x, double y, params string[] texts)
+    {
+        foreach (string t in texts)
+        {
+            asp.Add(new PdfWord(1, x, y, t, x + t.Length * 5));
+            x += t.Length * 5 + 4;
+        }
+    }
+    Aw(60, 10, "ENR", "2.1.2.1", "-", "1");
+    Aw(137, 100, "limiti", "laterali");
+    Aw(236, 100, "limiti", "verticali");
+    Aw(60, 120, "Test", "CTR");
+    Aw(60, 130, "40°00'00\"N", "010°00'00\"E;");
+    Aw(300, 130, "2500ft", "AMSL");
+    Aw(60, 140, "40°00'00\"N", "011°00'00\"E;");
+    Aw(60, 150, "40°10'00\"N", "011°00'00\"E");
+    Aw(60, 160, "then", "arc", "of", "circle", "in", "clockwise", "direction", "radius", "10.0", "NM", "centred", "on");
+    Aw(60, 170, "40°10'00\"N", "010°30'00\"E", "till", "point");
+    Aw(60, 180, "40°10'00\"N", "010°00'00\"E;");
+    Aw(60, 190, "to", "point", "of", "origin.");
+    Aw(60, 200, "40°20'00\"N", "012°00'00\"E;");
+    Aw(60, 300, "Zed", "CTR");
+    Aw(60, 310, "Zona/Zone", "'1'");
+    Aw(60, 320, "41°00'00\"N", "010°00'00\"E;");
+    Aw(60, 330, "41°00'00\"N", "011°00'00\"E;");
+    Aw(60, 340, "41°10'00\"N", "011°00'00\"E;");
+    Aw(60, 350, "to", "point", "of", "origin.");
+    Aw(60, 400, "Crotone", "ATZ");
+    Aw(60, 410, "Circular", "area", "centered", "on");
+    Aw(60, 420, "38°59'48\"N", "017°04'45\"E");
+    Aw(60, 430, "within", "a", "6.0", "NM", "radius.");
+    Aw(60, 440, "39°30'00\"N", "017°30'00\"E;");
+    FileImport aipAsp = MapImport.Read("LI-ENR_2.1.2_1_Test.pdf", null, asp);
+    MapFile? aspCtr = aipAsp.Entries.FirstOrDefault(e => e.Suggested == MapCategory.Ctr)?.Content;
+    MapFile? aspAtz = aipAsp.Entries.FirstOrDefault(e => e.Suggested == MapCategory.Atz)?.Content;
+    Check(aspCtr != null && aspCtr.Lines.Count == 2 && aspCtr.Lines[0].Name == "Test CTR" && aspCtr.Lines[1].Name == "Zed CTR 1" && Closed(aspCtr.Lines[0]) && Closed(aspCtr.Lines[1])
+        && aspCtr.Lines[0].Points.Count > 50 && aspCtr.Lines[0].Points.All(p => !Near(p[0], 40.3333, 0.01)) && aspCtr.Lines[1].Points.Count == 4 && aspCtr.Labels.Count == 2,
+        "AIP CTR: polygon with an arc, zone, only the first column, nothing read after the polygon is closed", aspCtr == null ? "no CTR" : string.Join(",", aspCtr.Lines.Select(l => $"{l.Name}:{l.Points.Count}")));
+    Check(aspAtz != null && aspAtz.Lines.Count == 1 && aspAtz.Lines[0].Name == "Crotone ATZ" && Closed(aspAtz.Lines[0])
+        && aspAtz.Lines[0].Points.All(p => Near(DistanceNM(38 + 59 / 60.0 + 48 / 3600.0, 17 + 4 / 60.0 + 45 / 3600.0, p[0], p[1]), 6, 0.02)),
+        "AIP ATZ: circular area", aspAtz == null ? "no ATZ" : $"{aspAtz.Lines.Count} lines");
+
     // lartcc: one part per ID, the name suggests the category
     FileImport art = MapImport.Read("libb_cs0_app.lartcc",
     [

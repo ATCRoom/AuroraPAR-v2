@@ -155,7 +155,7 @@ namespace ATCRoom.Maps
         private static FileImport Unknown(string fileName)
         {
             FileImport result = new() { FileName = fileName, FormatName = "not recognised" };
-            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2).");
+            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
             return result;
         }
 
@@ -254,8 +254,21 @@ namespace ATCRoom.Maps
                 case "fix": return ImportAipFixes(fileName, AipLines(words));
                 case "vor1": return ImportAipNavaids(fileName, words, "ENR 4.1.1");
                 case "vor2": return ImportAipNavaids(fileName, words, "ENR 4.1.2");
+                case "ctr":
+                case "atz": return ImportAipAirspace(fileName, words);
             }
             ImportResult r = ImportAipTable(words);
+            if (r.Map.Lines.Count == 0)
+            {
+                // Not a table of minimum altitudes: perhaps an airport sheet (AD 2) with its ATZ or CTR.
+                FileImport airspace = ImportAipAirspace(fileName, words);
+                if (airspace.Entries.Count > 0)
+                {
+                    Match sheet = Regex.Match(Path.GetFileName(fileName), @"AD[_ ]2[_ ]([A-Za-z]{4})(?![A-Za-z])");
+                    if (sheet.Success) airspace.Airport = sheet.Groups[1].Value.ToUpperInvariant();
+                    return airspace;
+                }
+            }
             FileImport result = new() { FileName = fileName, FormatName = "AIP table of minimum altitudes (PDF)" };
             if (r.Map.Lines.Count > 0) result.Entries.Add(NewEntry(fileName, "Areas with their minimum altitude", MapCategory.Mva, r.Map));
             result.Notes.AddRange(r.Notes);

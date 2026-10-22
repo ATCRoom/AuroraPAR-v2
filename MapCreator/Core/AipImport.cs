@@ -17,6 +17,14 @@ namespace ATCRoom.Maps
         private static readonly Regex AipLatWord = new(@"^(\d{2})°(\d{2})['’′](\d{2}(?:[.,]\d+)?)(?:''|[""”″’]{1,2})([NS])$", RegexOptions.Compiled);
         private static readonly Regex AipLonWord = new(@"^(\d{3})°(\d{2})['’′](\d{2}(?:[.,]\d+)?)(?:''|[""”″’]{1,2})([EW])$", RegexOptions.Compiled);
         private static readonly Regex AipIdWord = new("^[A-Z]{2,3}$", RegexOptions.Compiled);
+        private static readonly Regex AipArcText = new(@"arc\s+of\s+circle\s+in\s+(anti[- ]?clockwise|counter[- ]?clockwise|clockwise)\s+direction\s+radius\s+([\d.,]+)\s*(NM|KM)\s+cent(?:red|ered)\s+on", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AipCircleText = new(@"Circular\s+area\s+cent(?:red|ered)\s+on", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AipWithinText = new(@"within\s+a\s+([\d.,]+)\s*NM\s+radius", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AipOriginText = new(@"(till|to)\s+point\s+of\s+origin", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AipTillText = new(@"till\s+point(?!\s+of\s+origin)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AipZoneText = new(@"Zona\s*/\s*Zone\s*['’]\s*(\d+)\s*['’]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AipDesignator = new(@"^[A-Z][A-Za-z0-9'’./()\- ]*? (CTR|ATZ)$", RegexOptions.Compiled);
+        private static readonly Regex AipAtzHeading = new(@"^ENR 2\.1\.3\.\d+\s+([^\d.\s].*)$", RegexOptions.Compiled);
         private static readonly Regex AipTypeWord = new("^(D?VOR|DME|TACAN|VORTAC|NDB|L|ILS|LOC|TLS)(/(D?VOR|DME|TACAN|VORTAC|NDB|L|ILS|LOC|TLS))*$", RegexOptions.Compiled);
 
         /// <summary>Which list a PDF is, from the title on its first page: "vrp", "fix", "vor1", "vor2"; null: not one of these.</summary>
@@ -25,6 +33,10 @@ namespace ATCRoom.Maps
             if (words.Count == 0) return null;
             int first = words.Min(w => w.Page);
             string head = string.Join(" ", words.Where(w => w.Page == first).OrderBy(w => w.Y).ThenBy(w => w.X).Take(120).Select(w => w.Text));
+            // The title of the CTR and ATZ lists is the page header (the first words): the ATZ list mentions ENR 2.1.2 in its text.
+            string top = string.Join(" ", words.Where(w => w.Page == first).OrderBy(w => w.Y).ThenBy(w => w.X).Take(8).Select(w => w.Text));
+            if (Regex.IsMatch(top, @"ENR\s*2\.1\.3")) return "atz";
+            if (Regex.IsMatch(top, @"ENR\s*2\.1\.2")) return "ctr";
             if (AipVrpTitle.IsMatch(head)) return "vrp";
             if (AipFixTitle.IsMatch(head)) return "fix";
             Match nav = AipNavTitle.Match(head);
@@ -269,6 +281,194 @@ namespace ATCRoom.Maps
             if (content.Points.Count > 0) result.Entries.Add(NewEntry(fileName, $"Radio navigation aids (AIP {table})", MapCategory.Navaids, content, "AIP Italia " + table));
             if (skipped > 0) result.Notes.Add($"{Plural(skipped, "aid", "aids")} skipped (DME alone or type not understood).");
             if (content.Points.Count == 0) result.Notes.Add("No radio navigation aids found in this file.");
+            return result;
+        }
+
+        private sealed record AipToken(int Index, char Kind, double A = 0, double B = 0, bool Flag = false, string Text = "");
+
+        /// <summary>
+        /// The polygons written in the text of the lateral limits of an airspace: points "lat lon;", arcs "then arc of circle in
+        /// clockwise direction radius 12 NM centred on (centre) till point (end)", "to point of origin." (or "till point of origin")
+        /// to close, "Circular area centered on (centre) within a 5 NM radius", and the zones of a CTR "Zona/Zone '1'". After a
+        /// polygon is closed nothing is read until the next zone: the rest of the page has coordinates that are not the area.
+        /// </summary>
+        internal static List<(string? Zone, List<double[]> Points)> AipPolygons(string stream, out int reversed)
+        {
+            List<AipToken> tokens = [];
+            foreach ((int index, double lat, double lon) in MapCoordinates.FindAllAip(stream)) tokens.Add(new AipToken(index, 'C', lat, lon));
+            foreach (Match m in AipArcText.Matches(stream))
+            {
+                double radius = double.Parse(m.Groups[2].Value.Replace(',', '.'), CultureInfo.InvariantCulture);
+                if (m.Groups[3].Value.Equals("KM", StringComparison.OrdinalIgnoreCase)) radius /= 1.852;
+                tokens.Add(new AipToken(m.Index, 'A', radius, 0, m.Groups[1].Value.StartsWith("clock", StringComparison.OrdinalIgnoreCase)));
+            }
+            foreach (Match m in AipCircleText.Matches(stream)) tokens.Add(new AipToken(m.Index, 'O'));
+            foreach (Match m in AipWithinText.Matches(stream)) tokens.Add(new AipToken(m.Index, 'W', double.Parse(m.Groups[1].Value.Replace(',', '.'), CultureInfo.InvariantCulture)));
+            foreach (Match m in AipOriginText.Matches(stream)) tokens.Add(new AipToken(m.Index, 'G', 0, 0, m.Groups[1].Value.Equals("till", StringComparison.OrdinalIgnoreCase)));
+            foreach (Match m in AipTillText.Matches(stream)) tokens.Add(new AipToken(m.Index, 'T'));
+            foreach (Match m in AipZoneText.Matches(stream)) tokens.Add(new AipToken(m.Index, 'Z', 0, 0, false, m.Groups[1].Value));
+            tokens.Sort((a, b) => a.Index.CompareTo(b.Index));
+
+            List<(string? Zone, List<double[]> Points)> found = [];
+            List<double[]> points = [];
+            string? zone = null;
+            bool collecting = true;
+            double[]? circleCentre = null;
+            bool inCircle = false;
+            (double Radius, bool Clockwise, double[]? Centre, bool Till)? arc = null;
+            bool needCentre = false;
+            reversed = 0;
+            void Finish()
+            {
+                if (points.Count >= 3)
+                {
+                    if (points[0][0] != points[^1][0] || points[0][1] != points[^1][1]) points.Add(points[0]);
+                    found.Add((zone, points));
+                }
+                points = [];
+                arc = null;
+                needCentre = false;
+                collecting = false;
+            }
+            foreach (AipToken t in tokens)
+            {
+                switch (t.Kind)
+                {
+                    case 'Z':
+                        if (collecting) Finish();
+                        zone = t.Text;
+                        collecting = true;
+                        inCircle = false;
+                        circleCentre = null;
+                        break;
+                    case 'O':
+                        if (collecting) { inCircle = true; circleCentre = null; }
+                        break;
+                    case 'A':
+                        if (collecting) { arc = (t.A, t.Flag, null, false); needCentre = true; }
+                        break;
+                    case 'C':
+                        if (!collecting) break;
+                        double[] here = [t.A, t.B];
+                        if (inCircle && circleCentre == null) circleCentre = here;
+                        else if (arc != null && needCentre) { arc = (arc.Value.Radius, arc.Value.Clockwise, here, arc.Value.Till); needCentre = false; }
+                        else if (arc != null && arc.Value.Till && arc.Value.Centre != null && points.Count > 0)
+                        {
+                            points.AddRange(MapCoordinates.ArcChecked(arc.Value.Centre, arc.Value.Radius, points[^1], here, arc.Value.Clockwise, out bool turned));
+                            if (turned) reversed++;
+                            points.Add(here);
+                            arc = null;
+                        }
+                        else points.Add(here);
+                        break;
+                    case 'W':
+                        if (collecting && inCircle && circleCentre != null)
+                        {
+                            points = MapCoordinates.Circle(circleCentre[0], circleCentre[1], t.A);
+                            inCircle = false;
+                            Finish();
+                        }
+                        break;
+                    case 'T':
+                        if (collecting && arc != null && !needCentre) arc = (arc.Value.Radius, arc.Value.Clockwise, arc.Value.Centre, true);
+                        break;
+                    case 'G':
+                        if (!collecting) break;
+                        if (t.Flag && arc != null && arc.Value.Centre != null && points.Count > 0)
+                        {
+                            points.AddRange(MapCoordinates.ArcChecked(arc.Value.Centre, arc.Value.Radius, points[^1], points[0], arc.Value.Clockwise, out bool turnedBack));
+                            if (turnedBack) reversed++;
+                        }
+                        Finish();
+                        break;
+                }
+            }
+            if (collecting) Finish();
+            return found;
+        }
+
+        /// <summary>
+        /// CTR (ENR 2.1.2.x, with zones such as Catania) and ATZ (ENR 2.1.3, and the AD 2 sheets of the airports) as polygons.
+        /// Read by the place of the words: only the first column (designator and lateral limits, left of the header "Limiti
+        /// verticali") is used. A row of that column that ends with CTR or ATZ names the airspace, and so does the heading
+        /// "ENR 2.1.3.n NAME" (an ATZ). Each polygon has its name as label.
+        /// </summary>
+        public static FileImport ImportAipAirspace(string fileName, IReadOnlyList<PdfWord> words)
+        {
+            FileImport result = new() { FileName = fileName, FormatName = "AIP airspaces (CTR, ATZ)" };
+            List<(bool IsName, string Text)> events = [];
+            double? split = null;
+            foreach (IGrouping<int, PdfWord> page in words.GroupBy(w => w.Page).OrderBy(g => g.Key))
+            {
+                List<List<PdfWord>> rows = [];
+                foreach (PdfWord word in page.OrderBy(w => w.Y).ThenBy(w => w.X))
+                {
+                    if (rows.Count > 0 && Math.Abs(rows[^1][0].Y - word.Y) <= 2.5) rows[^1].Add(word);
+                    else rows.Add([word]);
+                }
+                foreach (List<PdfWord> row in rows)
+                {
+                    List<PdfWord> limits = row.Where(w => w.Text.Equals("limiti", StringComparison.OrdinalIgnoreCase)).OrderBy(w => w.X).ToList();
+                    if (limits.Count >= 2) split = limits[^1].X - 8;
+                }
+                if (split == null) continue;
+                foreach (List<PdfWord> row in rows)
+                {
+                    List<PdfWord> ordered = row.OrderBy(w => w.X).ToList();
+                    string full = string.Join(" ", ordered.Select(w => w.Text)).Trim();
+                    string left = string.Join(" ", ordered.Where(w => w.X < split.Value).Select(w => w.Text)).Trim();
+                    Match heading = AipAtzHeading.Match(full);
+                    if (heading.Success)
+                    {
+                        string title = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(heading.Groups[1].Value.Trim().ToLowerInvariant());
+                        events.Add((true, title + " ATZ"));
+                        continue;
+                    }
+                    if (ordered[0].X < split.Value && AipDesignator.IsMatch(left))
+                    {
+                        events.Add((true, left));
+                        continue;
+                    }
+                    events.Add((false, left));
+                }
+            }
+
+            MapFile ctr = new(), atz = new();
+            int reversedTotal = 0;
+            void Flush(string? name, System.Text.StringBuilder text)
+            {
+                if (name == null) return;
+                string stream = Regex.Replace(text.ToString().Replace("''", "\"").Replace("’’", "\""), @"\s+", " ");
+                List<(string? Zone, List<double[]> Points)> polygons = AipPolygons(stream, out int reversed);
+                reversedTotal += reversed;
+                foreach ((string? zone, List<double[]> points) in polygons)
+                {
+                    MapFile target = name.EndsWith(" CTR", StringComparison.Ordinal) ? ctr : atz;
+                    string label = zone == null ? name : $"{name} {zone}";
+                    target.Lines.Add(new MapLine { Name = label, Points = points });
+                    double[] centre = MapCoordinates.Centroid(points);
+                    target.Labels.Add(new MapLabel { Text = label, Latitude = centre[0], Longitude = centre[1] });
+                }
+            }
+            string? current = null;
+            System.Text.StringBuilder buffer = new();
+            foreach ((bool isName, string text) in events)
+            {
+                if (isName)
+                {
+                    Flush(current, buffer);
+                    current = text;
+                    buffer = new System.Text.StringBuilder();
+                }
+                else if (current != null) buffer.Append(text).Append(' ');
+            }
+            Flush(current, buffer);
+
+            if (ctr.Lines.Count > 0) result.Entries.Add(NewEntry(fileName, "CTR (AIP)", MapCategory.Ctr, ctr, "AIP Italia"));
+            if (atz.Lines.Count > 0) result.Entries.Add(NewEntry(fileName, "ATZ (AIP)", MapCategory.Atz, atz, "AIP Italia"));
+            if (reversedTotal > 0) result.Notes.Add($"{Plural(reversedTotal, "arc of circle was", "arcs of circle were")} turned the other way (the AIP text sends it more than 300° round, which is an error): check the picture.");
+            if (result.Entries.Count == 0) result.Notes.Add("No CTR or ATZ found in this file.");
+            else result.Notes.Add($"{ctr.Lines.Count} CTR and {atz.Lines.Count} ATZ polygons, each with its name as a label.");
             return result;
         }
     }
