@@ -18,6 +18,20 @@ namespace ATCRoom.Maps
         public string? Category { get; set; }
         /// <summary>The items, without a category.</summary>
         public MapFile Content { get; init; } = new();
+        /// <summary>The points the user switched off ("Choose points"); they do not go into the map.</summary>
+        public HashSet<MapPoint> Excluded { get; } = [];
+
+        /// <summary>The content without the points switched off (the lines and labels are shared, not copied).</summary>
+        public MapFile Selected()
+        {
+            if (Excluded.Count == 0) return Content;
+            return new MapFile
+            {
+                Lines = Content.Lines,
+                Labels = Content.Labels,
+                Points = Content.Points.Where(p => !Excluded.Contains(p)).ToList()
+            };
+        }
     }
 
     /// <summary>What was read from one file: its parts (entries) and notes on what was skipped.</summary>
@@ -263,35 +277,43 @@ namespace ATCRoom.Maps
         // ----- FIX (.fix) --------------------------------------------------------------------------------------------
 
         /// <summary>
-        /// "NAME;lat;lon;TYPE;BOUNDARY;[HLD-NAME;]": TYPE 0 en-route, 1 terminal, 2 both, 3 hidden. Terminal and "both" fixes
-        /// are one part (suggested: FIX), the en-route ones another; the hidden ones are skipped; the holding tag is ignored.
+        /// "NAME;lat;lon;TYPE;BOUNDARY;[HLD-NAME;]": TYPE 0 en-route, 1 terminal, 2 both, 3 hidden (the procedure points of the airports and
+        /// of the military ones). Terminal and "both" fixes are one part (suggested: FIX), the en-route ones another, the hidden
+        /// ones a third (suggested: FIX); the comment before a block is the group of its points; the holding tag is ignored.
         /// </summary>
         public static FileImport ImportFixes(string fileName, IReadOnlyList<string> lines)
         {
             FileImport result = new() { FileName = fileName, FormatName = "IVAO fixes (.fix)" };
-            MapFile terminal = new(), enroute = new();
-            int hidden = 0, bad = 0;
+            MapFile terminal = new(), enroute = new(), hiddenFixes = new();
+            int bad = 0;
+            string group = "";
             foreach (string raw in lines)
             {
-                if (raw.Trim().Length == 0 || IsComment(raw)) continue;
+                if (raw.Trim().Length == 0) continue;
+                if (IsComment(raw))
+                {
+                    // A comment before a block names it: "//LIBC", "//<!--LIPX-->", "//nuovi LIRN" (the airport), or any other text.
+                    string text = raw.Trim().Replace("<!--", " ").Replace("-->", " ").Replace("<", " ").Replace(">", " ").Trim('/', ' ', ';', '\t');
+                    if (text.Length == 0) continue;
+                    Match code = Regex.Match(text, "\\b[A-Z]{4}\\b");
+                    group = code.Success ? code.Value : text;
+                    continue;
+                }
                 string[] f = Fields(raw);
                 if (f.Length < 3 || f[0].Length == 0 || !Coordinate(f[1], f[2], out double lat, out double lon))
                 {
                     bad++;
                     continue;
                 }
-                int type = f.Length > 3 && int.TryParse(f[3], NumberStyles.None, CultureInfo.InvariantCulture, out int t) ? t : 2;
-                if (type == 3)
-                {
-                    hidden++;
-                    continue;
-                }
-                MapPoint point = new() { Name = f[0], Latitude = lat, Longitude = lon, Symbol = MapSymbol.Point };
-                (type == 0 ? enroute : terminal).Points.Add(point);
+                // The type is its first digits ("3:" is a typo for "3"); no type: terminal and en-route both.
+                string digits = f.Length > 3 ? new string(f[3].TakeWhile(char.IsDigit).ToArray()) : "";
+                int type = digits.Length > 0 && int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out int t) ? t : 2;
+                MapPoint point = new() { Name = f[0], Latitude = lat, Longitude = lon, Symbol = MapSymbol.Point, Group = group };
+                (type == 3 ? hiddenFixes : type == 0 ? enroute : terminal).Points.Add(point);
             }
             result.Entries.Add(NewEntry(fileName, "Terminal fixes and fixes for both", MapCategory.Fix, terminal));
             result.Entries.Add(NewEntry(fileName, "En-route fixes", null, enroute));
-            if (hidden > 0) result.Notes.Add($"{Plural(hidden, "hidden fix", "hidden fixes")} (type 3) skipped.");
+            result.Entries.Add(NewEntry(fileName, "Hidden fixes (type 3): procedure points of airports and military", MapCategory.Fix, hiddenFixes));
             if (bad > 0) result.Notes.Add($"{Plural(bad, "row", "rows")} not understood, skipped.");
             return result;
         }

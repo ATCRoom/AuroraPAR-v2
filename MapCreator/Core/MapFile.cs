@@ -232,5 +232,8 @@ namespace ATCRoom.Maps
         /// <summary>Version 2: the category (see <see cref="MapCategory"/>).</summary>
         public string Category { get; set; } = "";
         public MapSymbol Symbol { get; set; } = MapSymbol.Point;
+        /// <summary>Only while importing (never saved): the block of the source file the point is in (an airport), to choose points by group.</summary>
+        [JsonIgnore]
+        public string Group { get; set; } = "";
     }
 }

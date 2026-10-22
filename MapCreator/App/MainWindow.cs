@@ -327,13 +327,41 @@ namespace ATCRoom.MapCreator
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             StackPanel text = new();
             text.Children.Add(new TextBlock { Text = entry.Title, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
-            text.Children.Add(new TextBlock
+            TextBlock summary = new()
             {
-                Text = $"{IoPath.GetFileName(file.FileName)} · {entry.Content.Summary}",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap
-            });
+            };
+            string fileLabel = IoPath.GetFileName(file.FileName);
+            void ShowSummary() => summary.Text = $"{fileLabel} · {entry.Selected().Summary}" +
+                (entry.Excluded.Count > 0 ? $" ({entry.Excluded.Count} switched off)" : "");
+            ShowSummary();
+            text.Children.Add(summary);
+            if (entry.Content.Points.Count > 0)
+            {
+                Button choose = new()
+                {
+                    Content = "Choose points...",
+                    Padding = new Thickness(8, 1, 8, 1),
+                    Margin = new Thickness(0, 4, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    ToolTip = "Switch single points on or off (with a search by name and the airport group)."
+                };
+                choose.Click += (s, e) =>
+                {
+                    PointsWindow window = new(entry, () =>
+                    {
+                        ShowSummary();
+                        RefreshPicture(refit: false);
+                    })
+                    {
+                        Owner = this
+                    };
+                    window.Show();
+                };
+                text.Children.Add(choose);
+            }
             ComboBox box = new() { Width = 200, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
             box.Items.Add("— not used —");
             foreach (MapCategoryInfo category in MapCategory.All) box.Items.Add(category.Name);
@@ -368,7 +396,7 @@ namespace ATCRoom.MapCreator
             {
                 foreach (ImportEntry entry in file.Entries)
                 {
-                    if (entry.Category != null) combined.AddAs(entry.Content, entry.Category);
+                    if (entry.Category != null) combined.AddAs(entry.Selected(), entry.Category);
                 }
             }
             return combined;
@@ -469,7 +497,7 @@ namespace ATCRoom.MapCreator
         /// <summary>The map to save (cut, with the airport and the sources) and the categories it brings.</summary>
         private (MapFile Map, HashSet<string> Categories)? BuildOutput()
         {
-            HashSet<string> categories = files.Values.SelectMany(f => f.Entries).Where(e => e.Category != null)
+            HashSet<string> categories = files.Values.SelectMany(f => f.Entries).Where(e => e.Category != null && !IsEmpty(e.Selected()))
                 .Select(e => e.Category!).ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (categories.Count == 0) return null;
             MapFile output = Combine();

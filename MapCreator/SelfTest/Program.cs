@@ -198,18 +198,29 @@ string[] ese =
     Check(geo.Entries.Count == 2 && geo.Entries.Any(e => e.Title == "LAKE" && e.Suggested == null), ".geo: other tag separate and not suggested");
     Check(geo.Notes.Any(n => n.Contains("not understood")), ".geo: bad row reported", string.Join(" | ", geo.Notes));
 
-    // .fix: terminal and both are FIX, en-route apart, hidden skipped, comments ignored
+    // .fix: terminal and both are FIX, en-route apart, hidden (type 3) a third part, comments name the groups
     FileImport fix = MapImport.Read("itfix.fix",
     [
+        "//LIBC;",
         "ABC;N045.00.00.000;E012.00.00.000;1;0;",
         "DEF;N045.10.00.000;E012.00.00.000;2;0;HLD-DEF;",
         "GHI;N045.20.00.000;E012.00.00.000;0;0;",
-        "JKL;N045.30.00.000;E012.00.00.000;3;0;",
-        "MNO;N045.40.00.000;E012.00.00.000;1;0; // comment"
+        "//<!--LIPX-->",
+        "JKL;N045.30.00.000;E012.00.00.000;3;",
+        "MNO;N045.40.00.000;E012.00.00.000;1;0; // comment",
+        "PQR;N045.50.00.000;E012.00.00.000;3:",
+        "STU;N0455100000;E0120000000;3",
+        "TAC-06R;45.52;12.0;3;"
     ], null);
-    Check(fix.Entries.Count == 2 && fix.Entries[0].Content.Points.Count == 3 && fix.Entries[0].Suggested == MapCategory.Fix
-        && fix.Entries[1].Content.Points.Count == 1 && fix.Entries[1].Suggested == null, ".fix: terminal + both, en-route apart, hidden skipped",
+    Check(fix.Entries.Count == 3 && fix.Entries[0].Content.Points.Count == 3 && fix.Entries[0].Suggested == MapCategory.Fix
+        && fix.Entries[1].Content.Points.Count == 1 && fix.Entries[1].Suggested == null
+        && fix.Entries[2].Content.Points.Count == 4 && fix.Entries[2].Suggested == MapCategory.Fix, ".fix: terminal + both, en-route apart, hidden (type 3) a third part, typo 3: and no ; accepted",
         string.Join(",", fix.Entries.Select(e => e.Content.Points.Count)));
+    Check(fix.Entries[0].Content.Points[0].Group == "LIBC" && fix.Entries[2].Content.Points[0].Group == "LIPX", ".fix: the comment before a block is the group of its points",
+        string.Join(",", fix.Entries.SelectMany(e => e.Content.Points).Select(p => p.Name + ":" + p.Group)));
+    ImportEntry chosen = fix.Entries[2];
+    chosen.Excluded.Add(chosen.Content.Points[0]);
+    Check(chosen.Selected().Points.Count == 3 && chosen.Content.Points.Count == 4, "Choose points: a point switched off is left out of the selection");
 
     // .vor and .ndb: symbols, hidden skipped, impossible seconds skipped and named
     FileImport vor = MapImport.Read("itvor.vor",
