@@ -254,6 +254,7 @@ namespace ATCRoom.Maps
                 case "fix": return ImportAipFixes(fileName, AipLines(words));
                 case "vor1": return ImportAipNavaids(fileName, words, "ENR 4.1.1");
                 case "vor2": return ImportAipNavaids(fileName, words, "ENR 4.1.2");
+                case "vor0": return ImportAipNavaids(fileName, words, "ENR 4.1");
                 case "ctr":
                 case "atz": return ImportAipAirspace(fileName, words);
             }
@@ -272,6 +273,12 @@ namespace ATCRoom.Maps
             FileImport result = new() { FileName = fileName, FormatName = "AIP table of minimum altitudes (PDF)" };
             if (r.Map.Lines.Count > 0) result.Entries.Add(NewEntry(fileName, "Areas with their minimum altitude", MapCategory.Mva, r.Map));
             result.Notes.AddRange(r.Notes);
+            if (result.Entries.Count == 0)
+            {
+                int firstPage = words.Count == 0 ? 0 : words.Min(w => w.Page);
+                string firstWords = string.Join(" ", words.Where(w => w.Page == firstPage).OrderBy(w => w.Y).ThenBy(w => w.X).Take(15).Select(w => w.Text));
+                result.Notes.Add($"Diagnosis: {words.Count} words read in the PDF, {words.Select(w => w.Page).Distinct().Count()} pages. First words: {(firstWords.Length == 0 ? "(none: the PDF has no text, or it is protected)" : firstWords)}");
+            }
             return result;
         }
 

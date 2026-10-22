@@ -39,8 +39,11 @@ namespace ATCRoom.Maps
             if (Regex.IsMatch(top, @"ENR\s*2\.1\.2")) return "ctr";
             if (AipVrpTitle.IsMatch(head)) return "vrp";
             if (AipFixTitle.IsMatch(head)) return "fix";
-            Match nav = AipNavTitle.Match(head);
+            // The radio aids: the title anywhere on the first page, else the columns of the table (ID, frequency, coordinates).
+            string page = string.Join(" ", words.Where(w => w.Page == first).OrderBy(w => w.Y).ThenBy(w => w.X).Select(w => w.Text));
+            Match nav = AipNavTitle.Match(page);
             if (nav.Success) return "vor" + nav.Groups[1].Value;
+            if (Regex.IsMatch(page, @"\bID\b") && Regex.IsMatch(page, @"\bFREQ\b") && Regex.IsMatch(page, @"Coordinate|coordinates", RegexOptions.IgnoreCase)) return "vor0";
             return null;
         }
 

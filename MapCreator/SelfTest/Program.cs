@@ -342,6 +342,13 @@ string[] ese =
         && navPoints[2].Name == "AVI" && navPoints[2].Symbol == MapSymbol.Ndb && aipNav.Entries[0].Suggested == MapCategory.Navaids,
         "AIP ENR 4.1.1: aids by the place of the words (ID, name over several lines, type, first coordinate pair)", string.Join(",", navPoints.Select(p => p.Name + ":" + p.Symbol)));
 
+    // The same table without the title ENR 4.1.x on the page (recognised by its columns ID, FREQ, Coordinate)
+    List<PdfWord> navNoTitle = navWords.Skip(2).Concat([W(160, 160, "FREQ"), W(210, 160, "Coordinate")]).ToList();
+    FileImport aipNavNoTitle = MapImport.Read("radio.pdf", null, navNoTitle);
+    Check(aipNavNoTitle.Entries.Count == 1 && aipNavNoTitle.Entries[0].Content.Points.Count == 3, "AIP radio aids without the title: recognised by the columns", $"{aipNavNoTitle.Entries.Count} parts");
+    FileImport aipEmpty = MapImport.Read("empty.pdf", null, [W(60, 40, "Hello"), W(90, 40, "world")]);
+    Check(aipEmpty.Entries.Count == 0 && aipEmpty.Notes.Any(n => n.Contains("Diagnosis") && n.Contains("Hello world")), "Not recognised PDF: the note tells the first words", string.Join("|", aipEmpty.Notes));
+
     // Arc of the AIP sent the long way round (Napoli, area 6000 SOUTH-WEST): 326° anti-clockwise from the first point to the second is turned
     double[] napoli = [40.8841667, 14.2944444], napoliP1 = [40.4244444, 13.9383333], napoliP2 = [40.6533333, 13.6613889];
     List<double[]> longArc = MapCoordinates.ArcChecked(napoli, 32, napoliP1, napoliP2, clockwise: false, out bool turned1);
