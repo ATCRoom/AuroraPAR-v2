@@ -325,9 +325,9 @@ namespace ATCRoom.Maps
                 if (right.Contains("Line joining", StringComparison.OrdinalIgnoreCase))
                 {
                     // After an arc the text goes on "line joining following points": the same area, not a new one.
-                    MapLine? open = areas.Count > 0 ? areas[^1].Line : null;
-                    if (afterArc && open != null && open.Points.Count > 0
-                        && (open.Points[0][0] != open.Points[^1][0] || open.Points[0][1] != open.Points[^1][1]))
+                    MapLine? running = areas.Count > 0 ? areas[^1].Line : null;
+                    if (afterArc && running != null && running.Points.Count > 0
+                        && (running.Points[0][0] != running.Points[^1][0] || running.Points[0][1] != running.Points[^1][1]))
                     {
                         rightRows.Add((row.Page, row.Y, areas.Count - 1));
                         afterArc = false;
