@@ -63,6 +63,8 @@
 
 
 - **Trainer RDR maps — symbols per category (written 22 Oct, to test):** in RDR → Maps..., beside the colours of each category, a menu *Symbol*: "as in the map" (default, the symbol saved in the file) or one of Point (triangle), Airport (circle), VRP (square), VOR, VORTAC, TACAN, NDB; kept per airport in the settings, like the colours. The map files are not changed.
+- **Custom symbols for the Trainer maps (asked 22 Oct, to do later, not decided when):** the symbols become data: a file `Symbols.json` in the `Maps` folder (name + shapes drawn in a 10×10 square: lines, polygons, circles, optional fill), read at start and by *Reload*; the seven built-in symbols stay; they appear in the *Symbol* menu of RDR → Maps... after the built-in ones; a symbol that is no longer in the file falls back to the one of the map. Symbols asked for the sample file: **cross "+"**, **"x"**, **filled triangle** (the built-in one, filled), **filled square**, **inverted triangle (empty and filled)**. Also (optional, not asked): double circle, star.
+- **Navaid symbols too small (22 Oct, the user: "not distinguishable on this monitor"):** left as they are for now. If it comes back: draw them larger (VOR, VORTAC with three ticks, TACAN, NDB with a dashed outer circle) and/or write the type beside the name (optional).
 - **Map Creator, ideas (not decided):** filter of the points by name / type; "Label from" (first / second block) also for the other formats with two names (.fix, .ap...); procedures (STAR / SID / IAP) in a later phase.
 
 ## Profiles from photos (method agreed 15 Oct)
