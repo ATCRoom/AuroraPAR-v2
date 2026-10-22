@@ -104,7 +104,7 @@ namespace AuroraPAR
             {
                 list.Children.Add(new TextBlock
                 {
-                    Text = $"No maps of {icao} yet. Make them with ATCRoom Map Creator (one file per airport, for example {icao}.json), then Reload.",
+                    Text = icao.Length == 0 ? "No airport in use." : $"No maps of {icao} yet. Make them with ATCRoom Map Creator (one file per airport, for example {icao}.json), then Reload.",
                     Foreground = Brushes.DimGray,
                     TextWrapping = TextWrapping.Wrap
                 });

@@ -83,6 +83,8 @@ namespace ATCRoom.Maps
                 Match m = Regex.Match(Path.GetFileNameWithoutExtension(fileName), "^([A-Za-z]{4})(?:[^A-Za-z]|$)");
                 if (m.Success) result.Airport = m.Groups[1].Value.ToUpperInvariant();
             }
+            // A part with nothing in it (all rows hidden or skipped) is not offered: it would otherwise erase a category already saved.
+            result.Entries.RemoveAll(e => e.Content.Lines.Count == 0 && e.Content.Labels.Count == 0 && e.Content.Points.Count == 0);
             return result;
         }
 
@@ -212,6 +214,7 @@ namespace ATCRoom.Maps
                 if (row.Length == 0)
                 {
                     current = null;
+                    name = "";
                     continue;
                 }
                 if (IsComment(row))
