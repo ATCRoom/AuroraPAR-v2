@@ -481,7 +481,8 @@ namespace ATCRoom.MapCreator
             foreach (string icao in airportsFound.Keys.Order(StringComparer.OrdinalIgnoreCase)) centreBox.Items.Add(icao);
             centreBox.SelectedIndex = selected != null && centreBox.Items.Contains(selected) ? centreBox.Items.IndexOf(selected) : 0;
             updating = false;
-            saveButton.IsEnabled = !IsEmpty(combined);
+            // A map opened again can also lose categories only (all its parts set to "not used").
+            saveButton.IsEnabled = !IsEmpty(combined) || files.Values.Any(f => f.IsExistingMap);
             saveAsButton.IsEnabled = !IsEmpty(combined);
             ApplyCut();
         }
@@ -597,30 +598,48 @@ namespace ATCRoom.MapCreator
         {
             if (!AirportOk()) return;
             (MapFile Map, HashSet<string> Categories)? built = BuildOutput();
-            if (built == null) return;
-            (MapFile map, HashSet<string> categories) = built.Value;
-            string path = IoPath.Combine(TrainerMapsFolder, FileNameFor(map.Airport));
-            MapFile toSave = map;
+            string icao = airportBox.Text.Trim().ToUpperInvariant();
+            HashSet<string> categories = built?.Categories ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // A map of this airport opened again: a category of it that no longer goes out (set to "not used", moved to
+            // another category, all its points switched off) is removed from the file.
+            HashSet<string> removed = files.Values
+                .Where(f => f.IsExistingMap && string.Equals(f.Airport, icao, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(f => f.Entries).Where(e => e.Suggested != null && !categories.Contains(e.Suggested))
+                .Select(e => e.Suggested!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            string path = IoPath.Combine(TrainerMapsFolder, FileNameFor(icao));
+            if (built == null && (removed.Count == 0 || !File.Exists(path)))
+            {
+                statusText.Text = "Nothing to save: no part has a category (or the ICAO is not the one of the map opened).";
+                statusText.Foreground = Brushes.DarkRed;
+                return;
+            }
+            MapFile toSave = built?.Map ?? new MapFile { Airport = icao, Name = icao };
             if (File.Exists(path))
             {
                 MapFile? existing = null;
                 try { existing = MapFile.Load(path); } catch (Exception) { }
                 if (existing == null || existing.Airport.Length == 0)
                 {
+                    if (built == null) return;
                     if (MessageBox.Show(this, $"{IoPath.GetFileName(path)} is already there and is not a map of an airport of this kind. Replace it?",
                             "ATCRoom Map Creator", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
                 }
                 else
                 {
-                    List<string> replaced = existing.UsedCategories().Where(c => categories.Contains(c)).Select(c => MapCategory.NameOf(c)).ToList();
-                    List<string> kept = existing.UsedCategories().Where(c => !categories.Contains(c)).Select(c => MapCategory.NameOf(c)).ToList();
-                    string text = $"The map of {map.Airport} is already there.\n\n" +
-                        (replaced.Count > 0 ? $"Replaced: {string.Join(", ", replaced)}.\n" : "Nothing is replaced.\n") +
-                        (kept.Count > 0 ? $"Kept: {string.Join(", ", kept)}.\n" : "") + "\nContinue?";
+                    List<string> used = existing.UsedCategories().ToList();
+                    List<string> gone = used.Where(c => removed.Contains(c) && !categories.Contains(c)).Select(c => MapCategory.NameOf(c)).ToList();
+                    List<string> replaced = used.Where(c => categories.Contains(c)).Select(c => MapCategory.NameOf(c)).ToList();
+                    List<string> added = categories.Where(c => !used.Contains(c, StringComparer.OrdinalIgnoreCase)).Select(c => MapCategory.NameOf(c)).ToList();
+                    List<string> kept = used.Where(c => !categories.Contains(c) && !removed.Contains(c)).Select(c => MapCategory.NameOf(c)).ToList();
+                    string text = $"The map of {icao} is already there.\n\n" +
+                        (gone.Count > 0 ? $"Removed: {string.Join(", ", gone)}.\n" : "") +
+                        (replaced.Count > 0 ? $"Replaced: {string.Join(", ", replaced)}.\n" : "") +
+                        (added.Count > 0 ? $"Added: {string.Join(", ", added)}.\n" : "") +
+                        (kept.Count > 0 ? $"Kept as it is: {string.Join(", ", kept)}.\n" : "") + "\nContinue?";
                     if (MessageBox.Show(this, text, "ATCRoom Map Creator", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-                    existing.RemoveCategories(categories);
-                    existing.Merge(map);
-                    existing.Name = map.Airport;
+                    existing.RemoveCategories(categories.Concat(removed));
+                    if (built != null) existing.Merge(built.Value.Map);
+                    existing.Name = icao;
                     toSave = existing;
                 }
             }

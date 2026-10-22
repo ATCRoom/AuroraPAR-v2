@@ -349,7 +349,7 @@ string[] ese =
     before.AddAs(new MapFile { Lines = [new MapLine { Points = [[45, 12], [45.1, 12]] }] }, MapCategory.Mva);
     before.Sources[MapCategory.Fix] = "IVAO";
     FileImport again = MapImport.Read("LIPX.json", System.Text.Json.JsonSerializer.Serialize(before, MapFile.JsonOptions).Split('\n'), null);
-    Check(again.Entries.Count == 2 && again.Airport == "LIPX" && again.Entries.All(e => e.Category == e.Suggested && e.Category != null), "Existing map: one part per category, category and airport kept",
+    Check(again.Entries.Count == 2 && again.IsExistingMap && again.Airport == "LIPX" && again.Entries.All(e => e.Category == e.Suggested && e.Category != null), "Existing map: one part per category, category and airport kept",
         string.Join(",", again.Entries.Select(e => e.Title + ":" + e.Category)));
     Check(again.Entries.First(e => e.Category == MapCategory.Fix).Source == "IVAO" && again.Entries.First(e => e.Category == MapCategory.Mva).Source == "old", "Existing map: the sources are kept (the one of the category, else the general one)");
     MapFile sum = new();

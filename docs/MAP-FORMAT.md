@@ -64,7 +64,9 @@ fewer than two points are skipped.
 
 Many files (or a whole folder) at once, shown together on one picture; each part gets a category chosen by the user; a circle
 around the airport keeps only what is inside; one file per airport is saved (into the maps of the Trainer, merging into the
-existing file of the airport).
+existing file of the airport: the categories saved replace the ones in the file, the others are kept). A map of the Trainer
+can be opened again ("Open an existing map...", or a `.json` with Browse) to add to it or correct it; a category of it set to
+"not used" is then removed from the file when it is saved into the maps of the Trainer.
 
 | Format | What becomes the map |
 | --- | --- |

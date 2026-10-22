@@ -88,6 +88,8 @@ namespace ATCRoom.Maps
         public string FormatName { get; init; } = "";
         public List<ImportEntry> Entries { get; } = [];
         public List<string> Notes { get; } = [];
+        /// <summary>A map of the Trainer opened again (.json): its parts are its categories (each one suggested as itself).</summary>
+        public bool IsExistingMap { get; init; }
         /// <summary>Airport (ICAO) guessed from the file, for the files that are made for one airport.</summary>
         public string? Airport { get; set; }
     }
@@ -261,7 +263,7 @@ namespace ATCRoom.Maps
         /// </summary>
         public static FileImport ImportMapJson(string fileName, IReadOnlyList<string> lines)
         {
-            FileImport result = new() { FileName = fileName, FormatName = "ATCRoom map (.json)" };
+            FileImport result = new() { FileName = fileName, FormatName = "ATCRoom map (.json)", IsExistingMap = true };
             MapFile map;
             try
             {
