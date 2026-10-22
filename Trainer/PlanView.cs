@@ -11,7 +11,7 @@ namespace AuroraPAR
     /// A map shown on the RDR, with the colours chosen for it: the lines and symbols are drawn when <paramref name="ShowShapes"/>,
     /// the texts (and the names of the points) when <paramref name="ShowTexts"/>.
     /// </summary>
-    internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush, bool ShowShapes = true, bool ShowTexts = true, MapSymbol? Symbol = null);
+    internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush, bool ShowShapes = true, bool ShowTexts = true, MapSymbol? Symbol = null, CustomSymbol? Custom = null);
 
     /// <summary>
     /// Surveillance radar of the Trainer (RDR): plan view, north up, centred on the threshold of the runway in use.
@@ -233,7 +233,11 @@ namespace AuroraPAR
                 {
                     Point p = new(centre.X + at.X * scale, centre.Y - at.Y * scale);
                     if (!view.Contains(p)) continue;
-                    if (layer.Layer.ShowShapes) DrawSymbol(dc, layer.Layer.Symbol ?? point.Symbol, p, symbolPen);
+                    if (layer.Layer.ShowShapes)
+                    {
+                        if (layer.Layer.Custom != null) CustomSymbols.Draw(dc, layer.Layer.Custom, p, symbolPen);
+                        else DrawSymbol(dc, layer.Layer.Symbol ?? point.Symbol, p, symbolPen);
+                    }
                     if (layer.Layer.ShowTexts && point.Name.Length > 0)
                     {
                         dc.DrawText(new FormattedText(point.Name, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, MapFace, 11, layer.Layer.LabelBrush, pixelsPerDip),

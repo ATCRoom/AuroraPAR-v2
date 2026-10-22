@@ -24,10 +24,13 @@ namespace AuroraPAR
             List<string> errors = [];
             try
             {
+                CustomSymbols.Load();
+                if (CustomSymbols.Error.Length > 0) errors.Add(CustomSymbols.Error);
                 if (!Directory.Exists(Folder)) return (maps, errors);
                 foreach (string file in Directory.GetFiles(Folder, "*.json").Order(StringComparer.OrdinalIgnoreCase))
                 {
                     string name = System.IO.Path.GetFileName(file);
+                    if (name.Equals("Symbols.json", StringComparison.OrdinalIgnoreCase)) continue;
                     try
                     {
                         maps.Add(new LoadedMap(name, MapFile.Load(file)));

@@ -163,14 +163,19 @@ namespace AuroraPAR
             // The points of the category can be drawn with another symbol (the map file is not changed).
             if (mine.Any(m => m.Map.OfCategory(category.Id).Points.Count > 0))
             {
-                ComboBox symbols = new() { MinWidth = 150, Margin = new Thickness(12, 0, 0, 0), ToolTip = "The symbol of the points. \"As in the map\": the one saved in the map file." };
+                ComboBox symbols = new() { MinWidth = 150, Margin = new Thickness(12, 0, 0, 0), ToolTip = "The symbol of the points. \"As in the map\": the one saved in the map file. More symbols: Symbols.json in the Maps folder (then Reload)." };
                 symbols.Items.Add("Symbol: as in the map");
                 foreach (MapSymbol symbol in Enum.GetValues<MapSymbol>()) symbols.Items.Add(SymbolName(symbol));
-                symbols.SelectedIndex = Enum.TryParse(display.Symbol, ignoreCase: true, out MapSymbol saved) && Enum.IsDefined(saved) ? (int)saved + 1 : 0;
+                int builtIn = Enum.GetValues<MapSymbol>().Length;
+                foreach (CustomSymbol custom in CustomSymbols.All) symbols.Items.Add(custom.Name);
+                int customIndex = CustomSymbols.All.FindIndex(c => c.Name.Equals(display.Symbol, StringComparison.OrdinalIgnoreCase));
+                symbols.SelectedIndex = Enum.TryParse(display.Symbol, ignoreCase: true, out MapSymbol saved) && Enum.IsDefined(saved) ? (int)saved + 1
+                    : customIndex >= 0 ? builtIn + 1 + customIndex : 0;
                 symbols.SelectionChanged += (s, e) =>
                 {
                     if (symbols.SelectedIndex < 0) return;
-                    display.Symbol = symbols.SelectedIndex == 0 ? null : ((MapSymbol)(symbols.SelectedIndex - 1)).ToString();
+                    int index = symbols.SelectedIndex;
+                    display.Symbol = index == 0 ? null : index <= builtIn ? ((MapSymbol)(index - 1)).ToString() : CustomSymbols.All[index - builtIn - 1].Name;
                     changed();
                 };
                 shapesRow.Children.Add(symbols);

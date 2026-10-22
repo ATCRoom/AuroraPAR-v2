@@ -182,7 +182,8 @@ namespace AuroraPAR
                     Color line = ColorText.Parse(display.ShapeColour ?? category.DefaultColour, Color.FromRgb(0x2F, 0x6F, 0x86));
                     Color label = ColorText.Parse(display.LabelColour ?? display.ShapeColour ?? category.DefaultColour, line);
                     MapSymbol? symbol = Enum.TryParse(display.Symbol, ignoreCase: true, out MapSymbol chosen) && Enum.IsDefined(chosen) ? chosen : null;
-                    layers.Add(new MapLayer(part, FrozenBrush(line), FrozenBrush(label), shapes, texts, symbol));
+                    CustomSymbol? custom = symbol == null ? CustomSymbols.Find(display.Symbol) : null;
+                    layers.Add(new MapLayer(part, FrozenBrush(line), FrozenBrush(label), shapes, texts, symbol, custom));
                     if (category.Id == MapCategory.Airports) foreach (MapPoint point in part.Points) airports.Add(point.Name);
                 }
             }
