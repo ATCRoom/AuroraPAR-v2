@@ -19,6 +19,8 @@ namespace ATCRoom.Maps
         /// <summary>The items, without a category.</summary>
         public MapFile Content { get; init; } = new();
         /// <summary>The points the user switched off ("Choose points"); they do not go into the map.</summary>
+        /// <summary>Where the data come from (text of the file it was read from, when it has one).</summary>
+        public string Source { get; init; } = "";
         public HashSet<MapPoint> Excluded { get; } = [];
         /// <summary>The points that were renamed in "Choose points", with the name they had in the file (for "Restore names").</summary>
         public Dictionary<MapPoint, string> OriginalNames { get; } = [];
@@ -77,6 +79,7 @@ namespace ATCRoom.Maps
                 case ".lartcc": case ".hartcc": case ".artcc": result = ImportPolygons(fileName, lines); break;
                 case ".mva": result = FromAurora(fileName, lines); break;
                 case ".ese": result = FromEuroScope(fileName, lines); break;
+                case ".json": result = ImportMapJson(fileName, lines); break;
                 default:
                     switch (Sniff(lines))
                     {
@@ -111,10 +114,10 @@ namespace ATCRoom.Maps
             return result;
         }
 
-        private static ImportEntry NewEntry(string file, string title, string? suggested, MapFile content)
+        private static ImportEntry NewEntry(string file, string title, string? suggested, MapFile content, string source = "")
         {
             content.Normalize();
-            return new ImportEntry { File = file, Title = title, Suggested = suggested, Category = suggested, Content = content };
+            return new ImportEntry { File = file, Title = title, Suggested = suggested, Category = suggested, Content = content, Source = source };
         }
 
         /// <summary>One row of a sector file: the comment at the end of the row removed, the fields trimmed.</summary>
@@ -204,6 +207,46 @@ namespace ATCRoom.Maps
             FileImport result = new() { FileName = fileName, FormatName = "AIP table of minimum altitudes (PDF)" };
             if (r.Map.Lines.Count > 0) result.Entries.Add(NewEntry(fileName, "Areas with their minimum altitude", MapCategory.Mva, r.Map));
             result.Notes.AddRange(r.Notes);
+            return result;
+        }
+
+        // ----- A map file already made (.json) ----------------------------------------------------------------------
+
+        /// <summary>
+        /// A map of the ATCRoom format (made before with the Map Creator, version 2): one part for each category it has, with
+        /// that category already chosen, and its airport. A map of version 1 (no categories) is one part without a category.
+        /// </summary>
+        public static FileImport ImportMapJson(string fileName, IReadOnlyList<string> lines)
+        {
+            FileImport result = new() { FileName = fileName, FormatName = "ATCRoom map (.json)" };
+            MapFile map;
+            try
+            {
+                map = MapFile.Parse(string.Join("\n", lines));
+            }
+            catch (InvalidDataException ex)
+            {
+                result.Notes.Add(ex.Message);
+                return result;
+            }
+            foreach (string id in map.UsedCategories())
+            {
+                string source = map.Sources.TryGetValue(id, out string? text) && text.Length > 0 ? text : map.Source;
+                result.Entries.Add(NewEntry(fileName, MapCategory.NameOf(id), id, map.OfCategory(id), source));
+            }
+            MapFile rest = new()
+            {
+                Lines = map.Lines.Where(l => MapCategory.Find(l.Category) == null).ToList(),
+                Labels = map.Labels.Where(l => MapCategory.Find(l.Category) == null).ToList(),
+                Points = map.Points.Where(p => MapCategory.Find(p.Category) == null).ToList()
+            };
+            if (rest.Lines.Count + rest.Labels.Count + rest.Points.Count > 0)
+            {
+                result.Entries.Add(NewEntry(fileName, "Items without a category (map of the old kind)", null, rest, map.Source));
+                result.Notes.Add("Some items have no category: choose it for that part.");
+            }
+            if (map.Airport.Length > 0) result.Airport = map.Airport;
+            if (result.Entries.Count == 0) result.Notes.Add("No lines, labels or points found in this file.");
             return result;
         }
 

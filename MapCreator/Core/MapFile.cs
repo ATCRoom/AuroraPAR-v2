@@ -49,10 +49,18 @@ namespace ATCRoom.Maps
         /// <summary>Reads a map file. Throws (with a readable message) when it is not a map.</summary>
         public static MapFile Load(string path)
         {
+            MapFile map = Parse(File.ReadAllText(path));
+            if (map.Name.Length == 0) map.Name = Path.GetFileNameWithoutExtension(path);
+            return map;
+        }
+
+        /// <summary>Reads a map from its JSON text. Throws (with a readable message) when it is not a map.</summary>
+        public static MapFile Parse(string json)
+        {
             MapFile? map;
             try
             {
-                map = JsonSerializer.Deserialize<MapFile>(File.ReadAllText(path), JsonOptions);
+                map = JsonSerializer.Deserialize<MapFile>(json, JsonOptions);
             }
             catch (JsonException ex)
             {
@@ -60,7 +68,6 @@ namespace ATCRoom.Maps
             }
             if (map == null) throw new InvalidDataException("Empty map file.");
             map.Normalize();
-            if (map.Name.Length == 0) map.Name = Path.GetFileNameWithoutExtension(path);
             return map;
         }
 
@@ -159,6 +166,47 @@ namespace ATCRoom.Maps
             Labels.AddRange(other.Labels);
             Points.AddRange(other.Points);
             foreach (KeyValuePair<string, string> pair in other.Sources) Sources[pair.Key] = pair.Value;
+        }
+
+        /// <summary>
+        /// Keeps one of the points that have the same name and category and are closer than the tolerance (the same point read
+        /// from two sources); returns how many were dropped. Points without a name are never dropped.
+        /// </summary>
+        public int RemoveDuplicatePoints(double toleranceNM = 0.1)
+        {
+            Dictionary<string, List<MapPoint>> kept = new(StringComparer.Ordinal);
+            List<MapPoint> result = [];
+            foreach (MapPoint p in Points)
+            {
+                if (p.Name.Length == 0)
+                {
+                    result.Add(p);
+                    continue;
+                }
+                string key = p.Category + "|" + p.Name.ToUpperInvariant();
+                if (!kept.TryGetValue(key, out List<MapPoint>? same))
+                {
+                    same = [];
+                    kept[key] = same;
+                }
+                bool duplicate = false;
+                foreach (MapPoint q in same)
+                {
+                    double dLat = (p.Latitude - q.Latitude) * 60;
+                    double dLon = (p.Longitude - q.Longitude) * 60 * Math.Cos(p.Latitude * Math.PI / 180);
+                    if (dLat * dLat + dLon * dLon <= toleranceNM * toleranceNM)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (duplicate) continue;
+                same.Add(p);
+                result.Add(p);
+            }
+            int removed = Points.Count - result.Count;
+            Points = result;
+            return removed;
         }
 
         /// <summary>Takes away everything of the given categories (a new import of a category replaces the old one).</summary>

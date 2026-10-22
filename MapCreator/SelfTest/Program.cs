@@ -326,6 +326,24 @@ string[] ese =
         "Cut: line clipped at the circle, category kept", cut.Summary);
     Check(cut.Airport == "LIPX", "Airport in capitals");
 
+    // A map made before is loaded as parts (one per category) and can get a detail added
+    MapFile before = new() { Airport = "LIPX", Source = "old" };
+    before.AddAs(new MapFile { Points = [new MapPoint { Name = "AAA", Latitude = 45, Longitude = 12 }] }, MapCategory.Fix);
+    before.AddAs(new MapFile { Lines = [new MapLine { Points = [[45, 12], [45.1, 12]] }] }, MapCategory.Mva);
+    before.Sources[MapCategory.Fix] = "IVAO";
+    FileImport again = MapImport.Read("LIPX.json", System.Text.Json.JsonSerializer.Serialize(before, MapFile.JsonOptions).Split('\n'), null);
+    Check(again.Entries.Count == 2 && again.Airport == "LIPX" && again.Entries.All(e => e.Category == e.Suggested && e.Category != null), "Existing map: one part per category, category and airport kept",
+        string.Join(",", again.Entries.Select(e => e.Title + ":" + e.Category)));
+    Check(again.Entries.First(e => e.Category == MapCategory.Fix).Source == "IVAO" && again.Entries.First(e => e.Category == MapCategory.Mva).Source == "old", "Existing map: the sources are kept (the one of the category, else the general one)");
+    MapFile sum = new();
+    foreach (ImportEntry e in again.Entries) sum.AddAs(e.Content, e.Category!);
+    sum.AddAs(new MapFile { Points = [new MapPoint { Name = "BBB", Latitude = 45.2, Longitude = 12 }, new MapPoint { Name = "aaa", Latitude = 45.0001, Longitude = 12 }, new MapPoint { Name = "AAA", Latitude = 45.5, Longitude = 12 }] }, MapCategory.Fix);
+    int dropped = sum.RemoveDuplicatePoints();
+    Check(dropped == 1 && sum.Points.Count == 3 && sum.Points.Any(p => p.Name == "BBB"), "Duplicates: the same name and category closer than 0.1 NM counts once, a far one stays", $"{dropped} dropped, {sum.Points.Count} left");
+    Check(MapImport.Read("bad.json", ["not json"], null).Entries.Count == 0, "Existing map: a file that is not a map gives no part");
+    FileImport old1 = MapImport.Read("v1.json", ["{ \"Name\": \"x\", \"Lines\": [ { \"Points\": [[45,12],[45.1,12]] } ] }"], null);
+    Check(old1.Entries.Count == 1 && old1.Entries[0].Category == null, "Existing map of version 1: one part without a category");
+
     string folder = Path.Combine(Path.GetTempPath(), "atcroom-maps-selftest2-" + Guid.NewGuid().ToString("N"));
     string path = Path.Combine(folder, "LIPX.json");
     cut.Sources[MapCategory.Fix] = "test";

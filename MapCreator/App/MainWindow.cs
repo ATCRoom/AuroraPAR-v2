@@ -95,14 +95,24 @@ namespace ATCRoom.MapCreator
             dropText.Children.Add(new TextBlock { Text = "Drop the map files here (many at once, or a folder)", FontSize = 15, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
             dropText.Children.Add(new TextBlock
             {
-                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese · AIP table (PDF)",
+                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese · AIP table (PDF) · a map already made (.json)",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 HorizontalAlignment = HorizontalAlignment.Center
             });
-            Button browse = new() { Content = "Browse...", Padding = new Thickness(12, 2, 12, 2), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Center };
+            Button browse = new() { Content = "Browse...", Padding = new Thickness(12, 2, 12, 2), Margin = new Thickness(0, 0, 6, 0) };
             browse.Click += (s, e) => Browse();
-            dropText.Children.Add(browse);
+            Button openExisting = new()
+            {
+                Content = "Open an existing map...",
+                Padding = new Thickness(12, 2, 12, 2),
+                ToolTip = "A map already made (in the maps of the Trainer): to add something or change it."
+            };
+            openExisting.Click += (s, e) => OpenExisting();
+            StackPanel dropButtons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
+            dropButtons.Children.Add(browse);
+            dropButtons.Children.Add(openExisting);
+            dropText.Children.Add(dropButtons);
             drop.Children.Add(dropText);
             Grid.SetRow(drop, 0);
             left.Children.Add(drop);
@@ -226,9 +236,16 @@ namespace ATCRoom.MapCreator
             {
                 Title = "Map files",
                 Multiselect = true,
-                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.pdf;*.txt|All files (*.*)|*.*"
+                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.pdf;*.txt;*.json|All files (*.*)|*.*"
             };
             if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
+        }
+
+        /// <summary>Loads a map made before (from the maps of the Trainer) as parts, to add or change something.</summary>
+        private void OpenExisting()
+        {
+            string? path = MapPickerWindow.Pick(this, TrainerMapsFolder);
+            if (path != null) OpenPaths([path]);
         }
 
         // ----- Reading ---------------------------------------------------------------------------------------------
@@ -412,6 +429,8 @@ namespace ATCRoom.MapCreator
                     if (entry.Category != null) combined.AddAs(entry.Selected(), entry.Category);
                 }
             }
+            // The same point from two sources (same name and category, closer than 0.1 NM) counts once.
+            combined.RemoveDuplicatePoints();
             return combined;
         }
 
@@ -519,9 +538,12 @@ namespace ATCRoom.MapCreator
             output.Airport = icao;
             output.Name = icao.Length > 0 ? icao : "Map";
             string source = sourceBox.Text.Trim();
-            if (source.Length > 0)
+            foreach (string category in categories)
             {
-                foreach (string category in categories) output.Sources[category] = source;
+                // The text typed in the box, else the sources of the parts (a map loaded with its own).
+                string text = source.Length > 0 ? source : string.Join("; ", files.Values.SelectMany(f => f.Entries)
+                    .Where(e => e.Category == category && e.Source.Length > 0).Select(e => e.Source).Distinct());
+                if (text.Length > 0) output.Sources[category] = text;
             }
             return (output, categories);
         }
