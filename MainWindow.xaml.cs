@@ -323,6 +323,9 @@ namespace AuroraPAR
         partial void TrainerKey(KeyEventArgs e, ModifierKeys modifiers);
         partial void TrainerClosing();
         partial void TrainerControlStyles(bool analog);
+        partial void TrainerInstructorOpened(InstructorWindow window);
+        partial void TrainerInstructorClosed();
+        partial void TrainerSettingsClosed();
 
         /// <summary>Coordination light panel (one window, opened on demand).</summary>
         private CoordinationWindow? coordinationWindow;
@@ -1185,6 +1188,14 @@ namespace AuroraPAR
         /// <summary>Opens (or brings to front) the test traffic window, beside the main window.</summary>
         private void OpenTestTraffic()
         {
+#if TRAINER
+            // Only Instructor+ is shown (Settings): its button, and the one of the Settings window, open it.
+            if (!settings.Trainer.ShowBasicInstructor && settings.Trainer.ShowPlusInstructor)
+            {
+                OpenInstructor();
+                return;
+            }
+#endif
             if (testTrafficWindow == null)
             {
                 testTrafficWindow = new TestTrafficWindow(testTraffic, OpenJoystick,
@@ -1350,7 +1361,9 @@ namespace AuroraPAR
         /// <summary>Opens (or brings to front) the Instructor window. It has no owner, so it can live on a second monitor.</summary>
         private void OpenInstructor()
         {
+#if !TRAINER
             if (!settings.Instructor.Enabled) return;
+#endif
             if (instructorWindow == null)
             {
                 // Performance classes: performance.json in the Instructor folder beside the settings file.
@@ -1367,6 +1380,7 @@ namespace AuroraPAR
                     notice);
                 instructorWindow.Activated += (s, e) => lastAircraftWindow = s as IJoystickTarget;
                 lastAircraftWindow = instructorWindow;
+                TrainerInstructorOpened(instructorWindow);
                 PlaceInstructorWindow(instructorWindow);
                 instructorWindow.Closed += (s, e) =>
                 {
@@ -1375,6 +1389,7 @@ namespace AuroraPAR
                         settings.Instructor.Window = new WindowPlacement { Left = window.Left, Top = window.Top, Width = window.ActualWidth, Height = window.ActualHeight };
                     }
                     instructorWindow = null;
+                    TrainerInstructorClosed();
                     instructor.Clear();
                     instructor.Engine.Paused = false;
                     SettingsStore.Save(settings);
@@ -2411,6 +2426,7 @@ namespace AuroraPAR
                 Owner = this
             };
             window.ShowDialog();
+            TrainerSettingsClosed();
         }
 
         /// <summary>
@@ -2469,8 +2485,13 @@ namespace AuroraPAR
                 case Key.A: ToggleDisplayMode(); break;
                 case Key.P: SwitchProfile(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); break;
                 case Key.T when modifiers == 0: ToggleQuickTest(); break;
+#if TRAINER
+                case Key.I when modifiers == ModifierKeys.Shift && settings.Trainer.ShowPlusInstructor: OpenInstructor(); break;
+                case Key.I when modifiers == 0 && settings.Trainer.ShowBasicInstructor: OpenTestTraffic(); break;
+#else
                 case Key.I when modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && settings.Instructor.Enabled: OpenInstructor(); break;
                 case Key.I when modifiers == 0: OpenTestTraffic(); break;
+#endif
                 case Key.C when modifiers == 0: ToggleDistanceScale(); break;
                 case Key.S when modifiers == 0: ToggleSmoothing(); break;
                 case Key.X when modifiers == 0: ToggleCrosshair(); break;

@@ -26,6 +26,9 @@ namespace AuroraPAR
         /// <summary>QNH typed by hand, shown only while Aurora is not connected.</summary>
         private StackPanel? qnhPanel;
         private TextBox? qnhBox;
+        /// <summary>The key "Instructor+" (beside the Instructor key) and the plan view inside the Instructor+ window.</summary>
+        private Button? plusButton;
+        private PlanView? instructorView;
 
         partial void TrainerStart()
         {
@@ -48,6 +51,10 @@ namespace AuroraPAR
                 keys.Children.Insert(0, parButton);
                 keys.Children.Insert(0, rdrButton);
             }
+            plusButton = new Button { Content = "Instructor+ (⇧I)", Focusable = false };
+            plusButton.Click += (s, e) => OpenInstructor();
+            if (BasicButton.Parent is Panel basicRow) basicRow.Children.Insert(basicRow.Children.IndexOf(BasicButton) + 1, plusButton);
+            ApplyInstructorButtons();
             TrainerControlStyles(viewOptions.Analog);
             if (trainer.RadarSeparateWindow)
             {
@@ -66,6 +73,11 @@ namespace AuroraPAR
             // The history dots are kept also while the RDR is hidden.
             radarPanel.View.Update(aircrafts, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
             if (radarWindow != null || radarInMain) RefreshRadar();
+            if (instructorView != null)
+            {
+                instructorView.Update(aircrafts, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
+                FeedInstructorView();
+            }
             // QNH by hand only without Aurora (with Aurora the METAR gives it).
             if (qnhPanel != null)
             {
@@ -105,6 +117,25 @@ namespace AuroraPAR
 
         partial void TrainerControlStyles(bool analog)
         {
+            if (plusButton != null)
+            {
+                plusButton.ToolTip = "Instructor+: the advanced instructor, with the plan view of the radar (key Shift+I).";
+                if (analog)
+                {
+                    StyleAsKey(plusButton, "INSTR+");
+                    plusButton.Content = "INSTR+";
+                }
+                else
+                {
+                    plusButton.ClearValue(StyleProperty);
+                    plusButton.ClearValue(FontSizeProperty);
+                    plusButton.Content = "Instructor+ (⇧I)";
+                    plusButton.Width = 98;
+                    plusButton.Height = 26;
+                    plusButton.Margin = new Thickness(0, 4, 0, 0);
+                }
+                UpdatePlusButton();
+            }
             if (rdrButton == null || parButton == null) return;
             foreach ((Button button, string text, string tip) in new[]
             {
@@ -190,6 +221,7 @@ namespace AuroraPAR
             radarPanel.View.Layers = layers;
             radarPanel.View.MapAirports = airports;
             RefreshRadar();
+            FeedInstructorView();
         }
 
         private void OpenMapsWindow()
@@ -369,6 +401,63 @@ namespace AuroraPAR
         }
 
         /// <summary>The main window to the front (also when it was minimized).</summary>
+        /// <summary>The Instructor buttons chosen in the Settings window: a hidden button also switches off its key.</summary>
+        private void ApplyInstructorButtons()
+        {
+            BasicButton.Visibility = settings.Trainer.ShowBasicInstructor ? Visibility.Visible : Visibility.Collapsed;
+            if (plusButton != null) plusButton.Visibility = settings.Trainer.ShowPlusInstructor ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>Analog key INSTR+ lit while the Instructor+ window is open.</summary>
+        private void UpdatePlusButton()
+        {
+            if (plusButton != null) plusButton.Tag = viewOptions.Analog ? (instructorWindow != null ? "Lit" : "Unlit") : null;
+        }
+
+        partial void TrainerSettingsClosed() => ApplyInstructorButtons();
+
+        partial void TrainerInstructorOpened(InstructorWindow window)
+        {
+            instructorView = new PlanView { Range = settings.Trainer.RadarRange };
+            instructorView.RangeStepRequested += StepInstructorRange;
+            window.AttachPlan(instructorView);
+            FeedInstructorView();
+            UpdatePlusButton();
+        }
+
+        partial void TrainerInstructorClosed()
+        {
+            instructorView = null;
+            UpdatePlusButton();
+        }
+
+        /// <summary>The range of the plan view of the Instructor+ (the mouse wheel over it), apart from the one of the RDR.</summary>
+        private void StepInstructorRange(int step)
+        {
+            if (instructorView == null) return;
+            double[] ranges = TrainerSettings.RadarRanges;
+            int index = Array.IndexOf(ranges, TrainerSettings.NearestRange(instructorView.Range));
+            instructorView.Range = ranges[Math.Clamp(index + step, 0, ranges.Length - 1)];
+            instructorView.InvalidateVisual();
+        }
+
+        /// <summary>Gives the plan view of the Instructor+ the runway, the pressure and the maps of the RDR.</summary>
+        private void FeedInstructorView()
+        {
+            if (instructorView == null || radarPanel == null) return;
+            Profile profile = settings.Active;
+            bool qfe = profile.PressureReference == PressureReference.QFE;
+            string pressure = qnh == 0 ? "----" : Pressure.Format(qfe ? Pressure.QfeFromQnh(qnh, runway.Elevation) : qnh, profile.PressureUnit);
+            instructorView.Runway = runway;
+            instructorView.Runways = runways;
+            instructorView.ShowLabels = viewOptions.ShowLabels;
+            instructorView.InfoText = $"RWY {runway.DisplayName}   {(qfe ? "QFE" : "QNH")} {pressure}";
+            instructorView.SignText = instructor.Count > 0 ? "SIM TRAFFIC" : "";
+            instructorView.Layers = radarPanel.View.Layers;
+            instructorView.MapAirports = radarPanel.View.MapAirports;
+            instructorView.InvalidateVisual();
+        }
+
         private void BringMainToFront()
         {
             if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;

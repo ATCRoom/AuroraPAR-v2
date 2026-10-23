@@ -31,6 +31,7 @@ namespace AuroraPAR
         private static readonly Pen CentrelinePen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xCF, 0xCF, 0xCF))), 1));
         private static readonly Color TrackColor = Color.FromRgb(0x35, 0xD3, 0x6A);
         private static readonly Pen TrackPen = Freeze(new Pen(Freeze(new SolidColorBrush(TrackColor)), 1.6));
+        private static readonly Pen SelectPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xD0, 0x00))), 1.6));
         private static readonly Brush LabelBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xE6)));
         private static readonly Pen LeaderPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x70, 0x70, 0x70))), 0.8));
         private static readonly Brush InfoBrush = Freeze(new SolidColorBrush(Colors.White));
@@ -80,6 +81,25 @@ namespace AuroraPAR
 
         /// <summary>Mouse wheel: one step of the range list (+1 larger, −1 smaller); the owner changes <see cref="Range"/>.</summary>
         public event Action<int>? RangeStepRequested;
+
+        /// <summary>The aircraft shown with a square round it (the one the Instructor+ has selected), by callsign.</summary>
+        public string? SelectedCallsign { get; set; }
+        /// <summary>A track was clicked (the callsign of the nearest one, within a few pixels).</summary>
+        public event Action<string>? AircraftClicked;
+        /// <summary>Where the tracks were drawn the last time (to find the one that is clicked).</summary>
+        private readonly List<(Point At, string Callsign)> drawn = [];
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+            Point at = e.GetPosition(this);
+            (Point At, string Callsign)? nearest = drawn.Count == 0 ? null : drawn.OrderBy(d => (d.At - at).Length).First();
+            if (nearest != null && (nearest.Value.At - at).Length <= 16)
+            {
+                AircraftClicked?.Invoke(nearest.Value.Callsign);
+                e.Handled = true;
+            }
+        }
 
         public PlanView()
         {
@@ -170,6 +190,7 @@ namespace AuroraPAR
 
         protected override void OnRender(DrawingContext dc)
         {
+            drawn.Clear();
             double width = ActualWidth;
             double height = ActualHeight;
             if (width <= 0 || height <= 0) return;
@@ -305,6 +326,8 @@ namespace AuroraPAR
                 Aircraft shown = aircraft.Filtered ?? aircraft;
                 Point position = Place(shown.Latitude, shown.Longitude);
                 if (!visible.Contains(position)) continue;
+                drawn.Add((position, aircraft.Callsign));
+                if (SelectedCallsign != null && aircraft.Callsign == SelectedCallsign) dc.DrawRectangle(null, SelectPen, new Rect(position.X - 9, position.Y - 9, 18, 18));
                 dc.DrawEllipse(null, TrackPen, position, 5, 5);
                 dc.DrawLine(TrackPen, position + new Vector(-5, 0), position + new Vector(5, 0));
                 dc.DrawLine(TrackPen, position + new Vector(0, -5), position + new Vector(0, 5));

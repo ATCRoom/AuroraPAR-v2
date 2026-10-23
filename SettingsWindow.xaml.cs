@@ -15,6 +15,8 @@ namespace AuroraPAR
     {
         private readonly AppSettings settings;
         private readonly Action applyToScreen;
+        /// <summary>AuroraPAR v2 Trainer: its own options in the bar at the bottom (Trainer folder). No body in AuroraPAR v2.</summary>
+        partial void TrainerOptions();
         /// <summary>
         /// True while the controls are being filled from the settings, so their change events are ignored.
         /// </summary>
@@ -53,6 +55,7 @@ namespace AuroraPAR
             };
             JoystickButton.Visibility = openJoystick == null ? Visibility.Collapsed : Visibility.Visible;
             JoystickButton.Click += (s, e) => openJoystick?.Invoke(this);
+            TrainerOptions();
             ProfileComboBox.SelectionChanged += ProfileComboBox_SelectionChanged;
             RenameButton.Click += (s, e) => RenameProfile();
             ProfileNameTextBox.KeyDown += (s, e) =>

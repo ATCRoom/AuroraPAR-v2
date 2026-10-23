@@ -20,6 +20,11 @@ namespace AuroraPAR
     /// </summary>
     internal sealed class InstructorWindow : Window, IJoystickTarget
     {
+#if TRAINER
+        private const string FooterText = "Click an aircraft on the plan view to select it. The PAR monitor, the routes and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
+#else
+        private const string FooterText = "Provisional layout: the plan view, the PAR monitor, the modes and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
+#endif
         private const double PadSize = 150;
         private const double KnobSize = 22;
         private const double PadReach = (PadSize - KnobSize) / 2;
@@ -135,7 +140,7 @@ namespace AuroraPAR
             root.Children.Add(controlPanel);
             root.Children.Add(new TextBlock
             {
-                Text = "Provisional layout: the plan view, the PAR monitor, the modes and the start positions come in the next steps. Closing the window removes the simulated aircraft.",
+                Text = FooterText,
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.Gray,
                 FontSize = 11,
@@ -153,6 +158,62 @@ namespace AuroraPAR
             Closed += (s, e) => refresh.Stop();
             Refresh();
         }
+
+#if TRAINER
+        private PlanView? plan;
+
+        /// <summary>
+        /// AuroraPAR v2 Trainer: the plan view (radar with the maps) on the left of the controls; the window can be resized.
+        /// A click on a track selects that aircraft.
+        /// </summary>
+        internal void AttachPlan(PlanView view)
+        {
+            plan = view;
+            Title = $"{AppInfo.ProductName} - Instructor+";
+            UIElement? controls = Content as UIElement;
+            Content = null;
+            ScrollViewer scroll = new()
+            {
+                Content = controls,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            };
+            Grid grid = new();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 300 });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(600) });
+            Grid.SetColumn(view, 0);
+            Grid.SetColumn(scroll, 1);
+            grid.Children.Add(view);
+            grid.Children.Add(scroll);
+            Content = grid;
+            SizeToContent = SizeToContent.Manual;
+            ResizeMode = ResizeMode.CanResize;
+            Rect area = SystemParameters.WorkArea;
+            WindowPlacement? saved = settings.Window;
+            double width = saved != null && double.IsFinite(saved.Width) && saved.Width >= 800 ? saved.Width : 1280;
+            double height = saved != null && double.IsFinite(saved.Height) && saved.Height >= 520 ? saved.Height : 860;
+            MinWidth = 900;
+            MinHeight = 520;
+            Width = Math.Min(width, area.Width - 20);
+            Height = Math.Min(height, area.Height - 20);
+            view.AircraftClicked += SelectCallsign;
+        }
+
+        /// <summary>Selects an aircraft of the list by its callsign (a click on the plan view).</summary>
+        private void SelectCallsign(string callsign)
+        {
+            ListBoxItem? item = list.Items.OfType<ListBoxItem>().FirstOrDefault(i => string.Equals(i.Tag as string, callsign, StringComparison.OrdinalIgnoreCase));
+            if (item != null) list.SelectedItem = item;
+        }
+
+        /// <summary>The plan view shows the selected aircraft with a square.</summary>
+        private void SyncPlan()
+        {
+            if (plan == null) return;
+            plan.SelectedCallsign = SelectedCallsign;
+            plan.InvalidateVisual();
+        }
+#endif
 
         // ----- Building the window ---------------------------------------------------------------------------------
 
@@ -987,6 +1048,9 @@ namespace AuroraPAR
         private void Refresh()
         {
             FollowRadarRunway();
+#if TRAINER
+            SyncPlan();
+#endif
             Runway? runway = bridge.Reference;
             double magneticVariation = variation();
             referenceText.Text = runway == null ? "none" : $"{runway.DisplayName}  (elevation {runway.Elevation:0} ft)";

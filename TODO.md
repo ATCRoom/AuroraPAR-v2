@@ -95,6 +95,8 @@ Ideas kept but stopped on purpose (not for now); they come back only when the us
 
 ## Done, to be tested
 
+- **Instructor+ step 1 (23 Oct, built, to be tested):** Trainer only. Window opened by the key **Shift+I** or the button "Instructor+ (⇧I)" (analog key INSTR+, lit while open), beside the Instructor button. Plan view of the radar (with the maps, runway, range rings, tracks) on the left, the controls of the advanced Instructor on the right (scroll); the window can be resized (size saved); the mouse wheel over the plan view changes its range (apart from the RDR); a click on a track selects that aircraft (yellow square) and the list follows. **Settings window → bar at the bottom: "Instructor buttons": Instructor+ only (default) / Instructor only / Both; a hidden button also switches off its key** (I / Shift+I); the "Instructor..." button of the Settings opens the Plus when only the Plus is shown. QNH by hand without Aurora was already there; the sign on the plan view is "SIM TRAFFIC" when simulated aircraft fly. Not yet: PAR monitor in the window, splitters between the panes, list with the NM PAR / state columns, routes.
+
 Last updates, newest first. When an item works in the test, delete it.
 
 - Phases 1, 2, 3 and the ground clutter tested OK by the user (16 Oct checklist).

@@ -23,6 +23,12 @@ namespace AuroraPAR
         public Dictionary<string, Dictionary<string, CategoryDisplaySettings>> AirportMaps { get; set; } = [];
         /// <summary>QNH typed by hand while Aurora is not connected (hPa), used again at the next start; null: none.</summary>
         public int? ManualQnh { get; set; }
+        /// <summary>Which Instructor buttons the main window shows: "Plus" (Instructor+, the default), "Basic" (Instructor) or "Both". A button that is hidden also switches off its key.</summary>
+        public string InstructorButtons { get; set; } = "Plus";
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool ShowBasicInstructor => InstructorButtons is "Basic" or "Both";
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool ShowPlusInstructor => InstructorButtons is "Plus" or "Both";
 
         public void Normalize()
         {
@@ -47,6 +53,7 @@ namespace AuroraPAR
                 }
             }
             if (ManualQnh is int q && (q < 850 || q > 1090)) ManualQnh = null;
+            if (InstructorButtons is not ("Plus" or "Basic" or "Both")) InstructorButtons = "Plus";
         }
 
         /// <summary>The settings of a map (created when it is new: shown, with the colours of its file).</summary>
