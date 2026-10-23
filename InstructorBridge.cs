@@ -240,6 +240,8 @@ namespace AuroraPAR
             {
                 given.Remove(state.Callsign);
             }
+            // Paused (only this aircraft): no speed, so the track filter of the display does not move it on.
+            if (state.Frozen) speed = 0;
             return new Aircraft
             {
                 Callsign = state.Callsign,

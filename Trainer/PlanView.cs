@@ -124,10 +124,61 @@ namespace AuroraPAR
         private Point lastCentre;
         private double lastScale;
 
+        /// <summary>
+        /// Where the view looks (NM east and north of the threshold of the runway in use; 0 = centred on the threshold):
+        /// the mouse wheel zooms around the pointer, the right button drags the view, a double-click centres it again.
+        /// Back to 0 when the runway changes.
+        /// </summary>
+        public Vector PanOffset { get; set; }
+        private (double Latitude, double Longitude) panFor;
+        private Point? dragFrom;
+        private Vector dragOffset;
+
+        protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseRightButtonDown(e);
+            dragFrom = e.GetPosition(this);
+            dragOffset = PanOffset;
+            CaptureMouse();
+            e.Handled = true;
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            if (dragFrom is not Point from || lastScale <= 0) return;
+            Vector moved = e.GetPosition(this) - from;
+            PanOffset = new Vector(dragOffset.X - moved.X / lastScale, dragOffset.Y + moved.Y / lastScale);
+            InvalidateVisual();
+        }
+
+        protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseRightButtonUp(e);
+            if (dragFrom == null) return;
+            dragFrom = null;
+            ReleaseMouseCapture();
+            e.Handled = true;
+        }
+
+        protected override void OnLostMouseCapture(MouseEventArgs e)
+        {
+            base.OnLostMouseCapture(e);
+            dragFrom = null;
+        }
+
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
             Point at = e.GetPosition(this);
+            if (e.ClickCount == 2 && !PickingPoints && !drawn.Any(d => (d.At - at).Length <= 16))
+            {
+                // Double-click: centred on the airport again.
+                PanOffset = new Vector();
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
             if (PickingPoints)
             {
                 Runway? runway = Runway;
@@ -237,9 +288,45 @@ namespace AuroraPAR
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
-            // Handled here, so the wheel over the RDR does not also change the range of the PAR.
+            // Handled here, so the wheel over the RDR does not also change the range of the PAR. The point under the
+            // pointer stays under it: the view is moved by what the new range changes.
+            Point at = e.GetPosition(this);
+            double before = lastScale;
+            Vector under = before > 0 ? new Vector(PanOffset.X + (at.X - ActualWidth / 2) / before, PanOffset.Y - (at.Y - ActualHeight / 2) / before) : PanOffset;
             RangeStepRequested?.Invoke(e.Delta > 0 ? 1 : -1);
+            double range = Range > 0 ? Range : TrainerSettings.DefaultRadarRange;
+            double after = Math.Min(ActualWidth, ActualHeight) / 2 / range;
+            if (before > 0 && after > 0)
+            {
+                PanOffset = new Vector(under.X - (at.X - ActualWidth / 2) / after, under.Y + (at.Y - ActualHeight / 2) / after);
+                InvalidateVisual();
+            }
             e.Handled = true;
+        }
+
+        /// <summary>
+        /// The centre of the range rings: the point of the airport in the maps (same ICAO: the reference point of the AIP,
+        /// the centre of its ATZ and CTR), else the middle of all the ends of its runways in runways.par; null: unknown.
+        /// </summary>
+        private (double Latitude, double Longitude)? AirportCentre(Runway runway)
+        {
+            string icao = runway.ICAO.Trim();
+            foreach (MapLayer layer in Layers)
+            {
+                foreach (MapPoint point in layer.Map.Points)
+                {
+                    if (string.Equals(point.Name.Trim(), icao, StringComparison.OrdinalIgnoreCase)) return (point.Latitude, point.Longitude);
+                }
+            }
+            double radius = Earth.Radius(runway);
+            List<(double Latitude, double Longitude)> ends = [];
+            foreach (Runway line in Runways.Where(r => string.Equals(r.ICAO.Trim(), icao, StringComparison.OrdinalIgnoreCase)))
+            {
+                ends.Add((line.Latitude, line.Longitude));
+                if (line.LengthM > 0) ends.Add(Earth.Destination(line.Latitude, line.Longitude, line.Heading, line.LengthM / 1852, radius));
+            }
+            if (ends.Count == 0) return null;
+            return (ends.Average(p => p.Latitude), ends.Average(p => p.Longitude));
         }
 
         protected override void OnRender(DrawingContext dc)
@@ -257,8 +344,15 @@ namespace AuroraPAR
                 return;
             }
             double range = Range > 0 ? Range : TrainerSettings.DefaultRadarRange;
-            Point centre = new(width / 2, height / 2);
+            // Another runway: centred on it again.
+            if (panFor.Latitude != runway.Latitude || panFor.Longitude != runway.Longitude)
+            {
+                panFor = (runway.Latitude, runway.Longitude);
+                PanOffset = new Vector();
+            }
             double scale = Math.Min(width, height) / 2 / range; // pixels per NM
+            // The threshold of the runway in use on the screen (the middle of the view, moved by the pan).
+            Point centre = new(width / 2 - PanOffset.X * scale, height / 2 + PanOffset.Y * scale);
             lastCentre = centre;
             lastScale = scale;
             double radius = Earth.Radius(runway);
@@ -273,16 +367,18 @@ namespace AuroraPAR
                 double h = headingDegrees * Math.PI / 180;
                 return new Vector(Math.Sin(h), -Math.Cos(h));
             }
-            double reach = Math.Sqrt(width * width + height * height) / 2;
+            // Range rings around the airport (its reference point), as far as the farthest corner of the view.
+            Point ringCentre = AirportCentre(runway) is { } airport ? Place(airport.Latitude, airport.Longitude) : centre;
+            double reach = new[] { new Point(0, 0), new Point(width, 0), new Point(0, height), new Point(width, height) }.Max(c => (c - ringCentre).Length);
 
             // Range rings, with their distance.
             double step = range <= 10 ? 2 : range <= 20 ? 5 : range <= 60 ? 10 : 20;
             for (double ring = step; ring * scale <= reach; ring += step)
             {
-                dc.DrawEllipse(null, RingPen, centre, ring * scale, ring * scale);
+                dc.DrawEllipse(null, RingPen, ringCentre, ring * scale, ring * scale);
                 FormattedText text = Text(ring.ToString("0", CultureInfo.InvariantCulture), 10, RingTextBrush, pixelsPerDip);
                 double angle = 30 * Math.PI / 180;
-                dc.DrawText(text, new Point(centre.X + ring * scale * Math.Sin(angle) + 3, centre.Y - ring * scale * Math.Cos(angle) - text.Height));
+                dc.DrawText(text, new Point(ringCentre.X + ring * scale * Math.Sin(angle) + 3, ringCentre.Y - ring * scale * Math.Cos(angle) - text.Height));
             }
 
             // Maps, under everything else: lines (one geometry per map, scaled), labels and points.

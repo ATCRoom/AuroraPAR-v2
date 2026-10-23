@@ -275,9 +275,9 @@ namespace AuroraPAR
                 box.KeyDown += (s, e) => { if (e.Key == Key.Enter) ApplyWind(); };
                 box.LostFocus += (s, e) => ApplyWind();
             }
-            Wheel(windFromBox, 10, 30, 0, 360, "000", ApplyWind);
-            Wheel(windSpeedBox, 1, 5, 0, SimEngine.MaxWind, "0", ApplyWind);
-            Wheel(windGustBox, 1, 5, 0, SimEngine.MaxGust, "0", ApplyWind);
+            Wheel(windFromBox, 10, 30, 0, 360, "000", ApplyWind, afterClick: true);
+            Wheel(windSpeedBox, 1, 5, 0, SimEngine.MaxWind, "0", ApplyWind, afterClick: true);
+            Wheel(windGustBox, 1, 5, 0, SimEngine.MaxGust, "0", ApplyWind, afterClick: true);
             panel.Children.Add(windRow);
             panel.Children.Add(noticeText);
             return Group("Simulation", panel);
@@ -507,7 +507,7 @@ namespace AuroraPAR
             reactionRow.Children.Add(reactionBox);
             reactionRow.Children.Add(Caption("s"));
             reactionBox.TextChanged += (s, e) => ApplyReaction();
-            Wheel(reactionBox, 0.1, 1, 0, 5, "0.0", null);
+            Wheel(reactionBox, 0.1, 1, 0, 5, "0.0", null, afterClick: true);
             instructions.Children.Add(reactionRow);
             GroupBox instructionsGroup = Group("Instructions (controller)", instructions);
             instructionsGroup.Margin = new Thickness(0, 0, 8, 0);
@@ -828,6 +828,9 @@ namespace AuroraPAR
             if (runway == null || SelectedCallsign is not string callsign) return;
             headingBox.Text = Magnetic(runway.Heading, variation()).ToString("000", CultureInfo.InvariantCulture);
             // The exact final course, not the magnetic heading rounded to a degree (0.5° would be 160 m off at 10 NM).
+#if TRAINER
+            bridge.Engine.SetNavigation(callsign, false);
+#endif
             bridge.Engine.SetHeading(callsign, runway.Heading);
         }
 
@@ -858,6 +861,10 @@ namespace AuroraPAR
                 System.Media.SystemSounds.Beep.Play();
                 return;
             }
+#if TRAINER
+            // Instructor+: a heading means MANUAL at once (the aircraft keeps its heading until the pilot carries it out).
+            bridge.Engine.SetNavigation(callsign, false);
+#endif
             bridge.Engine.SetHeading(callsign, SimEngine.Normalize(heading + variation()));
         }
 
@@ -1202,10 +1209,12 @@ namespace AuroraPAR
         /// Mouse wheel over a number field: changes it by a step (+Shift: a bigger step) within limits; then
         /// <paramref name="give"/> (the instruction), if any. An empty field starts from <paramref name="start"/>.
         /// </summary>
-        private void Wheel(TextBox box, double step, double shiftStep, double min, double max, string format, Action? give, Func<double>? start = null)
+        private void Wheel(TextBox box, double step, double shiftStep, double min, double max, string format, Action? give, Func<double>? start = null, bool afterClick = false)
         {
             box.PreviewMouseWheel += (s, e) =>
             {
+                // A setting field: only after a click in it (the wheel passing over it while scrolling leaves it as it is).
+                if (afterClick && !box.IsKeyboardFocusWithin) return;
                 double value = TryRead(box, out double current) ? current : start?.Invoke() ?? 0;
                 double size = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? shiftStep : step;
                 double next = Math.Clamp(Math.Round((value + (e.Delta > 0 ? size : -size)) / step) * step, min, max);

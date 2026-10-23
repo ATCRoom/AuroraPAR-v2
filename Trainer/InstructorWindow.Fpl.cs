@@ -194,6 +194,17 @@ namespace AuroraPAR
             FlightPlan? previous = SelectedFpl ?? flightPlans.LastOrDefault();
             string? lastCallsign = flightPlans.LastOrDefault(p => p.Callsign.Length > 0)?.Callsign;
             string callsign = lastCallsign != null ? NextCallsign(lastCallsign) : "";
+            // No plan selected: the callsign typed in the box is the one of the new plan (the next one if another plan has it).
+            string typed = fplCallsignBox.Text.Trim().ToUpperInvariant();
+            if (SelectedFpl == null && typed.Length > 0)
+            {
+                if (!ValidCallsign(typed))
+                {
+                    Warn("Callsign: 2 to 10 letters or digits, or empty for the next free one.");
+                    return;
+                }
+                callsign = CallsignInPlans(typed, null) ? NextCallsign(typed) : typed;
+            }
             FlightPlan plan = NewPlan(callsign, previous?.Class ?? DefaultClass(), []);
             flightPlans.Add(plan);
             SelectPlan(plan);

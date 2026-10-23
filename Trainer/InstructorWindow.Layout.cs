@@ -26,8 +26,8 @@ namespace AuroraPAR
         private int quickStart;
         private readonly Border stickArea = new();
         private readonly Button stickToggle = new() { FontSize = 10, Padding = new Thickness(6, 0, 6, 0), Focusable = false };
-        private readonly TextBlock altitudeHint = Hint("");
-        private readonly TextBlock speedHint = Hint("");
+        private readonly TextBlock altitudeHint = Hint("the route's altitudes until you give one");
+        private readonly TextBlock speedHint = Hint("the route's speeds until you give one");
         private readonly TextBlock headingHintTrainer = Hint("a heading puts the aircraft in MANUAL");
         private FrameworkElement? controlArea;
 
@@ -317,9 +317,15 @@ namespace AuroraPAR
             list.FontSize = 12;
             list.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             panel.Children.Add(list);
+            // The information in two columns (the shared one, with lines that come and go, is not used here).
             Detach(info);
-            info.Margin = new Thickness(2, 4, 0, 4);
-            panel.Children.Add(info);
+            Grid information = new();
+            information.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            information.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(infoRight, 1);
+            information.Children.Add(infoLeft);
+            information.Children.Add(infoRight);
+            panel.Children.Add(information);
 
             StackPanel control = new();
             if (bestValue.Parent is FrameworkElement stack && stack.Parent is FrameworkElement border && border.Parent is FrameworkElement readouts)
@@ -460,21 +466,47 @@ namespace AuroraPAR
                 runway?.DisplayName ?? "no runway", wind, Qfe ? "QFE" : "QNH", bridge.Engine.ReactionSeconds);
             if (controlArea != null) controlArea.IsEnabled = state != null;
             bool routeValues = state != null && state.Route != null && state.Navigation != NavigationMode.Manual;
-            altitudeHint.Text = routeValues && state!.RouteAltitude ? "the route's altitudes until you give one" : "";
-            speedHint.Text = routeValues && state!.RouteSpeed ? "the route's speeds until you give one" : "";
-            altitudeHint.Visibility = altitudeHint.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-            speedHint.Visibility = speedHint.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-            headingHintTrainer.Visibility = state != null && state.Navigation != NavigationMode.Manual ? Visibility.Visible : Visibility.Collapsed;
-            // While the route turns the aircraft (and when MANUAL / ROUTE changes) the heading box follows, so that the
-            // keys and ◀ L / R ▶ start from the heading it is flying, not from an old one.
-            if (state != null && (state.Navigation != NavigationMode.Manual || state.Navigation != shownNavigation) && !headingBox.IsKeyboardFocused)
+            // The hints keep their place when not shown (Hidden, not Collapsed): the controls never move.
+            altitudeHint.Visibility = routeValues && state!.RouteAltitude ? Visibility.Visible : Visibility.Hidden;
+            speedHint.Visibility = routeValues && state!.RouteSpeed ? Visibility.Visible : Visibility.Hidden;
+            headingHintTrainer.Visibility = state != null && state.Navigation != NavigationMode.Manual ? Visibility.Visible : Visibility.Hidden;
+            // While the route turns the aircraft the heading box follows, so that the keys and ◀ L / R ▶ start from the
+            // heading it is flying (a heading given puts it in MANUAL at once, and then the box is left as typed).
+            if (state != null && state.Navigation != NavigationMode.Manual && !headingBox.IsKeyboardFocused)
             {
                 headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
             }
-            shownNavigation = state?.Navigation;
+            ShowInformation(state);
         }
 
-        private NavigationMode? shownNavigation;
+        private readonly TextBlock infoLeft = new() { Height = 48, Margin = new Thickness(2, 4, 0, 4) };
+        private readonly TextBlock infoRight = new() { Height = 48, Margin = new Thickness(8, 4, 0, 4) };
+
+        /// <summary>The information of the selected aircraft in two columns of three lines each (always three: nothing moves).</summary>
+        private void ShowInformation(AircraftState? state)
+        {
+            if (state == null)
+            {
+                infoLeft.Text = bridge.Count == 0 ? "No simulated aircraft:\ncreate one (Quick) or activate a flight plan." : "";
+                infoRight.Text = "";
+                return;
+            }
+            Runway? runway = bridge.Reference;
+            Aircraft? position = bridge.LastPosition(state.Callsign);
+            string distance = position != null && runway != null ? position.DistanceFromTouchdown(runway).ToString("0.0", CultureInfo.InvariantCulture) : "--";
+            double altitude = Qfe ? state.AltitudeFt - Elevation : state.AltitudeFt;
+            string mode = state.StickActive ? "stick" : state.VerticalMode switch
+            {
+                VerticalMode.GlidePath => "Normal rate",
+                VerticalMode.Rate => "rate",
+                _ => "altitude"
+            };
+            infoLeft.Text = string.Format(CultureInfo.InvariantCulture, "{0}  {1}{2}\n{3} NM from touchdown\nground speed {4:0} kt",
+                state.Callsign, state.PerformanceClass, state.Frozen ? "  (PAUSED)" : "", distance, state.GroundSpeedKt);
+            infoRight.Text = string.Format(CultureInfo.InvariantCulture, "{0:0} ft {1}, {2:0} kt\nvertical: {3}\n{4}",
+                altitude, Qfe ? "QFE" : "QNH", state.SpeedKt, mode,
+                state.PendingCommands > 0 ? $"pilot: {state.PendingCommands} instruction(s) coming" : "");
+        }
 
         /// <summary>
         /// A row of the aircraft list: its text and, on the right, Pause / Unpause (only this aircraft held where it is),

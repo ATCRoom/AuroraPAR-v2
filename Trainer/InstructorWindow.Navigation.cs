@@ -19,7 +19,7 @@ namespace AuroraPAR
     {
         private readonly ToggleButton manualButton = new() { Content = "MANUAL", FontWeight = FontWeights.SemiBold, Padding = new Thickness(16, 3, 16, 3), Focusable = false, ToolTip = "MANUAL: the aircraft flies the headings you give (and the stick). Its route, if any, is kept." };
         private readonly ToggleButton routeButton = new() { Content = "ROUTE", FontWeight = FontWeights.SemiBold, Padding = new Thickness(16, 3, 16, 3), Focusable = false, ToolTip = "ROUTE: the aircraft keeps its heading until you choose a point (double-click in the list, Next WPT, Direct to), then flies the points. A heading or the stick puts it back in MANUAL." };
-        private readonly TextBlock navigationStatus = new() { TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 3, 0, 3) };
+        private readonly TextBlock navigationStatus = new() { TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 3, 0, 3), Height = 34, TextTrimming = TextTrimming.CharacterEllipsis };
         private readonly ListBox navigationList = new() { Height = 84, FontFamily = new FontFamily("Consolas"), FontSize = 12, ToolTip = "The points of the route (to look at). Double-click a point: direct to it, after the pilot reaction." };
         private readonly TextBlock navigationHint = new() { Text = "double-click a point: direct to it", FontSize = 11, Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
         private readonly Button nextWaypointButton = new() { Content = "Next WPT", FontWeight = FontWeights.SemiBold, Padding = new Thickness(8, 2, 8, 2), ToolTip = "Direct to the next point of the route (after the one it flies to), after the pilot reaction." };
@@ -122,6 +122,7 @@ namespace AuroraPAR
                 if (matches.Count > 0)
                 {
                     int index = matches.FirstOrDefault(i => i >= state.RouteNext, matches[0]);
+                    bridge.Engine.SetNavigation(state.Callsign, true);
                     bridge.Engine.DirectTo(state.Callsign, index);
                     return;
                 }
@@ -131,6 +132,8 @@ namespace AuroraPAR
                 Warn($"No point named {name} in the route, in the maps or among the airports.");
                 return;
             }
+            // ROUTE at once (heading kept until the pilot turns to the point).
+            bridge.Engine.SetNavigation(state.Callsign, true);
             bridge.Engine.DirectToPoint(state.Callsign, new RoutePoint(found.X, found.Y, double.NaN, double.NaN, found.Name));
         }
 
@@ -155,7 +158,8 @@ namespace AuroraPAR
             else
                 navigationStatus.Text = $"MANUAL: heading {heading} (no route: Edit route… makes one)";
 
-            Visibility listShown = state != null && !manual && count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            // Hidden (not collapsed): the controls below never move.
+            Visibility listShown = state != null && !manual && count > 0 ? Visibility.Visible : Visibility.Hidden;
             navigationList.Visibility = navigationHint.Visibility = listShown;
             // Direct to also from MANUAL (it puts the aircraft in ROUTE); Next WPT only in ROUTE.
             directRow.IsEnabled = state != null;
