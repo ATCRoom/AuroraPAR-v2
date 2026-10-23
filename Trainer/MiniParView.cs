@@ -57,7 +57,8 @@ namespace AuroraPAR
                 if (!histories.TryGetValue(aircraft.Callsign, out var history)) history = (new List<(double Latitude, double Longitude, double Altitude)>(), DateTime.MinValue);
                 if ((now - history.Last).TotalSeconds >= 1)
                 {
-                    history.Points.Add((aircraft.Latitude, aircraft.Longitude, aircraft.Altitude));
+                    Aircraft at = aircraft.Filtered ?? aircraft;
+                    history.Points.Add((at.Latitude, at.Longitude, at.Altitude));
                     while (history.Points.Count > Dots) history.Points.RemoveAt(0);
                     history.Last = now;
                 }
@@ -88,6 +89,8 @@ namespace AuroraPAR
             dc.DrawRectangle(Background, null, new Rect(0, 0, width, height));
             double pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
             Runway? runway = Runway;
+            // Too small to draw the two views (the splitter dragged down): only the background.
+            if (height < 100 || width < 120) return;
             if (runway == null)
             {
                 dc.DrawText(Text("PAR  no runway", 12, InfoBrush, MonoFace, pixelsPerDip), new Point(8, 4));
@@ -140,12 +143,15 @@ namespace AuroraPAR
                         Aircraft past = new() { Callsign = aircraft.Callsign, Latitude = latitude, Longitude = longitude, Altitude = altitude };
                         double pastDistance = past.DistanceFromTouchdown(runway);
                         if (pastDistance < -0.5 || pastDistance > range * 1.05) continue;
-                        dc.DrawEllipse(DotBrush, null, new Point(X(pastDistance), HeightY(altitude - runway.Elevation)), 1.4, 1.4);
-                        dc.DrawEllipse(DotBrush, null, new Point(X(pastDistance), LateralY(past.LateralOffset(runway))), 1.4, 1.4);
+                        // Each dot only inside its own view.
+                        double upY = HeightY(altitude - runway.Elevation);
+                        double downY = LateralY(past.LateralOffset(runway));
+                        if (upY >= elevationTop && upY <= elevationBase) dc.DrawEllipse(DotBrush, null, new Point(X(pastDistance), upY), 1.4, 1.4);
+                        if (downY >= azimuthTop && downY <= height) dc.DrawEllipse(DotBrush, null, new Point(X(pastDistance), downY), 1.4, 1.4);
                     }
                 }
                 Point up = new(X(distance), Math.Clamp(HeightY(feet), elevationTop - 10, elevationBase));
-                Point down = new(X(distance), Math.Clamp(LateralY(lateral), azimuthTop, height - 2));
+                Point down = new(X(distance), Math.Clamp(LateralY(lateral), azimuthTop, Math.Max(azimuthTop, height - 2)));
                 bool selected = SelectedCallsign != null && aircraft.Callsign == SelectedCallsign;
                 foreach (Point p in new[] { up, down })
                 {
@@ -159,8 +165,9 @@ namespace AuroraPAR
                 string upper = string.Format(CultureInfo.InvariantCulture, "{0}  {1:0.0} NM\nA {2:0}  {3} {4:0}", aircraft.Callsign, distance, shown.Altitude, deviation >= 0 ? "U" : "D", Math.Abs(deviation));
                 string lower = string.Format(CultureInfo.InvariantCulture, "{0}  {1} {2:0} ft", aircraft.Callsign, lateral >= 0 ? "R" : "L", Math.Abs(lateral * Runway.FeetPerNM));
                 FormattedText upperText = Text(upper, 11, LabelBrush, Face, pixelsPerDip);
-                dc.DrawText(upperText, new Point(up.X + 12, up.Y - 12 - upperText.Height));
-                dc.DrawText(Text(lower, 11, LabelBrush, Face, pixelsPerDip), new Point(down.X + 12, down.Y - 26));
+                // The labels inside their own views (not over the title or the distances).
+                dc.DrawText(upperText, new Point(up.X + 12, Math.Max(elevationTop, up.Y - 12 - upperText.Height)));
+                dc.DrawText(Text(lower, 11, LabelBrush, Face, pixelsPerDip), new Point(down.X + 12, Math.Max(azimuthTop + 12, down.Y - 26)));
             }
 
             dc.DrawText(Text(string.Format(CultureInfo.InvariantCulture, "PAR  RWY {0}  GP {1:0.0#}°  {2:0} NM  (as the student)", runway.DisplayName, runway.GlideSlope, range),

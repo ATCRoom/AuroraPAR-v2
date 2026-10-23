@@ -57,6 +57,8 @@ namespace AuroraPAR
             {
                 bool shown = settings.MiniParShown;
                 double height = double.IsFinite(settings.MiniParHeight) ? Math.Clamp(settings.MiniParHeight, 120, 900) : 320;
+                // MinHeight first (it wins over Height): 120 while shown, so the mini-PAR is never squeezed to nothing.
+                parRow.MinHeight = shown ? 120 : 0;
                 parRow.Height = shown ? new GridLength(height) : new GridLength(0);
                 parHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
                 splitter.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
@@ -64,7 +66,8 @@ namespace AuroraPAR
             }
             splitter.DragCompleted += (s, e) =>
             {
-                if (parRow.ActualHeight > 0) settings.MiniParHeight = Math.Round(parRow.ActualHeight);
+                double height = parRow.Height.IsAbsolute ? parRow.Height.Value : parRow.ActualHeight;
+                if (height > 0) settings.MiniParHeight = Math.Round(height);
                 save();
             };
             hide.Click += (s, e) => { settings.MiniParShown = false; save(); Apply(); };

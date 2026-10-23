@@ -219,7 +219,11 @@ namespace AuroraPAR
             if (plan == null) return;
             plan.SelectedCallsign = SelectedCallsign;
             plan.InvalidateVisual();
-            if (miniPar != null) miniPar.SelectedCallsign = SelectedCallsign;
+            if (miniPar != null)
+            {
+                miniPar.SelectedCallsign = SelectedCallsign;
+                miniPar.InvalidateVisual();
+            }
         }
 #endif
 
