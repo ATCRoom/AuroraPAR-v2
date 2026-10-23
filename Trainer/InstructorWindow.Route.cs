@@ -26,13 +26,13 @@ namespace AuroraPAR
         private readonly TextBox routeAltitudeBox = NumberBox("");
         private readonly TextBlock routeAltitudeCaption = Caption("ft QNH");
         private readonly TextBox routeSpeedBox = NumberBox("");
-        private readonly ComboBox routeNameBox = new() { IsEditable = true, Width = 110, Height = 22, Margin = new Thickness(0, 0, 4, 0), ToolTip = "Name of a point of the maps shown (or the ICAO of an airport), then Add or Enter." };
+        private readonly ComboBox routeNameBox = new() { IsEditable = true, IsTextSearchEnabled = false, Width = 110, Height = 22, Margin = new Thickness(0, 0, 4, 0), ToolTip = "Name of a point of the maps of the airport (or the ICAO of an airport), then Add or Enter. The list shows the names." };
         private readonly TextBox routeBearingBox = NumberBox("");
         private readonly TextBox routeDistanceBox = NumberBox("");
         private readonly ToggleButton routeClickButton = new() { Content = "Add by click", Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(8, 2, 8, 2), ToolTip = "While pressed, a click on the plan view adds a point there (instead of selecting a track)." };
         private readonly Button routeFlyButton = SmallButton("Fly route");
         private readonly Button routeStopButton = SmallButton("Stop route");
-        private readonly Button routeSetButton = SmallButton("Set on the point");
+        private readonly Button routeSetButton = SmallButton("Set alt/speed");
         private readonly Button routeRemoveButton = SmallButton("Remove point");
         private readonly Button routeClearButton = SmallButton("Clear");
 
@@ -40,6 +40,8 @@ namespace AuroraPAR
         private string? routeShownFor;
         private string routeShownKey = "";
         private RoutePoint? routeSelectNext;
+        /// <summary>QFE when the altitude field was last filled (null: not yet).</summary>
+        private bool? routeQfe;
 
         private GroupBox BuildRoute()
         {
@@ -48,7 +50,7 @@ namespace AuroraPAR
             panel.Children.Add(routeList);
 
             WrapPanel values = new() { Margin = new Thickness(0, 6, 0, 0) };
-            values.Children.Add(Caption("Point: altitude"));
+            values.Children.Add(Caption("Altitude"));
             values.Children.Add(routeAltitudeBox);
             values.Children.Add(routeAltitudeCaption);
             values.Children.Add(Caption("speed"));
@@ -87,7 +89,7 @@ namespace AuroraPAR
             panel.Children.Add(actions);
             panel.Children.Add(new TextBlock
             {
-                Text = "A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. A heading instruction or the stick ends the route; an altitude or speed instruction takes over that value (a change of the route gives the route's values again).",
+                Text = "The list shows the points still to fly. A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. An altitude or speed instruction replaces the route's altitude or speed until the route is changed. A heading instruction or the stick ends the route (its points are then gone).",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.Gray,
                 FontSize = 11,
@@ -265,7 +267,7 @@ namespace AuroraPAR
             }
             if (found.Count == 0)
             {
-                Warn($"No point named {name} in the maps shown (or airport of runways.par).");
+                Warn($"No map point or airport named {name}.");
                 return;
             }
             (string Name, double X, double Y) nearest = found.OrderBy(p => p.X * p.X + p.Y * p.Y).First();
@@ -324,6 +326,11 @@ namespace AuroraPAR
                 return;
             }
             bridge.Engine.SetRoute(state.Callsign, draft);
+            if (bridge.Engine.Get(state.Callsign)?.Route == null)
+            {
+                Warn($"{state.Callsign} is on the ground: the route cannot be flown.");
+                return;
+            }
             drafts.Remove(state.Callsign);
             routeShownKey = "";
             Refresh();
@@ -361,6 +368,16 @@ namespace AuroraPAR
             // Drafts of aircraft that are gone.
             foreach (string callsign in drafts.Keys.Where(k => !states.Any(s => string.Equals(s.Callsign, k, StringComparison.OrdinalIgnoreCase))).ToList()) drafts.Remove(callsign);
             routeAltitudeCaption.Text = Qfe ? "ft QFE" : "ft QNH";
+            // QNH / QFE switched: the altitude typed keeps its meaning.
+            if (routeQfe != Qfe)
+            {
+                if (routeQfe != null && TryRead(routeAltitudeBox, out double typed))
+                {
+                    routeAltitudeBox.Text = (Qfe ? typed - Elevation : typed + Elevation).ToString("0", CultureInfo.InvariantCulture);
+                }
+                routeQfe = Qfe;
+                routeShownKey = "";
+            }
             RefreshPointNames();
             AircraftState? selected = states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase));
             List<RoutePoint> points = selected == null ? new List<RoutePoint>() : RoutePoints(selected, drafts);
@@ -378,7 +395,7 @@ namespace AuroraPAR
             {
                 routeStatus.Text = points.Count == 0
                     ? $"{selected.Callsign}: no route. Add points below, then Fly route."
-                    : $"{selected.Callsign}: route not flown yet ({Plural(points.Count)}). Fly route starts it.";
+                    : $"{selected.Callsign}: route ready, not started ({Plural(points.Count)}). Press Fly route.";
             }
             routeFlyButton.IsEnabled = selected != null && !flying && points.Count > 0;
             routeStopButton.IsEnabled = flying;

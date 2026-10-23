@@ -373,7 +373,7 @@ namespace ATCRoom.Sim
 
         /// <summary>
         /// The route of an aircraft, at once (the instructor's plan, not a pilot instruction; the instructions still
-        /// waiting for it are dropped). It flies to the points in order, each time turning towards the next one (its
+        /// waiting for it are dropped, except when the route is edited with the same place next). It flies to the points in order, each time turning towards the next one (its
         /// track pointed at the point, against the wind) and at once climbing or descending (at its selected vertical
         /// rate) and changing speed to reach that point's altitude and speed (a NaN altitude or speed: kept as it is).
         /// A point is passed when it is flown over, or when it falls behind after the aircraft turned towards it; a
@@ -381,8 +381,9 @@ namespace ATCRoom.Sim
         /// or from where the route was given) with that point's altitude and speed: no capture of the final, the
         /// aircraft is on the final only if the last two points are on the extended centreline. A heading instruction
         /// or the stick sideways ends the route; an altitude, rate or speed instruction (or the stick up or down) takes
-        /// that over for the rest of the route. Given again while flown (the route edited), with the same point next,
-        /// the leg being flown stays as it is. Empty or null: no route.
+        /// that over for the rest of the route. Given again while flown (the route edited), with the same place next,
+        /// the leg being flown and the instructions still waiting stay as they are; points it passed meanwhile (the
+        /// same objects) are left out. Empty or null: no route.
         /// </summary>
         public void SetRoute(string callsign, IEnumerable<RoutePoint>? points)
         {
@@ -391,15 +392,24 @@ namespace ATCRoom.Sim
             {
                 SimAircraft? plane = Find(callsign);
                 if (plane == null) return;
-                pending.RemoveAll(p => Same(p.Callsign, callsign));
+                if (plane.Route != null)
+                {
+                    // Points of the route given again that the aircraft passed meanwhile (the same points, while the
+                    // window was changing the route): not flown again.
+                    IReadOnlyList<RoutePoint> passed = plane.Route.Take(plane.RouteNext).ToList();
+                    while (list.Count > 0 && passed.Any(p => ReferenceEquals(p, list[0]))) list.RemoveAt(0);
+                }
                 if (list.Count == 0 || plane.Contact != GroundContact.Airborne)
                 {
+                    pending.RemoveAll(p => Same(p.Callsign, callsign));
                     plane.Route = null;
                     return;
                 }
-                // A route changed while flown, with the same point next (a point added or changed further on): the leg
-                // being flown stays as it is (where it started, whether it was turned towards).
-                bool sameLeg = plane.Route != null && plane.Route[plane.RouteNext] == list[0];
+                // A route changed while flown, with the same place next (a point added or changed further on, or the
+                // values of the next point changed): the leg being flown stays as it is (where it started, whether it
+                // was turned towards), and so do the instructions still waiting.
+                bool sameLeg = plane.Route != null && plane.Route[plane.RouteNext].X == list[0].X && plane.Route[plane.RouteNext].Y == list[0].Y;
+                if (!sameLeg) pending.RemoveAll(p => Same(p.Callsign, callsign));
                 plane.Route = list.ToArray();
                 plane.RouteNext = 0;
                 if (!sameLeg)

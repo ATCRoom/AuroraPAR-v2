@@ -637,6 +637,25 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.RunFor(60);
     AircraftState s = engine.Get(a)!;
     Check(Near(s.HeadingTrue, 0, 0.01) || Near(s.HeadingTrue, 360, 0.01), "Route edited while flown, same point next: course of the leg from where it started", $"heading {s.HeadingTrue:F2}");
+
+    // Values of the next point changed while flown: same leg; a point passed meanwhile and given again is not flown again.
+    string b = engine.Add(10, 0, 3000, 0, 120);
+    RoutePoint one = new(10, 2, 3000, 120, "ONE");
+    RoutePoint two = new(10, 6, 3000, 120, "TWO");
+    engine.SetRoute(b, [one, two]);
+    engine.RunFor(10);
+    engine.SetRoute(b, [one with { AltitudeFt = 2500 }, two]);
+    s = engine.Get(b)!;
+    Check(s.Route != null && s.RouteNext == 0 && s.TargetAltitudeFt == 2500, "Next point's altitude changed while flown: given at once", $"target {s.TargetAltitudeFt:F0}");
+    for (int i = 0; i < 2000 && engine.Get(b)!.RouteNext == 0; i++) engine.RunFor(0.1);
+    IReadOnlyList<RoutePoint> flown = engine.Get(b)!.Route!;
+    engine.SetRoute(b, flown);
+    s = engine.Get(b)!;
+    Check(s.Route?.Count == 1 && s.Route[0].Name == "TWO", "Route given again with a point already passed: that point is left out", $"points {s.Route?.Count}");
+    engine.SetHeading(b, 90);
+    engine.SetRoute(b, [s.Route![0]]);
+    engine.RunFor(0.2);
+    Check(engine.Get(b)!.Route == null, "Route edited with the same place next: an instruction still waiting is kept (here a heading, ending the route)");
 }
 
 {

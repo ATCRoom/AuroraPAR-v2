@@ -198,7 +198,7 @@ namespace AuroraPAR
             Height = Math.Min(height, area.Height - 20);
             view.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
-            if (controls is StackPanel root) root.Children.Insert(Math.Max(0, root.Children.IndexOf(controlPanel)), BuildRoute());
+            if (controls is StackPanel root) root.Children.Insert(root.Children.IndexOf(controlPanel) + 1, BuildRoute());
         }
 
         /// <summary>Selects an aircraft of the list by its callsign (a click on the plan view).</summary>

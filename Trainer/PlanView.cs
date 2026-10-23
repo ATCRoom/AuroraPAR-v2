@@ -140,6 +140,10 @@ namespace AuroraPAR
                         : Earth.Destination(runway.Latitude, runway.Longitude, Math.Atan2(east, north) * 180 / Math.PI, distance, Earth.Radius(runway));
                     PointPicked?.Invoke(latitude, longitude);
                 }
+                else
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                }
                 e.Handled = true;
                 return;
             }
