@@ -176,9 +176,13 @@ namespace AuroraPAR
             Grid grid = new();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 300 });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(660) });
-            Grid.SetColumn(view, 0);
+            // The plan view with its CENTRE selector over it, bottom right.
+            Grid viewHost = new();
+            viewHost.Children.Add(view);
+            viewHost.Children.Add(new CentreBar(view));
+            Grid.SetColumn(viewHost, 0);
             Grid.SetColumn(column, 1);
-            grid.Children.Add(view);
+            grid.Children.Add(viewHost);
             grid.Children.Add(column);
             Content = grid;
             SizeToContent = SizeToContent.Manual;

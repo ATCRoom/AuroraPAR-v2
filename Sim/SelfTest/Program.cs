@@ -760,6 +760,34 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     Check(!engine.SetNavigation(engine.Add(30, 0, 3000, 0, 150), true), "ROUTE without a route: not possible");
 }
 
+{
+    // Stop turn, stop climb / descent.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetHeading(a, 90);
+    engine.RunFor(10);
+    double atStop = engine.Get(a)!.HeadingTrue;
+    engine.StopTurn(a);
+    engine.RunFor(10);
+    AircraftState s = engine.Get(a)!;
+    double settled = s.HeadingTrue;
+    engine.RunFor(10);
+    Check(s.TurnRateDps == 0 && settled > atStop && settled - atStop < 5 && engine.Get(a)!.HeadingTrue == settled && s.Navigation == NavigationMode.Manual,
+        "Stop turn: rolls out a few degrees after, then holds that heading", $"stop at {atStop:F1}, holds {settled:F1}");
+
+    string b = engine.Add(10, 0, 3000, 0, 150);
+    engine.SetAltitude(b, 6000, 1000);
+    engine.RunFor(30);
+    double altitudeAtStop = engine.Get(b)!.AltitudeFt;
+    engine.StopVertical(b);
+    engine.RunFor(20);
+    s = engine.Get(b)!;
+    double level = s.AltitudeFt;
+    engine.RunFor(20);
+    Check(s.VerticalSpeedFpm == 0 && level > altitudeAtStop && level - altitudeAtStop < 60 && engine.Get(b)!.AltitudeFt == level,
+        "Stop climb: levels off just above where it was, then holds it", $"stop at {altitudeAtStop:F0}, holds {level:F0}");
+}
+
 Console.WriteLine();
 Console.WriteLine(failures == 0 ? $"All {checks} checks passed." : $"{failures} of {checks} checks FAILED.");
 return failures == 0 ? 0 : 1;

@@ -293,6 +293,25 @@ namespace ATCRoom.Sim
         public void SetHeading(string callsign, double headingTrue, TurnDirection direction = TurnDirection.Shortest) =>
             Instruct(callsign, Kind.Heading, a => { a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; a.Navigation = NavigationMode.Manual; });
 
+        /// <summary>Instruction "stop turn": the aircraft rolls out on the heading it has when the pilot carries it out; MANUAL.</summary>
+        public void StopTurn(string callsign) =>
+            Instruct(callsign, Kind.Heading, a => { StraightOn(a); a.Navigation = NavigationMode.Manual; });
+
+        /// <summary>
+        /// Instruction "stop climb / descent": the aircraft levels off where it is when the pilot carries it out (the
+        /// smooth level-off ends a little beyond, where the vertical speed it has can stop). An altitude given by the
+        /// instructor: the route's altitudes are no more flown.
+        /// </summary>
+        public void StopVertical(string callsign) =>
+            Instruct(callsign, Kind.Vertical, a =>
+            {
+                double acceleration = Math.Max(1, a.Class.VerticalAccelerationFpmPerSecond);
+                double carry = a.VerticalSpeedFpm * Math.Abs(a.VerticalSpeedFpm) / (120 * acceleration);
+                a.VerticalMode = VerticalMode.Altitude;
+                a.TargetAltitudeFt = Math.Clamp(a.AltitudeFt + carry, runwayElevation, MaxAltitude);
+                a.AltitudeGiven = true;
+            });
+
         /// <summary>Instruction: altitude to reach (ft above mean sea level), optionally with a new vertical rate (ft/min).</summary>
         public void SetAltitude(string callsign, double altitudeFt, double? verticalRateFpm = null) =>
             Instruct(callsign, Kind.Vertical, a =>

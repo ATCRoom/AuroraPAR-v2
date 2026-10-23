@@ -360,6 +360,9 @@ namespace AuroraPAR
                 button.Margin = new Thickness(2, 0, 2, 0);
                 turns.Children.Add(button);
             }
+            Button stopTurn = new() { Content = "STOP TURN", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(8, 0, 0, 0), ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once." };
+            stopTurn.Click += (s, e) => StopTurn();
+            turns.Children.Add(stopTurn);
             StackPanel heading = new();
             heading.Children.Add(Row(headingLeft, headingBox, headingRight, finalCourseButton));
             heading.Children.Add(turns);
@@ -376,12 +379,17 @@ namespace AuroraPAR
             Detach(normalButton);
             normalButton.Margin = new Thickness(4, 0, 0, 0);
             normalButton.Padding = new Thickness(6, 3, 6, 3);
-            left.Children.Add(Area("RATE ft/min", Row(up, rateBox, down, normalButton)));
+            Button stopVertical = new() { Content = "STOP CLIMB/DESCENT", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), ToolTip = "Stop climb / descent: the aircraft levels off where it is (after the pilot reaction). From then on the route's altitudes are not flown." };
+            stopVertical.Click += (s, e) => StopVertical();
+            StackPanel rate = new();
+            rate.Children.Add(Row(up, rateBox, down, normalButton));
+            rate.Children.Add(Row(stopVertical));
+            left.Children.Add(Area("RATE ft/min", rate));
 
             Detach(altitudeBox);
             Detach(altitudeRateBox);
             Detach(altitudeCaption);
-            Button giveAltitude = SmallButton("Give");
+            Button giveAltitude = SmallButton("Go");
             giveAltitude.FontWeight = FontWeights.SemiBold;
             giveAltitude.Margin = new Thickness(4, 0, 0, 0);
             giveAltitude.Click += (s, e) => GiveAltitude();
@@ -392,7 +400,7 @@ namespace AuroraPAR
             left.Children.Add(Area("", altitude));
 
             Detach(speedBox);
-            Button giveSpeed = SmallButton("Give");
+            Button giveSpeed = SmallButton("Go");
             giveSpeed.FontWeight = FontWeights.SemiBold;
             giveSpeed.Margin = new Thickness(4, 0, 0, 0);
             giveSpeed.Click += (s, e) => GiveSpeed();
@@ -447,6 +455,23 @@ namespace AuroraPAR
             controlArea = control;
             panel.Children.Add(control);
             return panel;
+        }
+
+        /// <summary>Stop turn: MANUAL at once (in ROUTE), the roll-out after the pilot reaction.</summary>
+        private void StopTurn()
+        {
+            if (SelectedCallsign is not string callsign) return;
+            bridge.Engine.SetNavigation(callsign, false);
+            bridge.Engine.StopTurn(callsign);
+            fillFields = true;
+        }
+
+        /// <summary>Stop climb / descent: level off where it is, after the pilot reaction.</summary>
+        private void StopVertical()
+        {
+            if (SelectedCallsign is not string callsign) return;
+            bridge.Engine.StopVertical(callsign);
+            fillFields = true;
         }
 
         private void ShowStick()

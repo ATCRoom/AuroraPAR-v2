@@ -23,6 +23,8 @@ namespace AuroraPAR
             ("RateUp", "Rate UP (step)"),
             ("RateDown", "Rate DN (step)"),
             ("NormalRate", "Normal rate"),
+            ("StopTurn", "Stop turn"),
+            ("StopVertical", "Stop climb/descent"),
             ("Navigation", "MANUAL / ROUTE"),
             ("NextWaypoint", "Next WPT"),
             ("NextAircraft", "Next aircraft"),
@@ -81,6 +83,8 @@ namespace AuroraPAR
                 case "RateUp": StepRate(rateStep); break;
                 case "RateDown": StepRate(-rateStep); break;
                 case "NormalRate": NormalRate(); break;
+                case "StopTurn": StopTurn(); break;
+                case "StopVertical": StopVertical(); break;
                 case "Navigation": ToggleNavigation(); break;
                 case "NextWaypoint": NextWaypoint(); break;
                 case "NextAircraft":

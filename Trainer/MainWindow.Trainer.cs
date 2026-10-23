@@ -36,6 +36,15 @@ namespace AuroraPAR
             radarPanel = new RadarPanel();
             radarPanel.View.Range = trainer.RadarRange;
             radarPanel.View.RangeStepRequested += StepRadarRange;
+            // CENTRE (saved), and a click on a track selects it for TRAFFIC (again: no selection).
+            radarPanel.View.Centre = TrainerSettings.ParseCentre(trainer.RadarCentre);
+            radarPanel.View.CentreChanged += mode => { settings.Trainer.RadarCentre = mode.ToString(); SettingsStore.Save(settings); };
+            radarPanel.View.AircraftClicked += callsign =>
+            {
+                if (radarPanel == null) return;
+                radarPanel.View.SelectedCallsign = radarPanel.View.SelectedCallsign == callsign ? null : callsign;
+                radarPanel.View.InvalidateVisual();
+            };
             radarPanel.PlaceClicked += MoveRadar;
             radarPanel.MapsClicked += OpenMapsWindow;
             LoadMaps();
@@ -418,7 +427,8 @@ namespace AuroraPAR
 
         partial void TrainerInstructorOpened(InstructorWindow window)
         {
-            instructorView = new PlanView { Range = settings.Trainer.RadarRange };
+            instructorView = new PlanView { Range = settings.Trainer.RadarRange, Centre = TrainerSettings.ParseCentre(settings.Trainer.InstructorCentre) };
+            instructorView.CentreChanged += mode => { settings.Trainer.InstructorCentre = mode.ToString(); SettingsStore.Save(settings); };
             instructorView.RangeStepRequested += StepInstructorRange;
             window.AttachPlan(instructorView);
             FeedInstructorView();

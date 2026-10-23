@@ -13,6 +13,14 @@ namespace AuroraPAR
     /// </summary>
     internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush, bool ShowShapes = true, bool ShowTexts = true, MapSymbol? Symbol = null, CustomSymbol? Custom = null);
 
+    /// <summary>What the view is centred on: where the mouse put it (MOUSE), the airport (AIRPORT), the selected aircraft (TRAFFIC).</summary>
+    internal enum CentreMode
+    {
+        Mouse,
+        Airport,
+        Traffic
+    }
+
     /// <summary>A point of a route drawn on the plan view: where it is, its name (or number) and its altitude and speed.</summary>
     internal sealed record PlanRoutePoint(double Latitude, double Longitude, string Name, string Values);
 
@@ -130,6 +138,35 @@ namespace AuroraPAR
         /// Back to 0 when the runway changes.
         /// </summary>
         public Vector PanOffset { get; set; }
+
+        /// <summary>MOUSE / AIRPORT / TRAFFIC (see <see cref="CentreMode"/>); changing it raises <see cref="CentreChanged"/>.</summary>
+        public CentreMode Centre
+        {
+            get => centreMode;
+            set
+            {
+                if (centreMode == value) return;
+                centreMode = value;
+                CentreChanged?.Invoke(value);
+                InvalidateVisual();
+            }
+        }
+        private CentreMode centreMode = CentreMode.Airport;
+
+        /// <summary>The centre mode was changed (by its buttons, or a drag that goes to MOUSE): the owner saves it.</summary>
+        public event Action<CentreMode>? CentreChanged;
+
+        /// <summary>NM east and north of the threshold of a latitude and longitude (the plane of the view).</summary>
+        private static Vector Local(Runway runway, double latitude, double longitude)
+        {
+            double radius = Earth.Radius(runway);
+            double distance = Earth.DistanceNM(runway.Latitude, runway.Longitude, latitude, longitude, radius);
+            double bearing = Earth.Bearing(runway.Latitude, runway.Longitude, latitude, longitude) * Math.PI / 180;
+            return new Vector(distance * Math.Sin(bearing), distance * Math.Cos(bearing));
+        }
+
+        /// <summary>Where the view looks to be centred on the airport (its point, else the threshold).</summary>
+        private Vector AirportOffset(Runway runway) => AirportCentre(runway) is { } c ? Local(runway, c.Latitude, c.Longitude) : new Vector();
         private (double Latitude, double Longitude) panFor;
         private Point? dragFrom;
         private Vector dragOffset;
@@ -137,6 +174,8 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
+            // Dragging is the MOUSE mode.
+            Centre = CentreMode.Mouse;
             dragFrom = e.GetPosition(this);
             dragOffset = PanOffset;
             CaptureMouse();
@@ -174,7 +213,7 @@ namespace AuroraPAR
             if (e.ClickCount == 2 && !PickingPoints && !drawn.Any(d => (d.At - at).Length <= 16))
             {
                 // Double-click: centred on the airport again.
-                PanOffset = new Vector();
+                PanOffset = Runway is Runway current ? AirportOffset(current) : new Vector();
                 InvalidateVisual();
                 e.Handled = true;
                 return;
@@ -290,6 +329,14 @@ namespace AuroraPAR
         {
             // Handled here, so the wheel over the RDR does not also change the range of the PAR. The point under the
             // pointer stays under it: the view is moved by what the new range changes.
+            if (Centre != CentreMode.Mouse)
+            {
+                // AIRPORT / TRAFFIC: the range only, around the centre.
+                RangeStepRequested?.Invoke(e.Delta > 0 ? 1 : -1);
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
             Point at = e.GetPosition(this);
             double before = Math.Min(ActualWidth, ActualHeight) / 2 / (Range > 0 ? Range : TrainerSettings.DefaultRadarRange);
             Vector under = before > 0 ? new Vector(PanOffset.X + (at.X - ActualWidth / 2) / before, PanOffset.Y - (at.Y - ActualHeight / 2) / before) : PanOffset;
@@ -360,7 +407,14 @@ namespace AuroraPAR
             if (panFor.Latitude != runway.Latitude || panFor.Longitude != runway.Longitude)
             {
                 panFor = (runway.Latitude, runway.Longitude);
-                PanOffset = new Vector();
+                PanOffset = AirportOffset(runway);
+            }
+            if (Centre == CentreMode.Airport) PanOffset = AirportOffset(runway);
+            else if (Centre == CentreMode.Traffic && SelectedCallsign != null && Traffic.FirstOrDefault(a => a.Callsign == SelectedCallsign) is Aircraft followed)
+            {
+                // The selected aircraft in the middle (where its track is drawn). Gone: the view stays where it was.
+                Aircraft shownAt = followed.Filtered ?? followed;
+                PanOffset = Local(runway, shownAt.Latitude, shownAt.Longitude);
             }
             double scale = Math.Min(width, height) / 2 / range; // pixels per NM
             // The threshold of the runway in use on the screen (the middle of the view, moved by the pan).
@@ -606,6 +660,88 @@ namespace AuroraPAR
     }
 
     /// <summary>
+    /// The CENTRE selector of a radar view, bottom right over it: MOUSE (the wheel zooms at the pointer, the right
+    /// button drags, a double-click goes back to the airport), AIRPORT (centred on the airport), TRAFFIC (the selected
+    /// aircraft always in the middle), with a line saying what the mouse does.
+    /// </summary>
+    internal sealed class CentreBar : StackPanel
+    {
+        private readonly PlanView view;
+        private readonly TextBlock hint = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x94)), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, 4) };
+        private readonly System.Windows.Controls.Primitives.ToggleButton[] buttons = new System.Windows.Controls.Primitives.ToggleButton[3];
+        private static readonly Brush Off = new SolidColorBrush(Color.FromArgb(0xE0, 0x2A, 0x3A, 0x4A));
+        private static readonly Brush On = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
+
+        public CentreBar(PlanView view)
+        {
+            this.view = view;
+            HorizontalAlignment = HorizontalAlignment.Right;
+            VerticalAlignment = VerticalAlignment.Bottom;
+            Margin = new Thickness(0, 0, 10, 10);
+            StackPanel row = new() { Orientation = Orientation.Horizontal };
+            row.Children.Add(new TextBlock { Text = "CENTRE", Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0xAA, 0xBB)), FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            (string Text, CentreMode Mode, string Tip)[] modes =
+            [
+                ("MOUSE", CentreMode.Mouse, "The wheel zooms at the pointer, the right button drags the view, a double-click goes back to the airport."),
+                ("AIRPORT", CentreMode.Airport, "Centred on the airport (its point in the maps); the wheel changes the range."),
+                ("TRAFFIC", CentreMode.Traffic, "The selected aircraft always in the middle (click a track to select it); the wheel changes the range.")
+            ];
+            for (int i = 0; i < modes.Length; i++)
+            {
+                CentreMode mode = modes[i].Mode;
+                System.Windows.Controls.Primitives.ToggleButton button = new()
+                {
+                    Content = modes[i].Text,
+                    ToolTip = modes[i].Tip,
+                    Focusable = false,
+                    Padding = new Thickness(10, 3, 10, 3),
+                    FontSize = 12,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = Brushes.White,
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8)),
+                    BorderThickness = new Thickness(1.5)
+                };
+                button.Click += (s, e) => view.Centre = mode;
+                buttons[i] = button;
+                row.Children.Add(button);
+            }
+            Border border = new()
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xD8, 0x14, 0x1A, 0x20)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x66)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(6, 4, 6, 4),
+                Child = row,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+            Children.Add(hint);
+            Children.Add(border);
+            // The wheel over the bar: never to the range of the PAR below.
+            MouseWheel += (s, e) => e.Handled = true;
+            view.CentreChanged += m => Show();
+            Show();
+        }
+
+        private void Show()
+        {
+            CentreMode[] order = [CentreMode.Mouse, CentreMode.Airport, CentreMode.Traffic];
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                bool on = view.Centre == order[i];
+                buttons[i].IsChecked = on;
+                buttons[i].Background = on ? On : Off;
+            }
+            hint.Text = view.Centre switch
+            {
+                CentreMode.Mouse => "wheel: zoom at the pointer · right drag: move · double-click: back to the airport",
+                CentreMode.Airport => "centred on the airport · wheel: range",
+                _ => "centred on the selected aircraft (click a track) · wheel: range"
+            };
+        }
+    }
+
+    /// <summary>
     /// The RDR with its button to move it: into its own window (for a second monitor) or back into the main window.
     /// The same panel goes from one place to the other, so the history dots are kept.
     /// </summary>
@@ -652,6 +788,7 @@ namespace AuroraPAR
             buttons.MouseWheel += (s, e) => e.Handled = true;
             Children.Add(View);
             Children.Add(buttons);
+            Children.Add(new CentreBar(View));
             placeButton.Click += (s, e) => PlaceClicked?.Invoke();
             mapsButton.Click += (s, e) => MapsClicked?.Invoke();
             InWindow = false;
