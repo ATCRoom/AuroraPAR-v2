@@ -291,7 +291,7 @@ namespace AuroraPAR
             // Handled here, so the wheel over the RDR does not also change the range of the PAR. The point under the
             // pointer stays under it: the view is moved by what the new range changes.
             Point at = e.GetPosition(this);
-            double before = lastScale;
+            double before = Math.Min(ActualWidth, ActualHeight) / 2 / (Range > 0 ? Range : TrainerSettings.DefaultRadarRange);
             Vector under = before > 0 ? new Vector(PanOffset.X + (at.X - ActualWidth / 2) / before, PanOffset.Y - (at.Y - ActualHeight / 2) / before) : PanOffset;
             RangeStepRequested?.Invoke(e.Delta > 0 ? 1 : -1);
             double range = Range > 0 ? Range : TrainerSettings.DefaultRadarRange;
@@ -309,6 +309,18 @@ namespace AuroraPAR
         /// the centre of its ATZ and CTR), else the middle of all the ends of its runways in runways.par; null: unknown.
         /// </summary>
         private (double Latitude, double Longitude)? AirportCentre(Runway runway)
+        {
+            // Found again only when the runway or the maps change.
+            if (centreFor.Latitude == runway.Latitude && centreFor.Longitude == runway.Longitude && ReferenceEquals(centreFor.Layers, Layers) && ReferenceEquals(centreFor.Runways, Runways)) return airportCentre;
+            centreFor = (runway.Latitude, runway.Longitude, Layers, Runways);
+            airportCentre = FindAirportCentre(runway);
+            return airportCentre;
+        }
+
+        private (double Latitude, double Longitude, object? Layers, object? Runways) centreFor = (double.NaN, double.NaN, null, null);
+        private (double Latitude, double Longitude)? airportCentre;
+
+        private (double Latitude, double Longitude)? FindAirportCentre(Runway runway)
         {
             string icao = runway.ICAO.Trim();
             foreach (MapLayer layer in Layers)
@@ -368,7 +380,7 @@ namespace AuroraPAR
                 return new Vector(Math.Sin(h), -Math.Cos(h));
             }
             // Range rings around the airport (its reference point), as far as the farthest corner of the view.
-            Point ringCentre = AirportCentre(runway) is { } airport ? Place(airport.Latitude, airport.Longitude) : centre;
+            Point ringCentre = AirportCentre(runway) is { } airportPoint ? Place(airportPoint.Latitude, airportPoint.Longitude) : centre;
             double reach = new[] { new Point(0, 0), new Point(width, 0), new Point(0, height), new Point(width, height) }.Max(c => (c - ringCentre).Length);
 
             // Range rings, with their distance.

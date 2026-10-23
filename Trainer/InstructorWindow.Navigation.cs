@@ -19,7 +19,7 @@ namespace AuroraPAR
     {
         private readonly ToggleButton manualButton = new() { Content = "MANUAL", FontWeight = FontWeights.SemiBold, Padding = new Thickness(16, 3, 16, 3), Focusable = false, ToolTip = "MANUAL: the aircraft flies the headings you give (and the stick). Its route, if any, is kept." };
         private readonly ToggleButton routeButton = new() { Content = "ROUTE", FontWeight = FontWeights.SemiBold, Padding = new Thickness(16, 3, 16, 3), Focusable = false, ToolTip = "ROUTE: the aircraft keeps its heading until you choose a point (double-click in the list, Next WPT, Direct to), then flies the points. A heading or the stick puts it back in MANUAL." };
-        private readonly TextBlock navigationStatus = new() { TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 3, 0, 3), Height = 34, TextTrimming = TextTrimming.CharacterEllipsis };
+        private readonly TextBlock navigationStatus = new() { TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 3, 0, 3), Height = 34, TextTrimming = TextTrimming.CharacterEllipsis, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 16 };
         private readonly ListBox navigationList = new() { Height = 84, FontFamily = new FontFamily("Consolas"), FontSize = 12, ToolTip = "The points of the route (to look at). Double-click a point: direct to it, after the pilot reaction." };
         private readonly TextBlock navigationHint = new() { Text = "double-click a point: direct to it", FontSize = 11, Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
         private readonly Button nextWaypointButton = new() { Content = "Next WPT", FontWeight = FontWeights.SemiBold, Padding = new Thickness(8, 2, 8, 2), ToolTip = "Direct to the next point of the route (after the one it flies to), after the pilot reaction." };
@@ -132,7 +132,7 @@ namespace AuroraPAR
                 Warn($"No point named {name} in the route, in the maps or among the airports.");
                 return;
             }
-            // ROUTE at once (heading kept until the pilot turns to the point).
+            // ROUTE at once when it has a route (heading kept until the pilot turns to the point).
             bridge.Engine.SetNavigation(state.Callsign, true);
             bridge.Engine.DirectToPoint(state.Callsign, new RoutePoint(found.X, found.Y, double.NaN, double.NaN, found.Name));
         }
@@ -152,7 +152,7 @@ namespace AuroraPAR
             else if (state.Navigation == NavigationMode.RouteArmed)
                 navigationStatus.Text = $"ROUTE: keeps heading {heading} until you choose a point";
             else if (state.Route != null && next < count)
-                navigationStatus.Text = $"MANUAL: heading {heading} (route kept: {string.Join(", ", state.Route.Skip(next).Take(4).Select(p => PointLabel(p, magneticVariation)))}{(count - next > 4 ? "…" : "")})";
+                navigationStatus.Text = $"MANUAL: heading {heading} (route kept: {string.Join(", ", state.Route.Skip(next).Take(2).Select(p => PointLabel(p, magneticVariation)))}{(count - next > 2 ? "…" : "")})";
             else if (state.Route != null)
                 navigationStatus.Text = $"MANUAL: heading {heading} (route finished)";
             else

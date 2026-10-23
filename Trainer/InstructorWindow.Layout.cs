@@ -479,8 +479,8 @@ namespace AuroraPAR
             ShowInformation(state);
         }
 
-        private readonly TextBlock infoLeft = new() { Height = 48, Margin = new Thickness(2, 4, 0, 4) };
-        private readonly TextBlock infoRight = new() { Height = 48, Margin = new Thickness(8, 4, 0, 4) };
+        private readonly TextBlock infoLeft = new() { Height = 51, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 17, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 4, 0, 4) };
+        private readonly TextBlock infoRight = new() { Height = 51, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 17, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(8, 4, 0, 4) };
 
         /// <summary>The information of the selected aircraft in two columns of three lines each (always three: nothing moves).</summary>
         private void ShowInformation(AircraftState? state)
@@ -505,7 +505,7 @@ namespace AuroraPAR
                 state.Callsign, state.PerformanceClass, state.Frozen ? "  (PAUSED)" : "", distance, state.GroundSpeedKt);
             infoRight.Text = string.Format(CultureInfo.InvariantCulture, "{0:0} ft {1}, {2:0} kt\nvertical: {3}\n{4}",
                 altitude, Qfe ? "QFE" : "QNH", state.SpeedKt, mode,
-                state.PendingCommands > 0 ? $"pilot: {state.PendingCommands} instruction(s) coming" : "");
+                state.PendingCommands > 0 ? $"pilot: {state.PendingCommands} pending" : "");
         }
 
         /// <summary>

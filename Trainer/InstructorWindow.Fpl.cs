@@ -203,7 +203,13 @@ namespace AuroraPAR
                     Warn("Callsign: 2 to 10 letters or digits, or empty for the next free one.");
                     return;
                 }
-                callsign = CallsignInPlans(typed, null) ? NextCallsign(typed) : typed;
+                bool taken = CallsignInPlans(typed, null) || bridge.Engine.IsCallsignTaken(typed) || otherCallsigns().Contains(typed, StringComparer.OrdinalIgnoreCase);
+                callsign = taken ? NextCallsign(typed) : typed;
+                if (callsign.Length == 0)
+                {
+                    Warn($"{typed} is taken and no next callsign is free: type another one.");
+                    return;
+                }
             }
             FlightPlan plan = NewPlan(callsign, previous?.Class ?? DefaultClass(), []);
             flightPlans.Add(plan);
