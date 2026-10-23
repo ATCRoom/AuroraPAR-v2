@@ -29,6 +29,7 @@ namespace AuroraPAR
         /// <summary>The key "Instructor+" (beside the Instructor key) and the plan view inside the Instructor+ window.</summary>
         private Button? plusButton;
         private PlanView? instructorView;
+        private MiniParView? instructorPar;
 
         partial void TrainerStart()
         {
@@ -85,6 +86,7 @@ namespace AuroraPAR
             if (instructorView != null)
             {
                 instructorView.Update(aircrafts, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
+                instructorPar?.Update(aircrafts, DateTime.UtcNow);
                 FeedInstructorView();
             }
             // QNH by hand only without Aurora (with Aurora the METAR gives it).
@@ -430,7 +432,8 @@ namespace AuroraPAR
             instructorView = new PlanView { Range = settings.Trainer.RadarRange, Centre = TrainerSettings.ParseCentre(settings.Trainer.InstructorCentre) };
             instructorView.CentreChanged += mode => { settings.Trainer.InstructorCentre = mode.ToString(); SettingsStore.Save(settings); };
             instructorView.RangeStepRequested += StepInstructorRange;
-            window.AttachPlan(instructorView);
+            instructorPar = new MiniParView();
+            window.AttachPlan(instructorView, instructorPar);
             FeedInstructorView();
             UpdatePlusButton();
         }
@@ -438,6 +441,7 @@ namespace AuroraPAR
         partial void TrainerInstructorClosed()
         {
             instructorView = null;
+            instructorPar = null;
             UpdatePlusButton();
         }
 
@@ -467,6 +471,12 @@ namespace AuroraPAR
             bool qfe = profile.PressureReference == PressureReference.QFE;
             string pressure = qnh == 0 ? "----" : Pressure.Format(qfe ? Pressure.QfeFromQnh(qnh, runway.Elevation) : qnh, profile.PressureUnit);
             instructorView.Runway = runway;
+            if (instructorPar != null)
+            {
+                // The student's PAR: the same runway and range.
+                instructorPar.Runway = runway;
+                instructorPar.RangeNM = runway.Distance;
+            }
             instructorView.Runways = runways;
             instructorView.ShowLabels = viewOptions.ShowLabels;
             instructorView.InfoText = $"RWY {runway.DisplayName}   {(qfe ? "QFE" : "QNH")} {pressure}";

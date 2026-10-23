@@ -360,12 +360,12 @@ namespace AuroraPAR
                 button.Margin = new Thickness(2, 0, 2, 0);
                 turns.Children.Add(button);
             }
-            Button stopTurn = new() { Content = "STOP TURN", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(8, 0, 0, 0), ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once." };
+            Button stopTurn = new() { Content = "STOP TURN", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once." };
             stopTurn.Click += (s, e) => StopTurn();
-            turns.Children.Add(stopTurn);
             StackPanel heading = new();
             heading.Children.Add(Row(headingLeft, headingBox, headingRight, finalCourseButton));
             heading.Children.Add(turns);
+            heading.Children.Add(Row(stopTurn));
             heading.Children.Add(headingHintTrainer);
             left.Children.Add(Area("HEADING °M", heading));
 

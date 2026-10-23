@@ -166,9 +166,10 @@ namespace AuroraPAR
         /// AuroraPAR v2 Trainer: the plan view (radar with the maps) on the left of the controls; the window can be resized.
         /// A click on a track selects that aircraft.
         /// </summary>
-        internal void AttachPlan(PlanView view)
+        internal void AttachPlan(PlanView view, MiniParView par)
         {
             plan = view;
+            miniPar = par;
             Title = $"{AppInfo.ProductName} - Instructor+";
             // The controls built above, moved into the three areas of the Instructor+ (Trainer/InstructorWindow.Layout.cs).
             UIElement column = BuildTrainerColumn();
@@ -176,10 +177,8 @@ namespace AuroraPAR
             Grid grid = new();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 300 });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(660) });
-            // The plan view with its CENTRE selector over it, bottom right.
-            Grid viewHost = new();
-            viewHost.Children.Add(view);
-            viewHost.Children.Add(new CentreBar(view));
+            // The plan view with its CENTRE selector over it, bottom right; under it the mini-PAR (Trainer/InstructorWindow.MiniPar.cs).
+            Grid viewHost = BuildViewColumn(view, par);
             Grid.SetColumn(viewHost, 0);
             Grid.SetColumn(column, 1);
             grid.Children.Add(viewHost);
@@ -196,6 +195,7 @@ namespace AuroraPAR
             Width = Math.Min(width, area.Width - 20);
             Height = Math.Min(height, area.Height - 20);
             view.AircraftClicked += SelectCallsign;
+            par.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
             list.PreviewMouseLeftButtonUp += (s, e) => AircraftClickedAgain();
             PreviewKeyDown += TrainerKey;
@@ -219,6 +219,7 @@ namespace AuroraPAR
             if (plan == null) return;
             plan.SelectedCallsign = SelectedCallsign;
             plan.InvalidateVisual();
+            if (miniPar != null) miniPar.SelectedCallsign = SelectedCallsign;
         }
 #endif
 
