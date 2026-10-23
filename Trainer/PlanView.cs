@@ -133,9 +133,9 @@ namespace AuroraPAR
         private double lastScale;
 
         /// <summary>
-        /// Where the view looks (NM east and north of the threshold of the runway in use; 0 = centred on the threshold):
-        /// the mouse wheel zooms around the pointer, the right button drags the view, a double-click centres it again.
-        /// Back to 0 when the runway changes.
+        /// Where the view looks (NM east and north of the threshold of the runway in use): set by AIRPORT and TRAFFIC at
+        /// each drawing; in MOUSE the wheel zooms around the pointer, the right button drags the view, a double-click
+        /// centres it on the airport again. On the airport when the runway changes.
         /// </summary>
         public Vector PanOffset { get; set; }
 
@@ -174,8 +174,6 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
-            // Dragging is the MOUSE mode.
-            Centre = CentreMode.Mouse;
             dragFrom = e.GetPosition(this);
             dragOffset = PanOffset;
             CaptureMouse();
@@ -187,6 +185,12 @@ namespace AuroraPAR
             base.OnMouseMove(e);
             if (dragFrom is not Point from || lastScale <= 0) return;
             Vector moved = e.GetPosition(this) - from;
+            if (Centre != CentreMode.Mouse)
+            {
+                // Dragging (a few pixels, not a plain right click) is the MOUSE mode.
+                if (moved.Length < 4) return;
+                Centre = CentreMode.Mouse;
+            }
             PanOffset = new Vector(dragOffset.X - moved.X / lastScale, dragOffset.Y + moved.Y / lastScale);
             InvalidateVisual();
         }
@@ -237,6 +241,8 @@ namespace AuroraPAR
                 e.Handled = true;
                 return;
             }
+            // A second click of a double-click on a track: nothing (it would select and deselect it).
+            if (e.ClickCount >= 2) return;
             (Point At, string Callsign)? nearest = drawn.Count == 0 ? null : drawn.OrderBy(d => (d.At - at).Length).First();
             if (nearest != null && (nearest.Value.At - at).Length <= 16)
             {
@@ -258,6 +264,8 @@ namespace AuroraPAR
         public void Update(IReadOnlyList<Aircraft> traffic, DateTime now, bool historyOn, int dots, double interval)
         {
             Traffic = traffic;
+            // The selected aircraft gone: no selection (TRAFFIC then stays where it was).
+            if (SelectedCallsign != null && !traffic.Any(a => a.Callsign == SelectedCallsign)) SelectedCallsign = null;
             foreach (Aircraft aircraft in traffic)
             {
                 if (!histories.TryGetValue(aircraft.Callsign, out History? history))
@@ -667,10 +675,11 @@ namespace AuroraPAR
     internal sealed class CentreBar : StackPanel
     {
         private readonly PlanView view;
-        private readonly TextBlock hint = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x94)), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, 4) };
-        private readonly System.Windows.Controls.Primitives.ToggleButton[] buttons = new System.Windows.Controls.Primitives.ToggleButton[3];
+        private readonly TextBlock hint = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x94)), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, TextAlignment = TextAlignment.Right, TextWrapping = TextWrapping.Wrap, MaxWidth = 300, Margin = new Thickness(0, 0, 0, 4), IsHitTestVisible = false };
+        private readonly Button[] buttons = new Button[3];
         private static readonly Brush Off = new SolidColorBrush(Color.FromArgb(0xE0, 0x2A, 0x3A, 0x4A));
         private static readonly Brush On = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
+        private static readonly Brush BorderOff = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8));
 
         public CentreBar(PlanView view)
         {
@@ -689,7 +698,7 @@ namespace AuroraPAR
             for (int i = 0; i < modes.Length; i++)
             {
                 CentreMode mode = modes[i].Mode;
-                System.Windows.Controls.Primitives.ToggleButton button = new()
+                Button button = new()
                 {
                     Content = modes[i].Text,
                     ToolTip = modes[i].Tip,
@@ -701,7 +710,7 @@ namespace AuroraPAR
                     BorderBrush = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8)),
                     BorderThickness = new Thickness(1.5)
                 };
-                button.Click += (s, e) => view.Centre = mode;
+                button.Click += (s, e) => { view.Centre = mode; Show(); };
                 buttons[i] = button;
                 row.Children.Add(button);
             }
@@ -729,8 +738,8 @@ namespace AuroraPAR
             for (int i = 0; i < buttons.Length; i++)
             {
                 bool on = view.Centre == order[i];
-                buttons[i].IsChecked = on;
                 buttons[i].Background = on ? On : Off;
+                buttons[i].BorderBrush = on ? Brushes.White : BorderOff;
             }
             hint.Text = view.Centre switch
             {

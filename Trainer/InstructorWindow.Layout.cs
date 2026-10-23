@@ -502,7 +502,16 @@ namespace AuroraPAR
                 headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
             }
             ShowInformation(state);
+            // An instruction carried out by the pilot (one less waiting): the fields show the new values (after STOP TURN,
+            // STOP CLIMB/DESCENT, a heading…), so the keys and buttons start from them.
+            int pending = state?.PendingCommands ?? 0;
+            if (state != null && state.Callsign == pendingFor && pending < lastPending) fillFields = true;
+            pendingFor = state?.Callsign;
+            lastPending = pending;
         }
+
+        private string? pendingFor;
+        private int lastPending;
 
         private readonly TextBlock infoLeft = new() { Height = 51, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 17, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 4, 0, 4) };
         private readonly TextBlock infoRight = new() { Height = 51, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 17, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(8, 4, 0, 4) };
