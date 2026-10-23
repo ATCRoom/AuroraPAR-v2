@@ -517,6 +517,157 @@ const double RunwayHeading = 325.80;
     Check(worstAlong < 0.01, "On the extended centreline: distance measured by the radar is the same", $"worst {worstAlong:G3} m");
 }
 
+// --- Routes ------------------------------------------------------------------------------------------------------
+
+double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s.X - x) + (s.Y - y) * (s.Y - y));
+
+{
+    // Three points: north 5 NM, then east 5 NM descending and slowing, then south 5 NM.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 120);
+    engine.SetRoute(a, [new RoutePoint(0, 5, 3000, 140, "ONE"), new RoutePoint(5, 5, 2000, 120, "TWO"), new RoutePoint(5, 0, 2000, 120, "THREE")]);
+    AircraftState s = engine.Get(a)!;
+    Check(s.Route?.Count == 3 && s.RouteNext == 0 && s.RouteAltitude && s.RouteSpeed && s.TargetSpeedKt == 140 && s.TargetAltitudeFt == 3000,
+        "Route given: three points, flying to the first, its speed at once", $"next {s.RouteNext} speed {s.TargetSpeedKt}");
+    double[] nearest = [double.MaxValue, double.MaxValue, double.MaxValue];
+    List<int> order = [0];
+    bool descendingAtOnce = false;
+    double secondsToTwo = double.NaN;
+    for (int i = 0; i < 6000 && engine.Get(a)!.Route != null; i++)
+    {
+        engine.RunFor(0.1);
+        s = engine.Get(a)!;
+        nearest[0] = Math.Min(nearest[0], Distance(s, 0, 5));
+        nearest[1] = Math.Min(nearest[1], Distance(s, 5, 5));
+        nearest[2] = Math.Min(nearest[2], Distance(s, 5, 0));
+        if (s.Route != null && s.RouteNext != order[^1]) order.Add(s.RouteNext);
+        if (s.Route != null && s.RouteNext == 1 && double.IsNaN(secondsToTwo)) secondsToTwo = 0;
+        if (!double.IsNaN(secondsToTwo) && secondsToTwo < 5)
+        {
+            secondsToTwo += 0.1;
+            if (s.TargetAltitudeFt == 2000 && s.VerticalSpeedFpm < -100 && s.TargetSpeedKt == 120) descendingAtOnce = true;
+        }
+    }
+    s = engine.Get(a)!;
+    Check(string.Join(",", order) == "0,1,2" && s.Route == null, "Route: points flown in order, then the route ends", $"order {string.Join(",", order)}");
+    Check(nearest.All(d => d < 0.1), "Route: every point flown over (within 0.1 NM)", $"nearest {string.Join(" ", nearest.Select(d => d.ToString("F3")))}");
+    Check(descendingAtOnce, "Route: past a point, descent and new speed for the next one start at once");
+    engine.RunFor(120);
+    s = engine.Get(a)!;
+    Check(Near(s.HeadingTrue, 180, 0.01) && Near(s.AltitudeFt, 2000, 0.01) && Near(s.SpeedKt, 120, 0.01) && Near(s.X, 5, 0.05) && s.Y < -1,
+        "After the last point: course of the last leg (180) kept, with its altitude and speed", $"heading {s.HeadingTrue:F2} x {s.X:F3} y {s.Y:F2} alt {s.AltitudeFt:F0}");
+}
+
+{
+    // A point behind: it turns back to it, passes it (no circling) and keeps the course from where the route was given.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetRoute(a, [new RoutePoint(0, -3, 3000, 150)]);
+    double nearest = double.MaxValue;
+    double seconds = 0;
+    while (engine.Get(a)!.Route != null && seconds < 600)
+    {
+        engine.RunFor(0.1);
+        seconds += 0.1;
+        nearest = Math.Min(nearest, Distance(engine.Get(a)!, 0, -3));
+    }
+    engine.RunFor(60);
+    AircraftState s = engine.Get(a)!;
+    Check(seconds < 300 && nearest < 0.1 && Near(s.HeadingTrue, 180, 0.01), "Route: a point behind is reached after turning back, then course 180 kept",
+        $"{seconds:F0} s nearest {nearest:F3} heading {s.HeadingTrue:F2}");
+}
+
+{
+    // A point inside the turn: passed nearby, never circled.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 5000, 0, 250, null, "Jet");
+    engine.SetRoute(a, [new RoutePoint(0.6, 0.2, 5000, 250)]);
+    double seconds = 0;
+    while (engine.Get(a)!.Route != null && seconds < 600)
+    {
+        engine.RunFor(0.1);
+        seconds += 0.1;
+    }
+    Check(seconds < 200, "Route: a point inside the turn radius is passed, not circled", $"{seconds:F0} s");
+}
+
+{
+    // Crosswind from the west: the track is pointed at the point, then kept along the leg.
+    SimEngine engine = new();
+    engine.SetWind(270, 20, 0);
+    string a = engine.Add(0, 0, 3000, 0, 120);
+    engine.SetRoute(a, [new RoutePoint(0, 10, 3000, 120)]);
+    double nearest = double.MaxValue;
+    for (int i = 0; i < 4000 && engine.Get(a)!.Route != null; i++)
+    {
+        engine.RunFor(0.1);
+        nearest = Math.Min(nearest, Distance(engine.Get(a)!, 0, 10));
+    }
+    engine.RunFor(120);
+    AircraftState s = engine.Get(a)!;
+    double expected = SimEngine.Normalize(-Math.Asin(20.0 / 120) * 180 / Math.PI);
+    Check(nearest < 0.1 && Near(s.HeadingTrue, expected, 0.05) && Near(SimEngine.Wrap(s.TrackTrue), 0, 0.05) && Near(s.X, 0, 0.1),
+        "Route in a crosswind: point reached, then track 360 kept heading into the wind", $"nearest {nearest:F3} heading {s.HeadingTrue:F2} track {s.TrackTrue:F2} x {s.X:F3}");
+}
+
+{
+    // Last two points on the extended centreline (final course 360): the aircraft goes on along it, no other capture.
+    SimEngine engine = new();
+    engine.SetGlidePath(360, 3, 0, 1.5);
+    string a = engine.Add(-4, -12, 3000, 90, 140);
+    engine.SetRoute(a, [new RoutePoint(0, -10, 3000, 140), new RoutePoint(0, -6, 2000, 130)]);
+    for (int i = 0; i < 4000 && engine.Get(a)!.Route != null; i++) engine.RunFor(0.1);
+    engine.RunFor(60);
+    AircraftState s = engine.Get(a)!;
+    Check(Near(s.HeadingTrue, 0, 0.01) || Near(s.HeadingTrue, 360, 0.01), "Route ending on the extended centreline: on along the final course", $"heading {s.HeadingTrue:F2}");
+    Check(Near(s.X, 0, 0.1) && Near(s.AltitudeFt, 2000, 0.01) && s.VerticalMode == VerticalMode.Altitude,
+        "Route ending on the extended centreline: on the centreline, level at the last altitude (no glide path capture)", $"x {s.X:F3} alt {s.AltitudeFt:F0}");
+}
+
+{
+    // Instructions and the route.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 120);
+    engine.SetRoute(a, [new RoutePoint(0, 3, 4000, 150), new RoutePoint(3, 3, 5000, 160)]);
+    engine.SetAltitude(a, 2500);
+    engine.SetSpeed(a, 110);
+    engine.RunFor(0.2);
+    AircraftState s = engine.Get(a)!;
+    Check(s.Route != null && !s.RouteAltitude && !s.RouteSpeed && s.TargetAltitudeFt == 2500 && s.TargetSpeedKt == 110,
+        "Altitude and speed instructions take them over, the route goes on", $"target {s.TargetAltitudeFt:F0} ft {s.TargetSpeedKt:F0} kt");
+    for (int i = 0; i < 3000 && engine.Get(a)!.RouteNext == 0; i++) engine.RunFor(0.1);
+    engine.RunFor(1);
+    s = engine.Get(a)!;
+    Check(s.Route != null && s.RouteNext == 1 && s.TargetAltitudeFt == 2500 && s.TargetSpeedKt == 110,
+        "Past a point, an altitude and speed taken over are kept", $"target {s.TargetAltitudeFt:F0} ft {s.TargetSpeedKt:F0} kt");
+    engine.SetHeading(a, 270);
+    engine.RunFor(0.2);
+    s = engine.Get(a)!;
+    Check(s.Route == null && s.TargetHeading == 270, "A heading instruction ends the route", $"target {s.TargetHeading:F0}");
+
+    string b = engine.Add(10, 0, 3000, 0, 120);
+    engine.SetRoute(b, [new RoutePoint(10, 5, double.NaN, double.NaN)]);
+    s = engine.Get(b)!;
+    Check(s.TargetAltitudeFt == 3000 && s.TargetSpeedKt == 120, "Route point without altitude and speed: they are kept");
+    engine.SetStick(b, 0.5, 0);
+    engine.RunFor(0.1);
+    engine.SetStick(b, 0, 0);
+    Check(engine.Get(b)!.Route == null, "The stick sideways ends the route");
+
+    string c = engine.Add(20, 0, 3000, 0, 120);
+    engine.SetHeading(c, 90);
+    engine.SetRoute(c, [new RoutePoint(20, 5, 3000, 120)]);
+    engine.RunFor(5);
+    s = engine.Get(c)!;
+    Check(s.Route != null && s.PendingCommands == 0 && Near(s.HeadingTrue, 0, 0.01), "A route drops the instructions still waiting", $"heading {s.HeadingTrue:F2}");
+    engine.SetFrozen(c, true);
+    double y = engine.Get(c)!.Y;
+    engine.RunFor(10);
+    Check(engine.Get(c)!.Y == y && engine.Get(c)!.Route != null, "Frozen: the route waits");
+    engine.SetRoute(c, []);
+    Check(engine.Get(c)!.Route == null && engine.Get(c)!.RouteNext == -1, "Empty route: no route");
+}
+
 Console.WriteLine();
 Console.WriteLine(failures == 0 ? $"All {checks} checks passed." : $"{failures} of {checks} checks FAILED.");
 return failures == 0 ? 0 : 1;

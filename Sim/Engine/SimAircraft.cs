@@ -42,6 +42,12 @@ namespace ATCRoom.Sim
     }
 
     /// <summary>
+    /// A point of a route: position in the <see cref="LocalPlane"/> (NM east, NM north of the threshold), altitude
+    /// (ft above mean sea level) and speed (kt) to have there, and an optional name (a fix of the maps, for the lists).
+    /// </summary>
+    public sealed record RoutePoint(double X, double Y, double AltitudeFt, double SpeedKt, string Name = "");
+
+    /// <summary>
     /// An aircraft of the simulation at one moment, as given out by <see cref="SimEngine.Snapshot"/> (a copy: it does
     /// not change afterwards). Positions in the <see cref="LocalPlane"/> (NM), altitude above mean sea level (ft),
     /// headings true (degrees, 0–360), speed true airspeed (kt), vertical speeds ft/min (negative descending).
@@ -72,7 +78,13 @@ namespace ATCRoom.Sim
         double GroundSpeedKt,
         double TrackTrue,
         double DriftDegrees,
-        GroundContact Contact);
+        GroundContact Contact,
+        // The route being flown (null: none) and the index of the point it is flying to.
+        IReadOnlyList<RoutePoint>? Route = null,
+        int RouteNext = -1,
+        // Whether the route still gives the altitude and the speed (an instruction of that kind takes them over).
+        bool RouteAltitude = false,
+        bool RouteSpeed = false);
 
     /// <summary>An aircraft inside the engine: actual values and the values commanded by the instructor. Only the engine changes it, under its lock.</summary>
     internal sealed class SimAircraft
@@ -113,10 +125,23 @@ namespace ATCRoom.Sim
         /// <summary>Still flying, landed (and since which step) or on the ground outside the runway.</summary>
         public GroundContact Contact = GroundContact.Airborne;
         public long LandedStep;
+        /// <summary>
+        /// The route (null: none), the point it is flying to, where the leg to that point starts (for the course of the
+        /// last leg), whether it has already flown towards that point (a point behind it is passed only after that),
+        /// and whether the route still gives the altitude and the speed.
+        /// </summary>
+        public List<RoutePoint>? Route;
+        public int RouteNext;
+        public double LegStartX;
+        public double LegStartY;
+        public bool RouteApproached;
+        public bool RouteAltitude;
+        public bool RouteSpeed;
 
         public AircraftState ToState(int pendingCommands) => new(Callsign, X, Y, AltitudeFt, HeadingTrue, SpeedKt, VerticalSpeedFpm, TurnRateDps,
             TargetHeading, TurnDirection, SelectedTurnRateDps, TurnRateMode, VerticalMode, TargetAltitudeFt, SelectedVerticalRateFpm,
             CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands,
-            Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees, Contact);
+            Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees, Contact,
+            Route?.ToList(), Route != null ? RouteNext : -1, Route != null && RouteAltitude, Route != null && RouteSpeed);
     }
 }

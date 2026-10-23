@@ -17,6 +17,8 @@ namespace ATCRoom.Sim
     /// - Speed: at the accelerations of the class, within its speeds.
     /// - Wind: one direction and speed for all heights, with optional gusts; the aircraft flies its heading through
     ///   the air and drifts, and the "Normal" rate follows the ground speed along the final.
+    /// - Route (<see cref="SetRoute"/>): points flown in order, each with its altitude and speed; after the last one
+    ///   the aircraft keeps the course of the last leg.
     ///
     /// Instructions (heading, vertical, speed) are carried out after the pilot reaction (<see cref="ReactionSeconds"/>,
     /// counted in simulation time); a new instruction of the same kind for the same aircraft replaces the one still
@@ -288,7 +290,7 @@ namespace ATCRoom.Sim
 
         /// <summary>Instruction: heading to fly (degrees true), turning on this side.</summary>
         public void SetHeading(string callsign, double headingTrue, TurnDirection direction = TurnDirection.Shortest) =>
-            Instruct(callsign, Kind.Heading, a => { a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; });
+            Instruct(callsign, Kind.Heading, a => { a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; a.Route = null; });
 
         /// <summary>Instruction: altitude to reach (ft above mean sea level), optionally with a new vertical rate (ft/min).</summary>
         public void SetAltitude(string callsign, double altitudeFt, double? verticalRateFpm = null) =>
@@ -296,6 +298,7 @@ namespace ATCRoom.Sim
             {
                 a.VerticalMode = VerticalMode.Altitude;
                 a.TargetAltitudeFt = Math.Clamp(altitudeFt, runwayElevation, MaxAltitude);
+                a.RouteAltitude = false;
                 if (verticalRateFpm is double rate) a.SelectedVerticalRateFpm = Math.Clamp(Math.Abs(rate), MinVerticalRate, MaxVerticalRate);
             });
 
@@ -305,15 +308,16 @@ namespace ATCRoom.Sim
             {
                 a.VerticalMode = VerticalMode.Rate;
                 a.CommandedVerticalSpeedFpm = Math.Clamp(verticalSpeedFpm, -a.Class.MaxDescentFpm, a.Class.MaxClimbFpm);
+                a.RouteAltitude = false;
             });
 
         /// <summary>Instruction: the "Normal" rate, the vertical speed that keeps the glide path at the aircraft's ground speed.</summary>
         public void SetGlidePathRate(string callsign) =>
-            Instruct(callsign, Kind.Vertical, a => a.VerticalMode = VerticalMode.GlidePath);
+            Instruct(callsign, Kind.Vertical, a => { a.VerticalMode = VerticalMode.GlidePath; a.RouteAltitude = false; });
 
         /// <summary>Instruction: speed to reach (kt, true airspeed), within the class.</summary>
         public void SetSpeed(string callsign, double speedKt) =>
-            Instruct(callsign, Kind.Speed, a => a.TargetSpeedKt = Math.Clamp(speedKt, a.Class.MinSpeedKt, a.Class.MaxSpeedKt));
+            Instruct(callsign, Kind.Speed, a => { a.TargetSpeedKt = Math.Clamp(speedKt, a.Class.MinSpeedKt, a.Class.MaxSpeedKt); a.RouteSpeed = false; });
 
         /// <summary>Vertical rate used to reach a commanded altitude (ft/min). At once.</summary>
         public void SetVerticalRate(string callsign, double verticalRateFpm) =>
@@ -346,6 +350,9 @@ namespace ATCRoom.Sim
                 if (plane == null) return;
                 if (x != 0) pending.RemoveAll(p => Same(p.Callsign, callsign) && p.Kind == Kind.Heading);
                 if (y != 0) pending.RemoveAll(p => Same(p.Callsign, callsign) && p.Kind == Kind.Vertical);
+                // The pilot flying by hand: the stick sideways ends the route, up or down takes over its altitudes.
+                if (x != 0) plane.Route = null;
+                if (y != 0) plane.RouteAltitude = false;
                 if (x == 0 && plane.StickX != 0)
                 {
                     // Released: the heading where the roll-out ends (the turn goes on a little while the wings level).
@@ -363,6 +370,45 @@ namespace ATCRoom.Sim
                 plane.StickY = y;
             }
         }
+
+        /// <summary>
+        /// The route of an aircraft, at once (the instructor's plan, not a pilot instruction; the instructions still
+        /// waiting for it are dropped). It flies to the points in order, each time turning towards the next one (its
+        /// track pointed at the point, against the wind) and at once climbing or descending (at its selected vertical
+        /// rate) and changing speed to reach that point's altitude and speed (a NaN altitude or speed: kept as it is).
+        /// A point is passed when it is flown over, or when it is behind the aircraft and nearer than the turn allows
+        /// (it never circles a point). After the last point it keeps the course of the last leg (from the point before,
+        /// or from where the route was given) with that point's altitude and speed: no capture of the final, the
+        /// aircraft is on the final only if the last two points are on the extended centreline. A heading instruction
+        /// or the stick sideways ends the route; an altitude, rate or speed instruction (or the stick up or down) takes
+        /// that over for the rest of the route. Empty or null: no route.
+        /// </summary>
+        public void SetRoute(string callsign, IEnumerable<RoutePoint>? points)
+        {
+            List<RoutePoint> list = (points ?? Enumerable.Empty<RoutePoint>()).Where(p => p != null && double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
+            lock (sync)
+            {
+                SimAircraft? plane = Find(callsign);
+                if (plane == null) return;
+                pending.RemoveAll(p => Same(p.Callsign, callsign));
+                if (list.Count == 0 || plane.Contact != GroundContact.Airborne)
+                {
+                    plane.Route = null;
+                    return;
+                }
+                plane.Route = list;
+                plane.RouteNext = 0;
+                plane.LegStartX = plane.X;
+                plane.LegStartY = plane.Y;
+                plane.RouteApproached = false;
+                plane.RouteAltitude = true;
+                plane.RouteSpeed = true;
+                StartLeg(plane);
+            }
+        }
+
+        /// <summary>Ends the route at once: the aircraft goes on straight, at the altitude and speed it was given.</summary>
+        public void ClearRoute(string callsign) => Change(callsign, a => a.Route = null);
 
         /// <summary>Holds an aircraft where it is (true) or lets it go on (false). At once, not a pilot instruction.</summary>
         public void SetFrozen(string callsign, bool frozen) => Change(callsign, a => a.Frozen = frozen);
@@ -538,6 +584,7 @@ namespace ATCRoom.Sim
                     if (plane.Contact == GroundContact.OnGround) plane.GroundSpeedKt = 0;
                     continue;
                 }
+                FollowRoute(plane);
                 Turn(plane);
                 Accelerate(plane);
                 Ground(plane, wind);
@@ -565,6 +612,7 @@ namespace ATCRoom.Sim
             }
             plane.Contact = onRunway ? GroundContact.Landed : GroundContact.OnGround;
             plane.LandedStep = steps;
+            plane.Route = null;
             plane.VerticalSpeedFpm = 0;
             plane.VerticalMode = VerticalMode.Altitude;
             plane.TargetAltitudeFt = plane.AltitudeFt;
@@ -599,6 +647,84 @@ namespace ATCRoom.Sim
             double north = plane.SpeedKt * Math.Cos(heading) + windSpeed * Math.Cos(towards);
             double along = Math.Max(0, east * Math.Sin(course) + north * Math.Cos(course));
             return -along * FeetPerNM / 60 * Math.Tan(glidePathAngle * Math.PI / 180);
+        }
+
+        /// <summary>The altitude and the speed of the point the route now flies to (those the route still gives; NaN: kept).</summary>
+        private void StartLeg(SimAircraft plane)
+        {
+            if (plane.Route == null) return;
+            RoutePoint point = plane.Route[plane.RouteNext];
+            if (plane.RouteAltitude && double.IsFinite(point.AltitudeFt))
+            {
+                plane.VerticalMode = VerticalMode.Altitude;
+                plane.TargetAltitudeFt = Math.Clamp(point.AltitudeFt, runwayElevation, MaxAltitude);
+            }
+            if (plane.RouteSpeed && double.IsFinite(point.SpeedKt))
+            {
+                plane.TargetSpeedKt = Math.Clamp(point.SpeedKt, plane.Class.MinSpeedKt, plane.Class.MaxSpeedKt);
+            }
+        }
+
+        /// <summary>Heading (degrees true) that makes good this course over the ground at this airspeed, in the mean wind.</summary>
+        private double HeadingForCourse(double courseTrue, double speedKt)
+        {
+            double towards = (windFrom + 180) * Math.PI / 180;
+            double east = windSpeed * Math.Sin(towards);
+            double north = windSpeed * Math.Cos(towards);
+            double course = courseTrue * Math.PI / 180;
+            // Wind across the course, to its right.
+            double across = east * Math.Cos(course) - north * Math.Sin(course);
+            double ratio = Math.Clamp(across / Math.Max(1, speedKt), -1, 1);
+            return Normalize(courseTrue - Math.Asin(ratio) * 180 / Math.PI);
+        }
+
+        /// <summary>One step of the route: the heading to the point it flies to; passing a point, the next one (or, after the last, the course of the last leg).</summary>
+        private void FollowRoute(SimAircraft plane)
+        {
+            if (plane.Route == null) return;
+            if (plane.StickX != 0 || plane.Route.Count == 0)
+            {
+                plane.Route = null;
+                return;
+            }
+            RoutePoint point = plane.Route[plane.RouteNext];
+            double dx = point.X - plane.X;
+            double dy = point.Y - plane.Y;
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+            double track = plane.TrackTrue * Math.PI / 180;
+            // How far ahead along the track the point is (negative: behind).
+            double along = dx * Math.Sin(track) + dy * Math.Cos(track);
+            if (along > 0) plane.RouteApproached = true;
+            // Radius of the turn now (NM): a point behind and nearer than two of them could never be flown over.
+            double rate = Math.Max(MinTurnRate, Math.Min(plane.SelectedTurnRateDps, RateForBank(plane.Class.MaxBankDegrees, plane.SpeedKt)));
+            double radius = Math.Max(plane.GroundSpeedKt, 1) / 3600 / (rate * Math.PI / 180);
+            // (Within this step's flight: flown over.)
+            double overhead = Math.Max(0.02, plane.GroundSpeedKt / 3600 * Step);
+            bool passed = distance <= overhead || (plane.RouteApproached && along <= 0 && distance <= 2 * radius + 0.5);
+            if (passed)
+            {
+                if (plane.RouteNext >= plane.Route.Count - 1)
+                {
+                    // The last point: on along the course of the last leg (where it is flying now if the leg has no length).
+                    double legX = point.X - plane.LegStartX;
+                    double legY = point.Y - plane.LegStartY;
+                    double course = Math.Sqrt(legX * legX + legY * legY) > 0.01 ? Normalize(Math.Atan2(legX, legY) * 180 / Math.PI) : plane.TrackTrue;
+                    plane.TargetHeading = HeadingForCourse(course, plane.SpeedKt);
+                    plane.TurnDirection = TurnDirection.Shortest;
+                    plane.Route = null;
+                    return;
+                }
+                plane.LegStartX = point.X;
+                plane.LegStartY = point.Y;
+                plane.RouteNext++;
+                plane.RouteApproached = false;
+                StartLeg(plane);
+                point = plane.Route[plane.RouteNext];
+                dx = point.X - plane.X;
+                dy = point.Y - plane.Y;
+            }
+            plane.TargetHeading = HeadingForCourse(Normalize(Math.Atan2(dx, dy) * 180 / Math.PI), plane.SpeedKt);
+            plane.TurnDirection = TurnDirection.Shortest;
         }
 
         /// <summary>The turn rate moves towards the one wanted, at most <see cref="TurnRateChange"/> per second.</summary>
