@@ -197,6 +197,7 @@ namespace AuroraPAR
             view.AircraftClicked += SelectCallsign;
             par.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
+            view.RoutePointMoved += MoveDraggedPoint;
             AttachLabelCommands(view);
             list.PreviewMouseLeftButtonUp += (s, e) => AircraftClickedAgain();
             PreviewKeyDown += TrainerKey;

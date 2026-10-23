@@ -21,14 +21,15 @@ namespace AuroraPAR
         Traffic
     }
 
-    /// <summary>A point of a route drawn on the plan view: where it is, its name (or number) and its altitude and speed.</summary>
-    internal sealed record PlanRoutePoint(double Latitude, double Longitude, string Name, string Values);
+    /// <summary>A point of a route drawn on the plan view: where it is, its name (or number) and its altitude and speed; the point itself (to move it).</summary>
+    internal sealed record PlanRoutePoint(double Latitude, double Longitude, string Name, string Values, object? Tag = null);
 
     /// <summary>
     /// A route drawn on the Instructor+ plan view: from the aircraft through its points. The selected aircraft's route is
     /// bright with the names and values of its points, a route not flown yet (still being made) dashed, the others dim.
     /// </summary>
-    internal sealed record PlanRoute(double FromLatitude, double FromLongitude, IReadOnlyList<PlanRoutePoint> Points, bool Selected, bool Draft);
+    /// The callsign of the aircraft (null: the flight plan being made); the points of the selected route can be dragged.
+    internal sealed record PlanRoute(double FromLatitude, double FromLongitude, IReadOnlyList<PlanRoutePoint> Points, bool Selected, bool Draft, string? Callsign = null);
 
     /// <summary>
     /// Surveillance radar of the Trainer (RDR): plan view, north up, centred on the threshold of the runway in use.
@@ -125,8 +126,8 @@ namespace AuroraPAR
         }
         private bool pickingPoints;
 
-        /// <summary>A point was clicked while <see cref="PickingPoints"/> (latitude, longitude).</summary>
-        public event Action<double, double>? PointPicked;
+        /// <summary>A point was clicked while <see cref="PickingPoints"/> (latitude, longitude, where in the view), when the button is let go.</summary>
+        public event Action<double, double, Point>? PointPicked;
 
         /// <summary>Centre and scale (pixels per NM) of the last drawing, to turn a click into a position.</summary>
         private Point lastCentre;
@@ -193,6 +194,7 @@ namespace AuroraPAR
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (RouteMove(e.GetPosition(this))) return;
             if (LabelMove(e.GetPosition(this))) return;
             if (dragFrom is not Point from || lastScale <= 0) return;
             Vector moved = e.GetPosition(this) - from;
@@ -228,12 +230,25 @@ namespace AuroraPAR
             base.OnLostMouseCapture(e);
             dragFrom = null;
             labelDrag = null;
+            RouteCaptureLost();
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
             Point at = e.GetPosition(this);
+            // A point of the selected route (to drag it), or the start of a pick.
+            if (dragFrom == null && RoutePress(at))
+            {
+                e.Handled = true;
+                return;
+            }
+            // Picking points: a click never selects a track (also while the view is dragged).
+            if (PickingPoints)
+            {
+                e.Handled = true;
+                return;
+            }
             if (!PickingPoints && LabelPress(at, e.ClickCount))
             {
                 e.Handled = true;
@@ -244,25 +259,6 @@ namespace AuroraPAR
                 // Double-click: centred on the airport again.
                 PanOffset = Runway is Runway current ? AirportOffset(current) : new Vector();
                 InvalidateVisual();
-                e.Handled = true;
-                return;
-            }
-            if (PickingPoints)
-            {
-                Runway? runway = Runway;
-                if (runway != null && lastScale > 0)
-                {
-                    double east = (at.X - lastCentre.X) / lastScale;
-                    double north = (lastCentre.Y - at.Y) / lastScale;
-                    double distance = Math.Sqrt(east * east + north * north);
-                    (double latitude, double longitude) = distance < 1e-9 ? (runway.Latitude, runway.Longitude)
-                        : Earth.Destination(runway.Latitude, runway.Longitude, Math.Atan2(east, north) * 180 / Math.PI, distance, Earth.Radius(runway));
-                    PointPicked?.Invoke(latitude, longitude);
-                }
-                else
-                {
-                    System.Media.SystemSounds.Beep.Play();
-                }
                 e.Handled = true;
                 return;
             }
@@ -432,6 +428,7 @@ namespace AuroraPAR
         {
             drawn.Clear();
             labelBoxes.Clear();
+            routeHandles.Clear();
             double width = ActualWidth;
             double height = ActualHeight;
             if (width <= 0 || height <= 0) return;
@@ -575,6 +572,12 @@ namespace AuroraPAR
                 foreach (PlanRoutePoint point in route.Points)
                 {
                     Point p = Place(point.Latitude, point.Longitude);
+                    // The selected route: its points can be dragged (one being dragged is drawn under the mouse).
+                    if (route.Selected && point.Tag != null)
+                    {
+                        p = RoutePointShown(route.Callsign, point.Tag, p);
+                        routeHandles.Add((p, route.Callsign, point.Tag));
+                    }
                     dc.DrawLine(pen, previous, p);
                     dc.DrawEllipse(null, pen, p, 3.5, 3.5);
                     if (route.Selected && view.Contains(p))

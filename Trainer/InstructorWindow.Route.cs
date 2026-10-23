@@ -210,16 +210,115 @@ namespace AuroraPAR
             });
         }
 
-        /// <summary>A click on the plan view while "Add by click" is pressed.</summary>
-        private void AddClickedPoint(double latitude, double longitude)
+        /// <summary>
+        /// A click on the plan view while "Add by click" is pressed: near points of the maps (VRP, FIX, VOR...), a menu to
+        /// choose one of them or a GPS point where the click was (as SkyVector); else the GPS point at once.
+        /// </summary>
+        private void AddClickedPoint(double latitude, double longitude, Point where)
         {
             if (bridge.FromGeo(latitude, longitude) is not { } at)
             {
                 System.Media.SystemSounds.Beep.Play();
                 return;
             }
-            AddPoint(at.X, at.Y, "");
+            ChoosePoint(at.X, at.Y, where, (x, y, name) => AddPoint(x, y, name), null);
         }
+
+        /// <summary>
+        /// A point of the selected route dropped somewhere else on the plan view (also while it is flown): it goes there,
+        /// or to a point of the maps chosen in the menu; its altitude and speed stay. Flying to it now: straight to the new place.
+        /// </summary>
+        private void MoveDraggedPoint(string? callsign, object tag, double latitude, double longitude, Point where)
+        {
+            if (tag is not RoutePoint moved || bridge.FromGeo(latitude, longitude) is not { } at)
+            {
+                plan?.EndRouteMove();
+                System.Media.SystemSounds.Beep.Play();
+                return;
+            }
+            ChoosePoint(at.X, at.Y, where, (x, y, name) => MovePoint(callsign, moved, x, y, name), () => plan?.EndRouteMove());
+        }
+
+        /// <summary>Moves a point of a route: the flight plan being made (callsign null) or the points still to fly of an aircraft.</summary>
+        private void MovePoint(string? callsign, RoutePoint moved, double x, double y, string name)
+        {
+            RoutePoint changed = moved with { X = x, Y = y, Name = name };
+            if (callsign == null)
+            {
+                if (EditedPlan() is not FlightPlan edited || !edited.Points.Any(p => ReferenceEquals(p, moved)))
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    return;
+                }
+                routeSelectNext = changed;
+                edited.Points = edited.Points.Select(p => ReferenceEquals(p, moved) ? changed : p).ToList();
+                routeShownKey = fplShownKey = "";
+                Refresh();
+                return;
+            }
+            // The aircraft may have passed the point meanwhile: then nothing.
+            if (bridge.Engine.Get(callsign) is not AircraftState state)
+            {
+                System.Media.SystemSounds.Beep.Play();
+                return;
+            }
+            List<RoutePoint> points = RemainingPoints(state);
+            int index = points.FindIndex(p => ReferenceEquals(p, moved));
+            if (index < 0)
+            {
+                System.Media.SystemSounds.Beep.Play();
+                return;
+            }
+            points[index] = changed;
+            if (string.Equals(routeEditCallsign, callsign, StringComparison.OrdinalIgnoreCase)) routeSelectNext = changed;
+            // Given again as an edit of the route (ROUTE / MANUAL as they are): the leg flown changes only when this is the point it flies to.
+            bridge.Engine.SetRoute(callsign, points, follow: null);
+            routeShownKey = "";
+            Refresh();
+        }
+
+        /// <summary>
+        /// The place of a new or moved point (x, y in the plane of the engine): with points of the maps within a few pixels
+        /// of <paramref name="where"/>, a menu (each of them, or a GPS point here); else the GPS point at once.
+        /// <paramref name="done"/> runs in the end, chosen or not.
+        /// </summary>
+        private void ChoosePoint(double x, double y, Point where, Action<double, double, string> chosen, Action? done)
+        {
+            List<(string Name, MapSymbol Symbol, double Latitude, double Longitude)> near = plan?.MapPointsNear(where) ?? [];
+            if (near.Count == 0)
+            {
+                chosen(x, y, "");
+                done?.Invoke();
+                return;
+            }
+            ContextMenu menu = new() { PlacementTarget = plan, Placement = PlacementMode.MousePoint };
+            foreach ((string name, MapSymbol symbol, double latitude, double longitude) in near)
+            {
+                if (bridge.FromGeo(latitude, longitude) is not { } at) continue;
+                MenuItem item = new() { Header = $"{SymbolKind(symbol)}  {name}", FontWeight = FontWeights.SemiBold };
+                item.Click += (s, e) => chosen(at.X, at.Y, name);
+                menu.Items.Add(item);
+            }
+            menu.Items.Add(new Separator());
+            MenuItem gps = new() { Header = $"GPS point here  ({PointLabel(new RoutePoint(x, y, double.NaN, double.NaN), variation())})" };
+            gps.Click += (s, e) => chosen(x, y, "");
+            menu.Items.Add(gps);
+            // After the Click of the item chosen (it comes once the menu is closed).
+            menu.Closed += (s, e) => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => done?.Invoke()));
+            // Opened after the mouse event is over.
+            Dispatcher.BeginInvoke(new Action(() => menu.IsOpen = true));
+        }
+
+        private static string SymbolKind(MapSymbol symbol) => symbol switch
+        {
+            MapSymbol.Vrp => "VRP",
+            MapSymbol.Vor => "VOR",
+            MapSymbol.Vortac => "VORTAC",
+            MapSymbol.Tacan => "TACAN",
+            MapSymbol.Ndb => "NDB",
+            MapSymbol.Airport => "AD",
+            _ => "FIX"
+        };
 
         /// <summary>The named points of the maps shown on the plan view and the airports of runways.par (name, latitude, longitude).</summary>
         private List<(string Name, double Latitude, double Longitude)> NamedPoints()
@@ -487,14 +586,14 @@ namespace AuroraPAR
             if (edited != null && points.Count > 0 && bridge.ToGeo(points[0].X, points[0].Y) is { } first)
             {
                 plan.SelectedCallsign = null;
-                routes.Add(new PlanRoute(first.Latitude, first.Longitude, PlacePoints(points, magneticVariation), true, true));
+                routes.Add(new PlanRoute(first.Latitude, first.Longitude, PlacePoints(points, magneticVariation), true, true, null));
             }
             foreach (AircraftState state in states)
             {
                 List<RoutePoint> shown = RemainingPoints(state);
                 if (shown.Count == 0 || bridge.ToGeo(state.X, state.Y) is not { } start) continue;
                 bool isSelected = edited == null && string.Equals(state.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase);
-                routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(shown, magneticVariation), isSelected, state.Navigation == NavigationMode.Manual));
+                routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(shown, magneticVariation), isSelected, state.Navigation == NavigationMode.Manual, state.Callsign));
             }
             plan.Routes = routes;
             plan.InvalidateVisual();
@@ -510,7 +609,7 @@ namespace AuroraPAR
                 string values = double.IsFinite(shown[i].AltitudeFt)
                     ? Math.Max(0, Math.Round((Qfe ? shown[i].AltitudeFt - Elevation : shown[i].AltitudeFt) / 100)).ToString("000", CultureInfo.InvariantCulture)
                     : "---";
-                placed.Add(new PlanRoutePoint(geo.Latitude, geo.Longitude, $"{i + 1} {PointLabel(shown[i], magneticVariation)}", $"{values} {PointSpeed(shown[i])}"));
+                placed.Add(new PlanRoutePoint(geo.Latitude, geo.Longitude, $"{i + 1} {PointLabel(shown[i], magneticVariation)}", $"{values} {PointSpeed(shown[i])}", shown[i]));
             }
             return placed;
         }

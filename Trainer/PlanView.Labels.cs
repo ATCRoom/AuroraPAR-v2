@@ -174,6 +174,11 @@ namespace AuroraPAR
         protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonUp(e);
+            if (RouteRelease(e.GetPosition(this)))
+            {
+                e.Handled = true;
+                return;
+            }
             if (labelDrag is not LabelDrag drag) return;
             labelDrag = null;
             if (IsMouseCaptured) ReleaseMouseCapture();
