@@ -28,8 +28,8 @@ namespace AuroraPAR
     internal sealed class ScenarioPoint
     {
         public string Name { get; set; } = "";
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public double? AltitudeFt { get; set; }
         public double? SpeedKt { get; set; }
     }

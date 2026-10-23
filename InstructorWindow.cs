@@ -21,7 +21,7 @@ namespace AuroraPAR
     internal sealed partial class InstructorWindow : Window, IJoystickTarget
     {
 #if TRAINER
-        private const string FooterText = "Click an aircraft on the plan view to select it. Flight plans: New FPL, its route (points by a click on the plan view, by the name of a point of the maps, or by bearing and distance), then Activate when you decide; Save / Load scenario. The PAR monitor and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
+        private const string FooterText = "Click an aircraft on the plan view to select it. Flight plans: New FPL, its route, then Activate when you decide.\nClosing the window removes the simulated aircraft.";
 #else
         private const string FooterText = "Provisional layout: the plan view, the PAR monitor, the modes and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
 #endif
@@ -198,6 +198,7 @@ namespace AuroraPAR
             Height = Math.Min(height, area.Height - 20);
             view.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
+            list.PreviewMouseLeftButtonUp += (s, e) => AircraftClickedAgain();
             if (controls is StackPanel root)
             {
                 int after = root.Children.IndexOf(controlPanel) + 1;
@@ -210,7 +211,10 @@ namespace AuroraPAR
         private void SelectCallsign(string callsign)
         {
             ListBoxItem? item = list.Items.OfType<ListBoxItem>().FirstOrDefault(i => string.Equals(i.Tag as string, callsign, StringComparison.OrdinalIgnoreCase));
-            if (item != null) list.SelectedItem = item;
+            if (item == null) return;
+            // Already selected (the Route group may show a flight plan): back to this aircraft.
+            if (ReferenceEquals(list.SelectedItem, item)) AircraftClickedAgain();
+            else list.SelectedItem = item;
         }
 
         /// <summary>The plan view shows the selected aircraft with a square.</summary>

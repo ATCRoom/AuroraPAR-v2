@@ -89,7 +89,7 @@ namespace AuroraPAR
             panel.Children.Add(actions);
             panel.Children.Add(new TextBlock
             {
-                Text = "The list shows the points still to fly. A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. An altitude or speed instruction replaces the route's altitude or speed until the route is changed. A heading instruction or the stick ends the route (its points are then gone).",
+                Text = "The list shows the points still to fly. A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. An altitude or speed instruction replaces the route's altitude or speed until the route is changed. A heading instruction or the stick ends the route (its points are then gone; a flight plan stays in its list).",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.Gray,
                 FontSize = 11,
@@ -399,7 +399,7 @@ namespace AuroraPAR
 
             if (edited != null)
             {
-                string name = edited.Callsign.Length > 0 ? edited.Callsign : "(auto callsign)";
+                string name = edited.Callsign.Length > 0 ? edited.Callsign : "(next free callsign)";
                 routeStatus.Text = points.Count == 0
                     ? $"Flight plan {name}: no route yet. Add its points below (the first one with altitude and speed: the aircraft starts there)."
                     : $"Flight plan {name}: {Plural(points.Count)}, waiting. Activate starts it on the first point.";
@@ -429,6 +429,13 @@ namespace AuroraPAR
                 routeShownFor = target;
                 routeShownKey = "";
                 RoutePoint? lastPlanned = points.LastOrDefault();
+                if (edited != null && lastPlanned == null)
+                {
+                    // A new plan: a start the aircraft can fly (3000 ft above the threshold, the approach speed of its class).
+                    PerformanceClass? kind = bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, edited.Class, StringComparison.OrdinalIgnoreCase));
+                    if (!TryRead(routeAltitudeBox, out _)) routeAltitudeBox.Text = (Qfe ? 3000 : Math.Round((Elevation + 3000) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
+                    if (!TryRead(routeSpeedBox, out _) && kind != null) routeSpeedBox.Text = kind.ApproachSpeedKt.ToString("0", CultureInfo.InvariantCulture);
+                }
                 if (edited != null && lastPlanned != null)
                 {
                     if (double.IsFinite(lastPlanned.AltitudeFt)) routeAltitudeBox.Text = (Math.Round((Qfe ? lastPlanned.AltitudeFt - Elevation : lastPlanned.AltitudeFt) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
@@ -469,6 +476,8 @@ namespace AuroraPAR
 
             // The routes on the plan view: those flown, and the draft of the selected aircraft.
             if (plan == null) return;
+            // A flight plan being made: no aircraft shown as selected.
+            if (edited != null) plan.SelectedCallsign = null;
             List<PlanRoute> routes = [];
             // The flight plan being made: from its first point (where the aircraft will start).
             if (edited != null && points.Count > 0 && bridge.ToGeo(points[0].X, points[0].Y) is { } first)
