@@ -349,13 +349,15 @@ namespace AuroraPAR
             }
         }
 
-        /// <summary>The symbol of a point of a map (about 9 pixels): FIX triangle, VRP square, airport circle, VOR hexagon, VORTAC hexagon with ticks, TACAN diamond, NDB circle with a dot.</summary>
+        /// <summary>The symbol of a point of a map (about 9 pixels): FIX triangle, VRP square, airport circle with a line, VOR hexagon, VORTAC hexagon with ticks, TACAN diamond, NDB circle with a dot.</summary>
         private static void DrawSymbol(DrawingContext dc, MapSymbol symbol, Point p, Pen pen)
         {
             switch (symbol)
             {
                 case MapSymbol.Airport:
+                    // Circle with a vertical line that is longer than the diameter (as on real radars).
                     dc.DrawEllipse(null, pen, p, 4, 4);
+                    dc.DrawLine(pen, new Point(p.X, p.Y - 6.5), new Point(p.X, p.Y + 6.5));
                     break;
                 case MapSymbol.Vrp:
                     dc.DrawRectangle(null, pen, new Rect(p.X - 3.5, p.Y - 3.5, 7, 7));

@@ -126,7 +126,7 @@ namespace AuroraPAR
         private static string SymbolName(MapSymbol symbol) => symbol switch
         {
             MapSymbol.Point => "Point (triangle)",
-            MapSymbol.Airport => "Airport (circle)",
+            MapSymbol.Airport => "Airport (circle with line)",
             MapSymbol.Vrp => "VRP (square)",
             MapSymbol.Vor => "VOR (hexagon)",
             MapSymbol.Vortac => "VORTAC",

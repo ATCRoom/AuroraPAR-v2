@@ -100,6 +100,7 @@ namespace AuroraPAR
                 Description = "Symbols for the points of the maps. Each symbol: a name and shapes drawn in pixels from the point (x right, y down, about -5 to 5). Shapes: \"line\": [[x,y],...], \"polygon\": [[x,y],...] (closed), \"circle\": [x,y,radius]; \"fill\": true fills a polygon or a circle. Add a symbol = add an entry, then Reload in RDR > Maps.",
                 Symbols =
                 [
+                    new CustomSymbol { Name = "Circle", Shapes = [new CustomSymbolShape { Circle = [0, 0, 4] }] },
                     new CustomSymbol { Name = "Plus", Shapes = [new CustomSymbolShape { Line = P([-4, 0], [4, 0]) }, new CustomSymbolShape { Line = P([0, -4], [0, 4]) }] },
                     new CustomSymbol { Name = "Cross", Shapes = [new CustomSymbolShape { Line = P([-3.5, -3.5], [3.5, 3.5]) }, new CustomSymbolShape { Line = P([-3.5, 3.5], [3.5, -3.5]) }] },
                     new CustomSymbol { Name = "Triangle filled", Shapes = [new CustomSymbolShape { Polygon = P([0, -4.5], [4, 3], [-4, 3]), Fill = true }] },
