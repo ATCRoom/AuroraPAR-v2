@@ -50,6 +50,8 @@ namespace AuroraPAR
             public bool Moved;
         }
         private LabelDrag? labelDrag;
+        /// <summary>A right button pressed on a label or a track (Instructor+): its menu opens when the button is let go.</summary>
+        private (string Callsign, Point At)? pendingMenu;
 
         public bool IsLabelHidden(string callsign) => hiddenLabels.Contains(callsign);
 
@@ -137,7 +139,8 @@ namespace AuroraPAR
         /// <summary>Left button on a label: a double-click puts it back; else the start of a drag (or of a click). True: taken.</summary>
         private bool LabelPress(Point at, int clicks)
         {
-            if (LabelAt(at) is not DrawnLabel label) return false;
+            // Not while the view is being dragged with the right button.
+            if (dragFrom != null || LabelAt(at) is not DrawnLabel label) return false;
             if (clicks >= 2)
             {
                 labelOffsets.Remove(label.Callsign);
@@ -191,7 +194,7 @@ namespace AuroraPAR
             {
                 string? callsign = label?.Callsign ?? onTrack;
                 if (callsign == null) return false;
-                LabelMenuRequested?.Invoke(callsign, at);
+                pendingMenu = (callsign, at);
                 return true;
             }
             if (label != null)

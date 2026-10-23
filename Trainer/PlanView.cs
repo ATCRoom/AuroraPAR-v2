@@ -174,6 +174,11 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
+            if (labelDrag != null)
+            {
+                e.Handled = true;
+                return;
+            }
             if (LabelRightClick(e.GetPosition(this)))
             {
                 e.Handled = true;
@@ -204,6 +209,14 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonUp(e);
+            // The menu of an aircraft opens when the right button is let go (as a context menu).
+            if (pendingMenu is (string menuCallsign, Point menuAt))
+            {
+                pendingMenu = null;
+                LabelMenuRequested?.Invoke(menuCallsign, menuAt);
+                e.Handled = true;
+                return;
+            }
             if (dragFrom == null) return;
             dragFrom = null;
             ReleaseMouseCapture();
@@ -303,6 +316,7 @@ namespace AuroraPAR
             {
                 histories.Remove(callsign);
                 labelOffsets.Remove(callsign);
+                hiddenLabels.Remove(callsign);
             }
         }
 

@@ -31,7 +31,7 @@ namespace AuroraPAR
         /// <summary>The lines of the larger label: only for the selected aircraft.</summary>
         private IReadOnlyList<IReadOnlyList<LabelPart>>? LabelLines(string callsign)
         {
-            if (!string.Equals(callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase) || bridge.Engine.Get(callsign) is not AircraftState state) return null;
+            if (plan == null || !string.Equals(callsign, plan.SelectedCallsign, StringComparison.OrdinalIgnoreCase) || bridge.Engine.Get(callsign) is not AircraftState state) return null;
             double magneticVariation = variation();
             string navigation = state.Navigation switch
             {
@@ -39,7 +39,8 @@ namespace AuroraPAR
                 NavigationMode.RouteArmed => "ROUTE?",
                 _ => "MANUAL"
             };
-            string Hundreds(double feet) => Math.Max(0, Math.Round(feet / 100)).ToString("000", CultureInfo.InvariantCulture);
+            // Altitudes as the window shows them (QFE: heights above the threshold).
+            string Hundreds(double feet) => Math.Max(0, Math.Round((Qfe ? feet - Elevation : feet) / 100)).ToString("000", CultureInfo.InvariantCulture);
             string arrow = state.VerticalSpeedFpm > 50 ? "↑" : state.VerticalSpeedFpm < -50 ? "↓" : " ";
             string next = state.Route != null && state.RouteNext >= 0 && state.RouteNext < state.Route.Count
                 ? "→" + PointLabel(state.Route[state.RouteNext], magneticVariation) : "→---";
@@ -60,7 +61,7 @@ namespace AuroraPAR
                 },
                 new List<LabelPart>
                 {
-                    new(Hundreds(state.AltitudeFt) + arrow),
+                    new(Hundreds(state.AltitudeFt) + arrow + " "),
                     new(Hundreds(state.TargetAltitudeFt), "ALT", Given: true),
                     new("  "),
                     new(state.TargetSpeedKt.ToString("0", CultureInfo.InvariantCulture), "SPD", Given: true),
@@ -83,20 +84,23 @@ namespace AuroraPAR
             if (!string.Equals(callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase) || Selected() is not AircraftState state) return;
             switch (field)
             {
+                // Each step from the value the label shows (not from a field of the panel typed before).
                 case "HDG":
+                    headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
                     StepHeading(sign * 5);
                     break;
                 case "ALT":
-                    double altitude = TryRead(altitudeBox, out double typed) ? typed : Math.Round((Qfe ? state.TargetAltitudeFt - Elevation : state.TargetAltitudeFt) / 100) * 100;
+                    double altitude = Math.Round((Qfe ? state.TargetAltitudeFt - Elevation : state.TargetAltitudeFt) / 100) * 100;
                     altitudeBox.Text = (altitude + sign * 100).ToString("0", CultureInfo.InvariantCulture);
                     GiveAltitude();
                     break;
                 case "SPD":
-                    double speed = TryRead(speedBox, out double given) ? given : Math.Round(state.TargetSpeedKt);
-                    speedBox.Text = Math.Clamp(speed + sign * 5, 40, 400).ToString("0", CultureInfo.InvariantCulture);
+                    speedBox.Text = Math.Clamp(Math.Round(state.TargetSpeedKt) + sign * 5, 40, 400).ToString("0", CultureInfo.InvariantCulture);
                     GiveSpeed();
                     break;
                 case "VS":
+                    double now = state.VerticalMode == VerticalMode.Rate ? state.CommandedVerticalSpeedFpm : state.VerticalSpeedFpm;
+                    rateBox.Text = FormatRate(Math.Round(now / 100) * 100);
                     StepRate(sign * 100);
                     break;
             }
@@ -148,11 +152,23 @@ namespace AuroraPAR
                     give();
                 }
             };
+            // Enter on the list gives the value highlighted.
+            list.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter && list.SelectedItem is ListBoxItem item && item.Tag is Action give)
+                {
+                    ClosePopup();
+                    give();
+                    e.Handled = true;
+                }
+            };
             if (values.Count > 0) panel.Children.Add(list);
+            TextBox? typedBox = null;
             WrapPanel bottom = new() { Margin = new Thickness(6, 4, 6, 6) };
             if (typedGive != null)
             {
                 TextBox box = new() { Width = 70, Text = typedStart ?? "", FontFamily = new FontFamily("Consolas"), FontSize = 13, Margin = new Thickness(0, 0, 4, 4) };
+                typedBox = box;
                 Button go = new() { Content = "Go", FontWeight = FontWeights.SemiBold, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(0, 0, 4, 4) };
                 void Give()
                 {
@@ -190,6 +206,12 @@ namespace AuroraPAR
                 Child = frame
             };
             popup.Closed += (s, e) => { if (ReferenceEquals(fieldPopup, popup)) fieldPopup = null; };
+            // The keyboard in the list (Esc closes, Enter gives), or in the box when there is no list.
+            popup.Opened += (s, e) =>
+            {
+                if (values.Count > 0) list.Focus();
+                else if (typedBox != null) { typedBox.Focus(); typedBox.SelectAll(); }
+            };
             fieldPopup = popup;
             popup.IsOpen = true;
             list.Dispatcher.InvokeAsync(() => { if (list.SelectedItem != null) list.ScrollIntoView(list.SelectedItem); });
@@ -308,10 +330,17 @@ namespace AuroraPAR
                 item.Click += (s, e) => act();
                 menu.Items.Add(item);
             }
-            Add(state.Frozen ? "Unpause" : "Pause", () => { bridge.Engine.SetFrozen(callsign, !state.Frozen); Refresh(); });
+            Add(state.Frozen ? "Unpause" : "Pause", () => { if (bridge.Engine.Get(callsign) is AircraftState now) bridge.Engine.SetFrozen(callsign, !now.Frozen); Refresh(); });
             if (flightPlans.Any(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase))) Add("Reactivate (from the first point)", () => Reactivate(callsign));
-            Add(state.Navigation == NavigationMode.Manual ? "ROUTE" : "MANUAL", () => ChooseNavigation(state.Navigation == NavigationMode.Manual));
-            Add("Edit route…", OpenRouteWindow);
+            Add(state.Navigation == NavigationMode.Manual ? "ROUTE" : "MANUAL", () =>
+            {
+                if (!bridge.Engine.SetNavigation(callsign, state.Navigation == NavigationMode.Manual))
+                {
+                    Warn("This aircraft has no route to fly: make one with Edit route… (or start a flight plan with Activate).");
+                }
+                Refresh();
+            });
+            Add("Edit route…", () => { SelectCallsign(callsign); OpenRouteWindow(); });
             Add("Rename…", () => { renameBox.Focus(); renameBox.SelectAll(); });
             Add(plan.IsLabelHidden(callsign) ? "Show label" : "Hide label", () => plan.SetLabelHidden(callsign, !plan.IsLabelHidden(callsign)));
             menu.Items.Add(new Separator());
