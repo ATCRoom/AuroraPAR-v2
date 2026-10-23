@@ -627,6 +627,19 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
 }
 
 {
+    // The route edited while flown, the same point next: the leg keeps its start, so the last course is the one of the leg.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 45, 120);
+    engine.SetRoute(a, [new RoutePoint(0, 10, 3000, 120, "END")]);
+    engine.RunFor(20);
+    engine.SetRoute(a, [engine.Get(a)!.Route![0]]);
+    for (int i = 0; i < 4000 && engine.Get(a)!.Route != null; i++) engine.RunFor(0.1);
+    engine.RunFor(60);
+    AircraftState s = engine.Get(a)!;
+    Check(Near(s.HeadingTrue, 0, 0.01) || Near(s.HeadingTrue, 360, 0.01), "Route edited while flown, same point next: course of the leg from where it started", $"heading {s.HeadingTrue:F2}");
+}
+
+{
     // Instructions and the route.
     SimEngine engine = new();
     string a = engine.Add(0, 0, 3000, 0, 120);

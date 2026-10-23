@@ -381,7 +381,8 @@ namespace ATCRoom.Sim
         /// or from where the route was given) with that point's altitude and speed: no capture of the final, the
         /// aircraft is on the final only if the last two points are on the extended centreline. A heading instruction
         /// or the stick sideways ends the route; an altitude, rate or speed instruction (or the stick up or down) takes
-        /// that over for the rest of the route. Empty or null: no route.
+        /// that over for the rest of the route. Given again while flown (the route edited), with the same point next,
+        /// the leg being flown stays as it is. Empty or null: no route.
         /// </summary>
         public void SetRoute(string callsign, IEnumerable<RoutePoint>? points)
         {
@@ -396,11 +397,17 @@ namespace ATCRoom.Sim
                     plane.Route = null;
                     return;
                 }
+                // A route changed while flown, with the same point next (a point added or changed further on): the leg
+                // being flown stays as it is (where it started, whether it was turned towards).
+                bool sameLeg = plane.Route != null && plane.Route[plane.RouteNext] == list[0];
                 plane.Route = list.ToArray();
                 plane.RouteNext = 0;
-                plane.LegStartX = plane.X;
-                plane.LegStartY = plane.Y;
-                plane.RouteApproached = false;
+                if (!sameLeg)
+                {
+                    plane.LegStartX = plane.X;
+                    plane.LegStartY = plane.Y;
+                    plane.RouteApproached = false;
+                }
                 plane.RouteAltitude = true;
                 plane.RouteSpeed = true;
                 StartLeg(plane);

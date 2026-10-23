@@ -13,6 +13,15 @@ namespace AuroraPAR
     /// </summary>
     internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush, bool ShowShapes = true, bool ShowTexts = true, MapSymbol? Symbol = null, CustomSymbol? Custom = null);
 
+    /// <summary>A point of a route drawn on the plan view: where it is, its name (or number) and its altitude and speed.</summary>
+    internal sealed record PlanRoutePoint(double Latitude, double Longitude, string Name, string Values);
+
+    /// <summary>
+    /// A route drawn on the Instructor+ plan view: from the aircraft through its points. The selected aircraft's route is
+    /// bright with the names and values of its points, a route not flown yet (still being made) dashed, the others dim.
+    /// </summary>
+    internal sealed record PlanRoute(double FromLatitude, double FromLongitude, IReadOnlyList<PlanRoutePoint> Points, bool Selected, bool Draft);
+
     /// <summary>
     /// Surveillance radar of the Trainer (RDR): plan view, north up, centred on the threshold of the runway in use.
     /// Range rings, the runways of the airport, the extended centreline (a tick every NM, a longer one every 5 NM) and
@@ -36,6 +45,10 @@ namespace AuroraPAR
         private static readonly Pen LeaderPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x70, 0x70, 0x70))), 0.8));
         private static readonly Brush InfoBrush = Freeze(new SolidColorBrush(Colors.White));
         private static readonly Brush SignBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0x8C, 0x00)));
+        private static readonly Brush RouteBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x30, 0xC8, 0xFF)));
+        private static readonly Pen RoutePen = Freeze(new Pen(RouteBrush, 1.4));
+        private static readonly Pen RouteDraftPen = Freeze(new Pen(RouteBrush, 1.4) { DashStyle = DashStyles.Dash });
+        private static readonly Pen RouteOtherPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x2A, 0x6A, 0x88))), 1));
         private static readonly Typeface MonoFace = new(new FontFamily("Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         private static readonly Typeface MapFace = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         /// <summary>Runways of the other airports of runways.par, and their ICAO.</summary>
@@ -89,10 +102,47 @@ namespace AuroraPAR
         /// <summary>Where the tracks were drawn the last time (to find the one that is clicked).</summary>
         private readonly List<(Point At, string Callsign)> drawn = [];
 
+        /// <summary>The routes of the Instructor+ (only on its plan view).</summary>
+        public IReadOnlyList<PlanRoute> Routes { get; set; } = [];
+
+        /// <summary>A click gives a point of a route (<see cref="PointPicked"/>) instead of selecting a track.</summary>
+        public bool PickingPoints
+        {
+            get => pickingPoints;
+            set
+            {
+                pickingPoints = value;
+                Cursor = value ? Cursors.Cross : null;
+            }
+        }
+        private bool pickingPoints;
+
+        /// <summary>A point was clicked while <see cref="PickingPoints"/> (latitude, longitude).</summary>
+        public event Action<double, double>? PointPicked;
+
+        /// <summary>Centre and scale (pixels per NM) of the last drawing, to turn a click into a position.</summary>
+        private Point lastCentre;
+        private double lastScale;
+
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
             Point at = e.GetPosition(this);
+            if (PickingPoints)
+            {
+                Runway? runway = Runway;
+                if (runway != null && lastScale > 0)
+                {
+                    double east = (at.X - lastCentre.X) / lastScale;
+                    double north = (lastCentre.Y - at.Y) / lastScale;
+                    double distance = Math.Sqrt(east * east + north * north);
+                    (double latitude, double longitude) = distance < 1e-9 ? (runway.Latitude, runway.Longitude)
+                        : Earth.Destination(runway.Latitude, runway.Longitude, Math.Atan2(east, north) * 180 / Math.PI, distance, Earth.Radius(runway));
+                    PointPicked?.Invoke(latitude, longitude);
+                }
+                e.Handled = true;
+                return;
+            }
             (Point At, string Callsign)? nearest = drawn.Count == 0 ? null : drawn.OrderBy(d => (d.At - at).Length).First();
             if (nearest != null && (nearest.Value.At - at).Length <= 16)
             {
@@ -205,6 +255,8 @@ namespace AuroraPAR
             double range = Range > 0 ? Range : TrainerSettings.DefaultRadarRange;
             Point centre = new(width / 2, height / 2);
             double scale = Math.Min(width, height) / 2 / range; // pixels per NM
+            lastCentre = centre;
+            lastScale = scale;
             double radius = Earth.Radius(runway);
             Point Place(double latitude, double longitude)
             {
@@ -306,6 +358,24 @@ namespace AuroraPAR
                 double half = longTick ? 9 : 4;
                 Point at = centre + outward * (mile * scale);
                 dc.DrawLine(CentrelinePen, at - across * half, at + across * half);
+            }
+
+            // Routes of the Instructor+: the others dim, then the selected one with its names and values.
+            foreach (PlanRoute route in Routes.OrderBy(r => r.Selected))
+            {
+                Pen pen = !route.Selected ? RouteOtherPen : route.Draft ? RouteDraftPen : RoutePen;
+                Point previous = Place(route.FromLatitude, route.FromLongitude);
+                foreach (PlanRoutePoint point in route.Points)
+                {
+                    Point p = Place(point.Latitude, point.Longitude);
+                    dc.DrawLine(pen, previous, p);
+                    dc.DrawEllipse(null, pen, p, 3.5, 3.5);
+                    if (route.Selected && view.Contains(p))
+                    {
+                        dc.DrawText(Text($"{point.Name}\n{point.Values}", 10, RouteBrush, pixelsPerDip), new Point(p.X + 6, p.Y + 2));
+                    }
+                    previous = p;
+                }
             }
 
             // Tracks: history dots, symbol, label.

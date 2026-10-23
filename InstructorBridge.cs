@@ -108,6 +108,18 @@ namespace AuroraPAR
             }
         }
 
+        /// <summary>Latitude and longitude of a point of the plane of the engine (NM east, north of the threshold), or null without a reference.</summary>
+        public (double Latitude, double Longitude)? ToGeo(double x, double y)
+        {
+            lock (sync) return plane?.ToGeo(x, y);
+        }
+
+        /// <summary>Point of the plane of the engine (NM east, north of the threshold) of a latitude and longitude, or null without a reference.</summary>
+        public (double X, double Y)? FromGeo(double latitude, double longitude)
+        {
+            lock (sync) return plane?.FromGeo(latitude, longitude);
+        }
+
         /// <summary>Point of the plane on the extended centreline, at this distance from touchdown (NM), offset to the pilot's right (NM, negative left).</summary>
         public (double X, double Y) OnFinal(double distanceFromTouchdownNM, double rightNM = 0)
         {
