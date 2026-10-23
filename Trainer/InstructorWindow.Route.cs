@@ -37,7 +37,7 @@ namespace AuroraPAR
         private readonly Button routeClearButton = SmallButton("Clear");
 
         /// <summary>The aircraft whose route the list shows, what the list shows (to rebuild it only when it changes), and the point to select after a change.</summary>
-        private string? routeShownFor;
+        private object? routeShownFor;
         private string routeShownKey = "";
         private RoutePoint? routeSelectNext;
         /// <summary>QFE when the altitude field was last filled (null: not yet).</summary>
@@ -136,6 +136,16 @@ namespace AuroraPAR
         /// <summary>Changes the points of the selected aircraft: while it flies the route, given at once; else its draft.</summary>
         private void EditRoute(Action<List<RoutePoint>> change)
         {
+            if (EditedPlan() is FlightPlan edited)
+            {
+                // A flight plan waiting: its own route.
+                List<RoutePoint> planned = new(edited.Points);
+                change(planned);
+                edited.Points = planned;
+                routeShownKey = fplShownKey = "";
+                Refresh();
+                return;
+            }
             if (Selected() is not AircraftState state)
             {
                 System.Media.SystemSounds.Beep.Play();
@@ -155,6 +165,9 @@ namespace AuroraPAR
             routeShownKey = "";
             Refresh();
         }
+
+        /// <summary>The flight plan the Route group changes now (selected and waiting), or null (then the selected aircraft).</summary>
+        private FlightPlan? EditedPlan() => routeFpl != null && routeFpl.Active == null && flightPlans.Contains(routeFpl) ? routeFpl : null;
 
         /// <summary>The point selected in the list, or null.</summary>
         private RoutePoint? SelectedPoint => (routeList.SelectedItem as ListBoxItem)?.Tag as RoutePoint;
@@ -187,9 +200,9 @@ namespace AuroraPAR
         /// <summary>Adds a point (in the plane of the engine) after the selected one, or at the end, with the values of the fields.</summary>
         private void AddPoint(double x, double y, string name)
         {
-            if (Selected() == null)
+            if (EditedPlan() == null && Selected() == null)
             {
-                Warn("Select an aircraft first (in the list or with a click on the plan view).");
+                Warn("Select a flight plan or an aircraft first.");
                 return;
             }
             if (!ReadPointValues(out double altitude, out double speed)) return;
@@ -319,7 +332,7 @@ namespace AuroraPAR
 
         private void FlyRoute()
         {
-            if (Selected() is not AircraftState state || state.Route != null) return;
+            if (EditedPlan() != null || Selected() is not AircraftState state || state.Route != null) return;
             if (!drafts.TryGetValue(state.Callsign, out List<RoutePoint>? draft) || draft.Count == 0)
             {
                 Warn("The route has no points yet.");
@@ -338,7 +351,7 @@ namespace AuroraPAR
 
         private void StopRoute()
         {
-            if (Selected() is not AircraftState state || state.Route == null) return;
+            if (EditedPlan() != null || Selected() is not AircraftState state || state.Route == null) return;
             // The points still to fly stay, as a draft.
             drafts[state.Callsign] = RoutePoints(state, drafts);
             bridge.Engine.ClearRoute(state.Callsign);
@@ -379,13 +392,21 @@ namespace AuroraPAR
                 routeShownKey = "";
             }
             RefreshPointNames();
-            AircraftState? selected = states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase));
-            List<RoutePoint> points = selected == null ? new List<RoutePoint>() : RoutePoints(selected, drafts);
+            FlightPlan? edited = EditedPlan();
+            AircraftState? selected = edited != null ? null : states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase));
+            List<RoutePoint> points = edited != null ? new List<RoutePoint>(edited.Points) : selected == null ? new List<RoutePoint>() : RoutePoints(selected, drafts);
             bool flying = selected?.Route != null;
 
-            if (selected == null)
+            if (edited != null)
             {
-                routeStatus.Text = "Select an aircraft (in the list or with a click on the plan view).";
+                string name = edited.Callsign.Length > 0 ? edited.Callsign : "(auto callsign)";
+                routeStatus.Text = points.Count == 0
+                    ? $"Flight plan {name}: no route yet. Add its points below (the first one with altitude and speed: the aircraft starts there)."
+                    : $"Flight plan {name}: {Plural(points.Count)}, waiting. Activate starts it on the first point.";
+            }
+            else if (selected == null)
+            {
+                routeStatus.Text = "Select a flight plan, or an aircraft (in the list or with a click on the plan view).";
             }
             else if (flying)
             {
@@ -401,11 +422,18 @@ namespace AuroraPAR
             routeStopButton.IsEnabled = flying;
             routeSetButton.IsEnabled = routeRemoveButton.IsEnabled = routeClearButton.IsEnabled = points.Count > 0;
 
-            // Another aircraft: the fields start from its values (the last point, or its own).
-            if (!string.Equals(routeShownFor, selected?.Callsign, StringComparison.OrdinalIgnoreCase))
+            // Another aircraft or plan: the fields start from its values (the last point, or the aircraft's own).
+            object? target = (object?)edited ?? selected?.Callsign;
+            if (!Equals(routeShownFor, target))
             {
-                routeShownFor = selected?.Callsign;
+                routeShownFor = target;
                 routeShownKey = "";
+                RoutePoint? lastPlanned = points.LastOrDefault();
+                if (edited != null && lastPlanned != null)
+                {
+                    if (double.IsFinite(lastPlanned.AltitudeFt)) routeAltitudeBox.Text = (Math.Round((Qfe ? lastPlanned.AltitudeFt - Elevation : lastPlanned.AltitudeFt) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
+                    if (double.IsFinite(lastPlanned.SpeedKt)) routeSpeedBox.Text = Math.Round(lastPlanned.SpeedKt).ToString("0", CultureInfo.InvariantCulture);
+                }
                 if (selected != null)
                 {
                     RoutePoint? last = points.LastOrDefault();
@@ -419,7 +447,7 @@ namespace AuroraPAR
             // The list, rebuilt only when what it shows changes (so the selection stays).
             List<string> rows = points.Select((p, i) => string.Format(CultureInfo.InvariantCulture, "{0,2}  {1,-12} {2,6} ft  {3,3} kt",
                 i + 1, PointLabel(p, magneticVariation), PointAltitude(p), PointSpeed(p))).ToList();
-            string key = (flying ? "F|" : "D|") + string.Join("|", rows) + "|" + string.Join(",", points.Select(p => p.GetHashCode()));
+            string key = (edited != null ? "P|" : flying ? "F|" : "D|") + string.Join("|", rows) + "|" + string.Join(",", points.Select(p => p.GetHashCode()));
             if (key != routeShownKey)
             {
                 routeShownKey = key;
@@ -442,24 +470,35 @@ namespace AuroraPAR
             // The routes on the plan view: those flown, and the draft of the selected aircraft.
             if (plan == null) return;
             List<PlanRoute> routes = [];
+            // The flight plan being made: from its first point (where the aircraft will start).
+            if (edited != null && points.Count > 0 && bridge.ToGeo(points[0].X, points[0].Y) is { } first)
+            {
+                routes.Add(new PlanRoute(first.Latitude, first.Longitude, PlacePoints(points, magneticVariation), true, true));
+            }
             foreach (AircraftState state in states)
             {
                 bool isSelected = selected != null && ReferenceEquals(state, selected);
                 List<RoutePoint> shown = state.Route != null ? RoutePoints(state, drafts) : isSelected ? points : new List<RoutePoint>();
                 if (shown.Count == 0 || bridge.ToGeo(state.X, state.Y) is not { } start) continue;
-                List<PlanRoutePoint> placed = [];
-                for (int i = 0; i < shown.Count; i++)
-                {
-                    if (bridge.ToGeo(shown[i].X, shown[i].Y) is not { } geo) continue;
-                    string values = double.IsFinite(shown[i].AltitudeFt)
-                        ? Math.Max(0, Math.Round((Qfe ? shown[i].AltitudeFt - Elevation : shown[i].AltitudeFt) / 100)).ToString("000", CultureInfo.InvariantCulture)
-                        : "---";
-                    placed.Add(new PlanRoutePoint(geo.Latitude, geo.Longitude, $"{i + 1} {PointLabel(shown[i], magneticVariation)}", $"{values} {PointSpeed(shown[i])}"));
-                }
-                routes.Add(new PlanRoute(start.Latitude, start.Longitude, placed, isSelected, state.Route == null));
+                routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(shown, magneticVariation), isSelected, state.Route == null));
             }
             plan.Routes = routes;
             plan.InvalidateVisual();
+        }
+
+        /// <summary>The points of a route for the plan view: position, number and name, altitude (hundreds of ft) and speed.</summary>
+        private List<PlanRoutePoint> PlacePoints(List<RoutePoint> shown, double magneticVariation)
+        {
+            List<PlanRoutePoint> placed = [];
+            for (int i = 0; i < shown.Count; i++)
+            {
+                if (bridge.ToGeo(shown[i].X, shown[i].Y) is not { } geo) continue;
+                string values = double.IsFinite(shown[i].AltitudeFt)
+                    ? Math.Max(0, Math.Round((Qfe ? shown[i].AltitudeFt - Elevation : shown[i].AltitudeFt) / 100)).ToString("000", CultureInfo.InvariantCulture)
+                    : "---";
+                placed.Add(new PlanRoutePoint(geo.Latitude, geo.Longitude, $"{i + 1} {PointLabel(shown[i], magneticVariation)}", $"{values} {PointSpeed(shown[i])}"));
+            }
+            return placed;
         }
 
         private static string Plural(int count) => count == 1 ? "1 point" : $"{count} points";

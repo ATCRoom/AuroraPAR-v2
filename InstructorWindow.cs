@@ -21,7 +21,7 @@ namespace AuroraPAR
     internal sealed partial class InstructorWindow : Window, IJoystickTarget
     {
 #if TRAINER
-        private const string FooterText = "Click an aircraft on the plan view to select it. Route: points by a click on the plan view, by the name of a point of the maps, or by bearing and distance. The PAR monitor and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
+        private const string FooterText = "Click an aircraft on the plan view to select it. Flight plans: New FPL, its route (points by a click on the plan view, by the name of a point of the maps, or by bearing and distance), then Activate when you decide; Save / Load scenario. The PAR monitor and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
 #else
         private const string FooterText = "Provisional layout: the plan view, the PAR monitor, the modes and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
 #endif
@@ -198,7 +198,12 @@ namespace AuroraPAR
             Height = Math.Min(height, area.Height - 20);
             view.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
-            if (controls is StackPanel root) root.Children.Insert(root.Children.IndexOf(controlPanel) + 1, BuildRoute());
+            if (controls is StackPanel root)
+            {
+                int after = root.Children.IndexOf(controlPanel) + 1;
+                root.Children.Insert(after, BuildFlightPlans());
+                root.Children.Insert(after + 1, BuildRoute());
+            }
         }
 
         /// <summary>Selects an aircraft of the list by its callsign (a click on the plan view).</summary>
@@ -350,6 +355,9 @@ namespace AuroraPAR
                 ReleaseManual();
                 ApplyJoystick();
                 fillFields = true;
+#if TRAINER
+                AircraftPicked();
+#endif
                 Refresh();
             };
             return Group("Aircraft", panel);
@@ -948,6 +956,7 @@ namespace AuroraPAR
 #if TRAINER
             // A route not flown yet follows the aircraft.
             if (drafts.Remove(callsign, out List<RoutePoint>? draft)) drafts[name] = draft;
+            foreach (FlightPlan plan in flightPlans.Where(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase))) plan.Active = name;
 #endif
             Refresh();
             Select(name);
@@ -1105,6 +1114,7 @@ namespace AuroraPAR
             }
             ShowSelected(states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase)), runway, magneticVariation);
 #if TRAINER
+            RefreshFlightPlans(states);
             RefreshRoute(states, magneticVariation);
 #endif
         }
