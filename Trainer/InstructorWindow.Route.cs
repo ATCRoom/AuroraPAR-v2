@@ -31,6 +31,8 @@ namespace AuroraPAR
         private readonly Button routeSetButton = SmallButton("Set alt/speed");
         private readonly Button routeRemoveButton = SmallButton("Remove point");
         private readonly Button routeClearButton = SmallButton("Clear");
+        /// <summary>The editor below its status line: shown only while there is a route to change.</summary>
+        private readonly StackPanel routeEditorBody = new();
 
         /// <summary>The editor (moved into the "Route of …" window while it is open) and its place in the Advanced tab.</summary>
         private FrameworkElement? routeEditor;
@@ -50,7 +52,8 @@ namespace AuroraPAR
         {
             StackPanel panel = new();
             panel.Children.Add(routeStatus);
-            panel.Children.Add(routeList);
+            panel.Children.Add(routeEditorBody);
+            routeEditorBody.Children.Add(routeList);
 
             WrapPanel values = new() { Margin = new Thickness(0, 6, 0, 0) };
             values.Children.Add(Caption("Altitude"));
@@ -66,7 +69,7 @@ namespace AuroraPAR
             routeClearButton.ToolTip = "Removes all the points.";
             values.Children.Add(routeRemoveButton);
             values.Children.Add(routeClearButton);
-            panel.Children.Add(values);
+            routeEditorBody.Children.Add(values);
 
             WrapPanel add = new() { Margin = new Thickness(0, 6, 0, 0) };
             add.Children.Add(routeClickButton);
@@ -74,15 +77,17 @@ namespace AuroraPAR
             add.Children.Add(routeNameBox);
             Button addName = SmallButton("Add");
             add.Children.Add(addName);
-            add.Children.Add(Caption("or"));
-            add.Children.Add(routeBearingBox);
-            add.Children.Add(Caption("°M"));
-            add.Children.Add(routeDistanceBox);
-            add.Children.Add(Caption("NM from the threshold"));
+            routeEditorBody.Children.Add(add);
+            WrapPanel addBearingRow = new() { Margin = new Thickness(0, 4, 0, 0) };
+            addBearingRow.Children.Add(Caption("Bearing"));
+            addBearingRow.Children.Add(routeBearingBox);
+            addBearingRow.Children.Add(Caption("°M"));
+            addBearingRow.Children.Add(routeDistanceBox);
+            addBearingRow.Children.Add(Caption("NM from the threshold"));
             Button addBearing = SmallButton("Add");
-            add.Children.Add(addBearing);
-            panel.Children.Add(add);
-            panel.Children.Add(new TextBlock
+            addBearingRow.Children.Add(addBearing);
+            routeEditorBody.Children.Add(addBearingRow);
+            routeEditorBody.Children.Add(new TextBlock
             {
                 Text = "A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. The points' altitudes and speeds are flown in ROUTE until you give the aircraft an altitude or a speed.",
                 TextWrapping = TextWrapping.Wrap,
@@ -428,6 +433,7 @@ namespace AuroraPAR
                 routeStatus.Text = "Select a flight plan (New FPL makes one).";
             }
             bool editing = edited != null || aircraft != null;
+            routeEditorBody.Visibility = editing ? Visibility.Visible : Visibility.Collapsed;
             routeSetButton.IsEnabled = routeRemoveButton.IsEnabled = routeClearButton.IsEnabled = points.Count > 0;
             routeClickButton.IsEnabled = editing;
             if (!editing && routeClickButton.IsChecked == true) routeClickButton.IsChecked = false;
