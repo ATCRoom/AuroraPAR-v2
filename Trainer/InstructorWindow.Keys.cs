@@ -43,7 +43,16 @@ namespace AuroraPAR
             ["NextAircraft"] = nameof(Key.F18)
         };
 
-        private Dictionary<string, string> KeyMap => settings.Keys ??= DefaultKeys();
+        private Dictionary<string, string> KeyMap
+        {
+            get
+            {
+                settings.Keys ??= DefaultKeys();
+                // Written by hand in the settings: empty keys left out.
+                foreach (string id in settings.Keys.Where(k => string.IsNullOrWhiteSpace(k.Value)).Select(k => k.Key).ToList()) settings.Keys.Remove(id);
+                return settings.Keys;
+            }
+        }
 
         private static Key PressedKey(KeyEventArgs e) => e.Key == Key.System ? e.SystemKey : e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key;
 
@@ -51,7 +60,8 @@ namespace AuroraPAR
         private void TrainerKey(object sender, KeyEventArgs e)
         {
             Key key = PressedKey(e);
-            if (key == Key.None) return;
+            // Keys held with Ctrl, Alt or Shift are not the assigned ones.
+            if (key == Key.None || Keyboard.Modifiers != ModifierKeys.None) return;
             string name = key.ToString();
             string? command = KeyMap.FirstOrDefault(k => string.Equals(k.Value, name, StringComparison.OrdinalIgnoreCase)).Key;
             if (command == null) return;
@@ -211,8 +221,14 @@ namespace AuroraPAR
                     ShowKeys();
                     return;
                 }
-                // Keys that only change other keys are not taken alone.
+                // Keys that only change other keys are not taken alone, and keys held with them are not taken (they
+                // would then work alone too).
                 if (key is Key.LeftShift or Key.RightShift or Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin or Key.None) return;
+                if (Keyboard.Modifiers != ModifierKeys.None)
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    return;
+                }
                 string name = key.ToString();
                 // One key for one command.
                 foreach (string other in KeyMap.Where(k => string.Equals(k.Value, name, StringComparison.OrdinalIgnoreCase)).Select(k => k.Key).ToList()) KeyMap.Remove(other);

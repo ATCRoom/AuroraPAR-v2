@@ -157,8 +157,9 @@ namespace AuroraPAR
 
             Visibility listShown = state != null && !manual && count > 0 ? Visibility.Visible : Visibility.Collapsed;
             navigationList.Visibility = navigationHint.Visibility = listShown;
-            directRow.IsEnabled = state != null && !manual;
-            directRow.Opacity = directRow.IsEnabled ? 1 : 0.45;
+            // Direct to also from MANUAL (it puts the aircraft in ROUTE); Next WPT only in ROUTE.
+            directRow.IsEnabled = state != null;
+            nextWaypointButton.IsEnabled = state != null && !manual && count > 0;
 
             // The points: those passed in grey, → the one it flies to.
             if (state != null && state.Route != null && listShown == Visibility.Visible)

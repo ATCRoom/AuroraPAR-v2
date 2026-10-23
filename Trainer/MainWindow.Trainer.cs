@@ -450,6 +450,7 @@ namespace AuroraPAR
             if ((runway?.ICAO ?? "").Trim().ToUpperInvariant() != mapAirport)
             {
                 ApplyMapLayers();
+                mapsWindow?.Refresh();
                 return;
             }
             Profile profile = settings.Active;

@@ -463,7 +463,16 @@ namespace AuroraPAR
             altitudeHint.Visibility = altitudeHint.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             speedHint.Visibility = speedHint.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             headingHintTrainer.Visibility = state != null && state.Navigation != NavigationMode.Manual ? Visibility.Visible : Visibility.Collapsed;
+            // While the route turns the aircraft (and when MANUAL / ROUTE changes) the heading box follows, so that the
+            // keys and ◀ L / R ▶ start from the heading it is flying, not from an old one.
+            if (state != null && (state.Navigation != NavigationMode.Manual || state.Navigation != shownNavigation) && !headingBox.IsKeyboardFocused)
+            {
+                headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
+            }
+            shownNavigation = state?.Navigation;
         }
+
+        private NavigationMode? shownNavigation;
 
         /// <summary>The NAV column of the list: MANUAL, ROUTE → point, or ROUTE waiting for a point.</summary>
         private static string NavText(AircraftState state) => state.Navigation switch
