@@ -197,9 +197,10 @@ namespace AuroraPAR
             view.AircraftClicked += SelectCallsign;
             par.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
+            AttachLabelCommands(view);
             list.PreviewMouseLeftButtonUp += (s, e) => AircraftClickedAgain();
             PreviewKeyDown += TrainerKey;
-            Closed += (s, e) => { routeWindow?.Close(); keysWindow?.Close(); };
+            Closed += (s, e) => { routeWindow?.Close(); keysWindow?.Close(); ClosePopup(); };
             Refresh();
         }
 

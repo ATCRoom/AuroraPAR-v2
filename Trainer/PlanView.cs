@@ -36,7 +36,7 @@ namespace AuroraPAR
     /// the tracks with their history dots and labels (callsign; altitude in hundreds of feet and ground speed).
     /// It shows the same traffic as the PAR: Aurora's, the test aircraft and the Instructor's.
     /// </summary>
-    internal sealed class PlanView : FrameworkElement
+    internal sealed partial class PlanView : FrameworkElement
     {
         /// <summary>Length of the extended centreline, NM.</summary>
         public const double CentrelineLength = 15;
@@ -174,6 +174,11 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
+            if (LabelRightClick(e.GetPosition(this)))
+            {
+                e.Handled = true;
+                return;
+            }
             dragFrom = e.GetPosition(this);
             dragOffset = PanOffset;
             CaptureMouse();
@@ -183,6 +188,7 @@ namespace AuroraPAR
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (LabelMove(e.GetPosition(this))) return;
             if (dragFrom is not Point from || lastScale <= 0) return;
             Vector moved = e.GetPosition(this) - from;
             if (Centre != CentreMode.Mouse)
@@ -208,12 +214,18 @@ namespace AuroraPAR
         {
             base.OnLostMouseCapture(e);
             dragFrom = null;
+            labelDrag = null;
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
             Point at = e.GetPosition(this);
+            if (!PickingPoints && LabelPress(at, e.ClickCount))
+            {
+                e.Handled = true;
+                return;
+            }
             if (e.ClickCount == 2 && !PickingPoints && !drawn.Any(d => (d.At - at).Length <= 16))
             {
                 // Double-click: centred on the airport again.
@@ -290,6 +302,7 @@ namespace AuroraPAR
             foreach (string callsign in histories.Where(h => (now - h.Value.LastSeen).TotalSeconds > 30).Select(h => h.Key).ToList())
             {
                 histories.Remove(callsign);
+                labelOffsets.Remove(callsign);
             }
         }
 
@@ -337,6 +350,11 @@ namespace AuroraPAR
         {
             // Handled here, so the wheel over the RDR does not also change the range of the PAR. The point under the
             // pointer stays under it: the view is moved by what the new range changes.
+            if (LabelWheel(e.GetPosition(this), e.Delta))
+            {
+                e.Handled = true;
+                return;
+            }
             if (Centre != CentreMode.Mouse)
             {
                 // AIRPORT / TRAFFIC: the range only, around the centre.
@@ -399,6 +417,7 @@ namespace AuroraPAR
         protected override void OnRender(DrawingContext dc)
         {
             drawn.Clear();
+            labelBoxes.Clear();
             double width = ActualWidth;
             double height = ActualHeight;
             if (width <= 0 || height <= 0) return;
@@ -576,12 +595,7 @@ namespace AuroraPAR
                 dc.DrawLine(TrackPen, position + new Vector(-5, 0), position + new Vector(5, 0));
                 dc.DrawLine(TrackPen, position + new Vector(0, -5), position + new Vector(0, 5));
                 if (!ShowLabels) continue;
-                string altitude = Math.Max(0, Math.Round(shown.Altitude / 100)).ToString("000", CultureInfo.InvariantCulture);
-                string speed = Math.Max(0, Math.Round(shown.Speed)).ToString("0", CultureInfo.InvariantCulture);
-                FormattedText label = Text($"{aircraft.Callsign}\n{altitude}  {speed}", 11, LabelBrush, pixelsPerDip);
-                Point corner = new(position.X + 14, position.Y - 14 - label.Height);
-                dc.DrawLine(LeaderPen, position + new Vector(4, -4), new Point(corner.X, corner.Y + label.Height));
-                dc.DrawText(label, corner);
+                DrawLabel(dc, aircraft, shown, position, pixelsPerDip);
             }
 
             // Information: view, runway, pressure and range; the test / sim traffic sign when there is one.
