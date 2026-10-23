@@ -12,13 +12,19 @@ namespace AuroraPAR
     /// </summary>
     internal static class UpdateCheck
     {
-        /// <summary>The most recent release (versions and pre-releases), newest first.</summary>
-        private const string ReleaseApi = "https://api.github.com/repos/ATCRoom/AuroraPAR-v2/releases?per_page=1";
+        /// <summary>The most recent releases (versions and pre-releases), newest first; those of the Trainer (tag trainer-v...) are skipped.</summary>
+        private const string ReleaseApi = "https://api.github.com/repos/ATCRoom/AuroraPAR-v2/releases?per_page=10";
 
         private sealed record Release(string Name, string Commit, DateTime Published, string Page);
 
         public static async Task RunAsync(Window owner, AppSettings settings)
         {
+#if TRAINER
+            // The Trainer has no releases yet: its own check comes with its first release, which will have its own tag
+            // (trainer-v<Version>), so that the two programs never see each other's releases.
+            await Task.CompletedTask;
+            return;
+#else
             if (!settings.CheckForUpdates) return;
             string commit = AppInfo.FullCommit;
             if (commit.Length == 0 || AppInfo.BuildTime == null) return; // not a GitHub build: nothing to compare
@@ -49,6 +55,7 @@ namespace AuroraPAR
                 settings.SkippedRelease = release.Commit;
                 SettingsStore.Save(settings);
             }
+#endif
         }
 
         private static async Task<Release?> FetchAsync()
@@ -60,7 +67,17 @@ namespace AuroraPAR
                 http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
                 using JsonDocument json = JsonDocument.Parse(await http.GetStringAsync(ReleaseApi));
                 if (json.RootElement.ValueKind != JsonValueKind.Array || json.RootElement.GetArrayLength() == 0) return null;
-                JsonElement root = json.RootElement[0];
+                JsonElement? found = null;
+                foreach (JsonElement item in json.RootElement.EnumerateArray())
+                {
+                    // The releases of AuroraPAR v2 Trainer have their own tags (trainer-v1.0.0): not offered to this program.
+                    string tag = item.TryGetProperty("tag_name", out JsonElement t) ? t.GetString() ?? "" : "";
+                    if (tag.StartsWith("trainer-", StringComparison.OrdinalIgnoreCase) || (item.TryGetProperty("draft", out JsonElement d) && d.GetBoolean())) continue;
+                    found = item;
+                    break;
+                }
+                if (found == null) return null;
+                JsonElement root = found.Value;
                 string name = root.GetProperty("name").GetString() ?? "";
                 string commit = root.GetProperty("target_commitish").GetString() ?? "";
                 string page = root.GetProperty("html_url").GetString() ?? "";
