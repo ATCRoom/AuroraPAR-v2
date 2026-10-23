@@ -578,17 +578,19 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
 }
 
 {
-    // A point inside the turn: passed nearby, never circled.
+    // A point inside the turn: left behind flying straight, then turned to and flown over (never circled).
     SimEngine engine = new();
     string a = engine.Add(0, 0, 5000, 0, 250, null, "Jet");
     engine.SetRoute(a, [new RoutePoint(0.6, 0.2, 5000, 250)]);
     double seconds = 0;
+    double nearest = double.MaxValue;
     while (engine.Get(a)!.Route != null && seconds < 600)
     {
         engine.RunFor(0.1);
         seconds += 0.1;
+        nearest = Math.Min(nearest, Distance(engine.Get(a)!, 0.6, 0.2));
     }
-    Check(seconds < 200, "Route: a point inside the turn radius is passed, not circled", $"{seconds:F0} s");
+    Check(seconds < 200 && nearest < 0.1, "Route: a point inside the turn radius is flown over, not circled", $"{seconds:F0} s nearest {nearest:F3}");
 }
 
 {

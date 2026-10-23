@@ -376,8 +376,8 @@ namespace ATCRoom.Sim
         /// waiting for it are dropped). It flies to the points in order, each time turning towards the next one (its
         /// track pointed at the point, against the wind) and at once climbing or descending (at its selected vertical
         /// rate) and changing speed to reach that point's altitude and speed (a NaN altitude or speed: kept as it is).
-        /// A point is passed when it is flown over, or when it is behind the aircraft and nearer than the turn allows
-        /// (it never circles a point). After the last point it keeps the course of the last leg (from the point before,
+        /// A point is passed when it is flown over, or when it falls behind after the aircraft turned towards it; a
+        /// point inside the circle of the turn is first left behind, flying straight, then turned to (never circled). After the last point it keeps the course of the last leg (from the point before,
         /// or from where the route was given) with that point's altitude and speed: no capture of the final, the
         /// aircraft is on the final only if the last two points are on the extended centreline. A heading instruction
         /// or the stick sideways ends the route; an altitude, rate or speed instruction (or the stick up or down) takes
@@ -396,7 +396,7 @@ namespace ATCRoom.Sim
                     plane.Route = null;
                     return;
                 }
-                plane.Route = list;
+                plane.Route = list.ToArray();
                 plane.RouteNext = 0;
                 plane.LegStartX = plane.X;
                 plane.LegStartY = plane.Y;
@@ -408,7 +408,14 @@ namespace ATCRoom.Sim
         }
 
         /// <summary>Ends the route at once: the aircraft goes on straight, at the altitude and speed it was given.</summary>
-        public void ClearRoute(string callsign) => Change(callsign, a => a.Route = null);
+        public void ClearRoute(string callsign) => Change(callsign, a =>
+        {
+            if (a.Route == null) return;
+            a.Route = null;
+            // Straight on: the heading where the turn now going on can end.
+            a.TargetHeading = Normalize(a.HeadingTrue + a.TurnRateDps * Math.Abs(a.TurnRateDps) / (2 * TurnRateChange));
+            a.TurnDirection = TurnDirection.Shortest;
+        });
 
         /// <summary>Holds an aircraft where it is (true) or lets it go on (false). At once, not a pilot instruction.</summary>
         public void SetFrozen(string callsign, bool frozen) => Change(callsign, a => a.Frozen = frozen);
@@ -694,14 +701,13 @@ namespace ATCRoom.Sim
             double track = plane.TrackTrue * Math.PI / 180;
             // How far ahead along the track the point is (negative: behind).
             double along = dx * Math.Sin(track) + dy * Math.Cos(track);
-            if (along > 0) plane.RouteApproached = true;
-            // Radius of the turn now (NM): a point behind and nearer than two of them could never be flown over.
-            double rate = Math.Max(MinTurnRate, Math.Min(plane.SelectedTurnRateDps, RateForBank(plane.Class.MaxBankDegrees, plane.SpeedKt)));
-            double radius = Math.Max(plane.GroundSpeedKt, 1) / 3600 / (rate * Math.PI / 180);
+            // How far to the right of it (negative: to the left).
+            double lateral = dx * Math.Cos(track) - dy * Math.Sin(track);
+            // Turned towards it: the point within 30° of the track.
+            if (along > 0 && Math.Abs(Math.Atan2(lateral, along)) < Math.PI / 6) plane.RouteApproached = true;
             // (Within this step's flight: flown over.)
             double overhead = Math.Max(0.02, plane.GroundSpeedKt / 3600 * Step);
-            bool passed = distance <= overhead || (plane.RouteApproached && along <= 0 && distance <= 2 * radius + 0.5);
-            if (passed)
+            if (distance <= overhead || (plane.RouteApproached && along <= 0))
             {
                 if (plane.RouteNext >= plane.Route.Count - 1)
                 {
@@ -714,14 +720,28 @@ namespace ATCRoom.Sim
                     plane.Route = null;
                     return;
                 }
+                // The next point: steered to from the next step.
                 plane.LegStartX = point.X;
                 plane.LegStartY = point.Y;
                 plane.RouteNext++;
                 plane.RouteApproached = false;
                 StartLeg(plane);
-                point = plane.Route[plane.RouteNext];
-                dx = point.X - plane.X;
-                dy = point.Y - plane.Y;
+                return;
+            }
+            if (!plane.RouteApproached)
+            {
+                // A point inside the circle of the turn on its side cannot be turned to: on straight until it can.
+                double rate = Math.Max(MinTurnRate, Math.Min(plane.SelectedTurnRateDps, RateForBank(plane.Class.MaxBankDegrees, plane.SpeedKt)));
+                double radius = Math.Max(plane.GroundSpeedKt, 1) / 3600 / (rate * Math.PI / 180);
+                int side = lateral >= 0 ? 1 : -1;
+                double centreX = side * radius * Math.Cos(track);
+                double centreY = -side * radius * Math.Sin(track);
+                if (Math.Sqrt((dx - centreX) * (dx - centreX) + (dy - centreY) * (dy - centreY)) < radius * 1.1 + 0.05)
+                {
+                    plane.TargetHeading = plane.HeadingTrue;
+                    plane.TurnDirection = TurnDirection.Shortest;
+                    return;
+                }
             }
             plane.TargetHeading = HeadingForCourse(Normalize(Math.Atan2(dx, dy) * 180 / Math.PI), plane.SpeedKt);
             plane.TurnDirection = TurnDirection.Shortest;

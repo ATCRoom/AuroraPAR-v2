@@ -254,7 +254,7 @@ namespace ATCRoom.Maps
     {
         /// <summary>A point (fix, waypoint): a small triangle.</summary>
         Point,
-        /// <summary>An airport: a small circle.</summary>
+        /// <summary>An airport: a small circle (in the Trainer with a vertical line through it, longer than the circle).</summary>
         Airport,
         /// <summary>A visual reporting point: a small square.</summary>
         Vrp,

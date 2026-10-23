@@ -130,7 +130,7 @@ namespace ATCRoom.Sim
         /// last leg), whether it has already flown towards that point (a point behind it is passed only after that),
         /// and whether the route still gives the altitude and the speed.
         /// </summary>
-        public List<RoutePoint>? Route;
+        public IReadOnlyList<RoutePoint>? Route;
         public int RouteNext;
         public double LegStartX;
         public double LegStartY;
@@ -142,6 +142,6 @@ namespace ATCRoom.Sim
             TargetHeading, TurnDirection, SelectedTurnRateDps, TurnRateMode, VerticalMode, TargetAltitudeFt, SelectedVerticalRateFpm,
             CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands,
             Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees, Contact,
-            Route?.ToList(), Route != null ? RouteNext : -1, Route != null && RouteAltitude, Route != null && RouteSpeed);
+            Route, Route != null ? RouteNext : -1, Route != null && RouteAltitude, Route != null && RouteSpeed);
     }
 }
