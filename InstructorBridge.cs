@@ -15,12 +15,21 @@ namespace AuroraPAR
         public double ReactionSeconds { get; set; } = 1;
         /// <summary>Last position and size of the Instructor window.</summary>
         public WindowPlacement? Window { get; set; }
+        /// <summary>Instructor+ (Trainer): the Simulation area open, the stick shown, the steps of the assigned keys
+        /// (heading degrees, rate ft/min) and the keys of the commands (command name → key name).</summary>
+        public bool SimulationOpen { get; set; } = true;
+        public bool StickShown { get; set; } = true;
+        public double HeadingKeyStep { get; set; } = 5;
+        public double RateKeyStep { get; set; } = 100;
+        public Dictionary<string, string>? Keys { get; set; }
 
         public void Normalize()
         {
             string prefix = (CallsignPrefix ?? "").Trim().ToUpperInvariant();
             CallsignPrefix = prefix.Length is >= 1 and <= 6 && prefix.All(char.IsAsciiLetterOrDigit) ? prefix : "SIM";
             ReactionSeconds = double.IsFinite(ReactionSeconds) ? Math.Clamp(ReactionSeconds, 0, SimEngine.MaxReaction) : 1;
+            HeadingKeyStep = double.IsFinite(HeadingKeyStep) ? Math.Clamp(Math.Round(HeadingKeyStep), 1, 10) : 5;
+            RateKeyStep = double.IsFinite(RateKeyStep) ? Math.Clamp(Math.Round(RateKeyStep / 10) * 10, 10, 500) : 100;
         }
     }
 

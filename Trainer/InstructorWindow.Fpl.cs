@@ -37,7 +37,7 @@ namespace AuroraPAR
             fields.Children.Add(fplClassBox);
             Button newPlan = SmallButton("New FPL");
             newPlan.FontWeight = FontWeights.SemiBold;
-            newPlan.ToolTip = "A new flight plan: then make its route in the Route group below.";
+            newPlan.ToolTip = "A new flight plan: then make its route in the route editor below.";
             Button duplicate = SmallButton("Duplicate");
             duplicate.ToolTip = "A copy of the selected flight plan (its whole route), with the next number (AZA101 → AZA102); the route can then be changed.";
             Button remove = SmallButton("Remove FPL");
@@ -56,7 +56,7 @@ namespace AuroraPAR
             panel.Children.Add(files);
             panel.Children.Add(new TextBlock
             {
-                Text = "New FPL, then its route in the Route group (the first point needs altitude and speed: the aircraft starts there). Activate starts the aircraft when you decide. Callsign and class change the selected plan while it waits.",
+                Text = "New FPL, then its route in the editor below (the first point needs altitude and speed: the aircraft starts there). Activate starts the aircraft when you decide. Callsign and class change the selected plan while it waits.",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.Gray,
                 FontSize = 11,
@@ -287,7 +287,7 @@ namespace AuroraPAR
             PlaceAgain(plan);
             if (plan.Points.Count == 0)
             {
-                Warn("The flight plan has no route yet: add its points in the Route group.");
+                Warn("The flight plan has no route yet: add its points in the route editor.");
                 return;
             }
             RoutePoint first = plan.Points[0];
@@ -472,7 +472,7 @@ namespace AuroraPAR
             string Row(FlightPlan plan)
             {
                 AircraftState? state = plan.Active == null ? null : states.FirstOrDefault(s => string.Equals(s.Callsign, plan.Active, StringComparison.OrdinalIgnoreCase));
-                string status = state == null ? "waiting" : state.Route != null ? "flying the route" : "flying (route finished)";
+                string status = state == null ? "waiting" : state.Navigation == NavigationMode.Route ? "flying the route" : state.Navigation == NavigationMode.RouteArmed ? "flying (ROUTE, choose a point)" : "flying (MANUAL)";
                 string name = plan.Active ?? (plan.Callsign.Length > 0 ? plan.Callsign : "(next free)");
                 return string.Format(CultureInfo.InvariantCulture, "{0,-10} {1,-10} {2,2} points  {3}", name, plan.Class, plan.Points.Count, status);
             }

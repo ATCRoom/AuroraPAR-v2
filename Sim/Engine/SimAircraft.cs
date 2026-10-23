@@ -31,6 +31,17 @@ namespace ATCRoom.Sim
         GlidePath
     }
 
+    /// <summary>How the aircraft is navigated sideways.</summary>
+    public enum NavigationMode
+    {
+        /// <summary>MANUAL: headings and the stick (a route, if any, is kept but not flown).</summary>
+        Manual,
+        /// <summary>ROUTE chosen, no point given yet: it keeps its heading until a point is given (direct to, next point).</summary>
+        RouteArmed,
+        /// <summary>ROUTE: it flies the points of its route.</summary>
+        Route
+    }
+
     /// <summary>Whether the aircraft is still flying.</summary>
     public enum GroundContact
     {
@@ -79,12 +90,14 @@ namespace ATCRoom.Sim
         double TrackTrue,
         double DriftDegrees,
         GroundContact Contact,
-        // The route being flown (null: none) and the index of the point it is flying to.
+        // The route (null: none; the points already passed included) and the index of the point it flies to next
+        // (= the number of points when all are passed).
         IReadOnlyList<RoutePoint>? Route = null,
         int RouteNext = -1,
-        // Whether the route still gives the altitude and the speed (an instruction of that kind takes them over).
+        // Whether the route still gives the altitude and the speed (until the instructor gives one).
         bool RouteAltitude = false,
-        bool RouteSpeed = false);
+        bool RouteSpeed = false,
+        NavigationMode Navigation = NavigationMode.Manual);
 
     /// <summary>An aircraft inside the engine: actual values and the values commanded by the instructor. Only the engine changes it, under its lock.</summary>
     internal sealed class SimAircraft
@@ -126,22 +139,24 @@ namespace ATCRoom.Sim
         public GroundContact Contact = GroundContact.Airborne;
         public long LandedStep;
         /// <summary>
-        /// The route (null: none), the point it is flying to, where the leg to that point starts (for the course of the
-        /// last leg), whether it has already flown towards that point (a point behind it is passed only after that),
-        /// and whether the route still gives the altitude and the speed.
+        /// The route (null: none; the points passed included), the point it flies to next, where the leg to that point
+        /// starts (for the course of the last leg), whether it has already flown towards that point (a point behind it
+        /// is passed only after that), MANUAL / ROUTE, and whether the instructor has given an altitude (a rate) or a
+        /// speed: from then on the points' altitudes or speeds are not flown.
         /// </summary>
         public IReadOnlyList<RoutePoint>? Route;
         public int RouteNext;
         public double LegStartX;
         public double LegStartY;
         public bool RouteApproached;
-        public bool RouteAltitude;
-        public bool RouteSpeed;
+        public NavigationMode Navigation = NavigationMode.Manual;
+        public bool AltitudeGiven;
+        public bool SpeedGiven;
 
         public AircraftState ToState(int pendingCommands) => new(Callsign, X, Y, AltitudeFt, HeadingTrue, SpeedKt, VerticalSpeedFpm, TurnRateDps,
             TargetHeading, TurnDirection, SelectedTurnRateDps, TurnRateMode, VerticalMode, TargetAltitudeFt, SelectedVerticalRateFpm,
             CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands,
             Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees, Contact,
-            Route, Route != null ? RouteNext : -1, Route != null && RouteAltitude, Route != null && RouteSpeed);
+            Route, Route != null ? RouteNext : -1, Route != null && !AltitudeGiven, Route != null && !SpeedGiven, Navigation);
     }
 }

@@ -533,15 +533,15 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     List<int> order = [0];
     bool descendingAtOnce = false;
     double secondsToTwo = double.NaN;
-    for (int i = 0; i < 6000 && engine.Get(a)!.Route != null; i++)
+    for (int i = 0; i < 6000 && engine.Get(a)!.Navigation == NavigationMode.Route; i++)
     {
         engine.RunFor(0.1);
         s = engine.Get(a)!;
         nearest[0] = Math.Min(nearest[0], Distance(s, 0, 5));
         nearest[1] = Math.Min(nearest[1], Distance(s, 5, 5));
         nearest[2] = Math.Min(nearest[2], Distance(s, 5, 0));
-        if (s.Route != null && s.RouteNext != order[^1]) order.Add(s.RouteNext);
-        if (s.Route != null && s.RouteNext == 1 && double.IsNaN(secondsToTwo)) secondsToTwo = 0;
+        if (s.Navigation == NavigationMode.Route && s.RouteNext != order[^1]) order.Add(s.RouteNext);
+        if (s.Navigation == NavigationMode.Route && s.RouteNext == 1 && double.IsNaN(secondsToTwo)) secondsToTwo = 0;
         if (!double.IsNaN(secondsToTwo) && secondsToTwo < 5)
         {
             secondsToTwo += 0.1;
@@ -549,7 +549,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
         }
     }
     s = engine.Get(a)!;
-    Check(string.Join(",", order) == "0,1,2" && s.Route == null, "Route: points flown in order, then the route ends", $"order {string.Join(",", order)}");
+    Check(string.Join(",", order) == "0,1,2" && s.Navigation == NavigationMode.Manual && s.RouteNext == 3, "Route: points flown in order, then MANUAL (the route kept)", $"order {string.Join(",", order)}");
     Check(nearest.All(d => d < 0.1), "Route: every point flown over (within 0.1 NM)", $"nearest {string.Join(" ", nearest.Select(d => d.ToString("F3")))}");
     Check(descendingAtOnce, "Route: past a point, descent and new speed for the next one start at once");
     engine.RunFor(120);
@@ -565,7 +565,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetRoute(a, [new RoutePoint(0, -3, 3000, 150)]);
     double nearest = double.MaxValue;
     double seconds = 0;
-    while (engine.Get(a)!.Route != null && seconds < 600)
+    while (engine.Get(a)!.Navigation == NavigationMode.Route && seconds < 600)
     {
         engine.RunFor(0.1);
         seconds += 0.1;
@@ -584,7 +584,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetRoute(a, [new RoutePoint(0.6, 0.2, 5000, 250)]);
     double seconds = 0;
     double nearest = double.MaxValue;
-    while (engine.Get(a)!.Route != null && seconds < 600)
+    while (engine.Get(a)!.Navigation == NavigationMode.Route && seconds < 600)
     {
         engine.RunFor(0.1);
         seconds += 0.1;
@@ -600,7 +600,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     string a = engine.Add(0, 0, 3000, 0, 120);
     engine.SetRoute(a, [new RoutePoint(0, 10, 3000, 120)]);
     double nearest = double.MaxValue;
-    for (int i = 0; i < 4000 && engine.Get(a)!.Route != null; i++)
+    for (int i = 0; i < 4000 && engine.Get(a)!.Navigation == NavigationMode.Route; i++)
     {
         engine.RunFor(0.1);
         nearest = Math.Min(nearest, Distance(engine.Get(a)!, 0, 10));
@@ -618,7 +618,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetGlidePath(360, 3, 0, 1.5);
     string a = engine.Add(-4, -12, 3000, 90, 140);
     engine.SetRoute(a, [new RoutePoint(0, -10, 3000, 140), new RoutePoint(0, -6, 2000, 130)]);
-    for (int i = 0; i < 4000 && engine.Get(a)!.Route != null; i++) engine.RunFor(0.1);
+    for (int i = 0; i < 4000 && engine.Get(a)!.Navigation == NavigationMode.Route; i++) engine.RunFor(0.1);
     engine.RunFor(60);
     AircraftState s = engine.Get(a)!;
     Check(Near(s.HeadingTrue, 0, 0.01) || Near(s.HeadingTrue, 360, 0.01), "Route ending on the extended centreline: on along the final course", $"heading {s.HeadingTrue:F2}");
@@ -633,7 +633,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetRoute(a, [new RoutePoint(0, 10, 3000, 120, "END")]);
     engine.RunFor(20);
     engine.SetRoute(a, [engine.Get(a)!.Route![0]]);
-    for (int i = 0; i < 4000 && engine.Get(a)!.Route != null; i++) engine.RunFor(0.1);
+    for (int i = 0; i < 4000 && engine.Get(a)!.Navigation == NavigationMode.Route; i++) engine.RunFor(0.1);
     engine.RunFor(60);
     AircraftState s = engine.Get(a)!;
     Check(Near(s.HeadingTrue, 0, 0.01) || Near(s.HeadingTrue, 360, 0.01), "Route edited while flown, same point next: course of the leg from where it started", $"heading {s.HeadingTrue:F2}");
@@ -655,7 +655,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetHeading(b, 90);
     engine.SetRoute(b, [s.Route![0]]);
     engine.RunFor(0.2);
-    Check(engine.Get(b)!.Route == null, "Route edited with the same place next: an instruction still waiting is kept (here a heading, ending the route)");
+    Check(engine.Get(b)!.Navigation == NavigationMode.Manual && engine.Get(b)!.Route != null, "Route edited with the same place next: an instruction still waiting is kept (here a heading: MANUAL)");
 }
 
 {
@@ -677,7 +677,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetHeading(a, 270);
     engine.RunFor(0.2);
     s = engine.Get(a)!;
-    Check(s.Route == null && s.TargetHeading == 270, "A heading instruction ends the route", $"target {s.TargetHeading:F0}");
+    Check(s.Navigation == NavigationMode.Manual && s.Route != null && s.TargetHeading == 270, "A heading instruction: MANUAL, the route kept", $"target {s.TargetHeading:F0}");
 
     string b = engine.Add(10, 0, 3000, 0, 120);
     engine.SetRoute(b, [new RoutePoint(10, 5, double.NaN, double.NaN)]);
@@ -686,7 +686,7 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     engine.SetStick(b, 0.5, 0);
     engine.RunFor(0.1);
     engine.SetStick(b, 0, 0);
-    Check(engine.Get(b)!.Route == null, "The stick sideways ends the route");
+    Check(engine.Get(b)!.Navigation == NavigationMode.Manual && engine.Get(b)!.Route != null, "The stick sideways: MANUAL, the route kept");
 
     string c = engine.Add(20, 0, 3000, 0, 120);
     engine.SetHeading(c, 90);
@@ -700,6 +700,64 @@ double Distance(AircraftState s, double x, double y) => Math.Sqrt((s.X - x) * (s
     Check(engine.Get(c)!.Y == y && engine.Get(c)!.Route != null, "Frozen: the route waits");
     engine.SetRoute(c, []);
     Check(engine.Get(c)!.Route == null && engine.Get(c)!.RouteNext == -1, "Empty route: no route");
+}
+
+{
+    // MANUAL / ROUTE, direct to, next point.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    RoutePoint p1 = new(0, 5, 3000, 150, "P1");
+    RoutePoint p2 = new(5, 10, 3000, 150, "P2");
+    RoutePoint p3 = new(5, 15, 3000, 150, "P3");
+    engine.SetRoute(a, [p1, p2, p3], follow: null);
+    AircraftState s = engine.Get(a)!;
+    Check(s.Navigation == NavigationMode.Manual && s.Route?.Count == 3, "A route given with follow null to an aircraft without a route: MANUAL, route kept", $"{s.Navigation}");
+    Check(engine.SetNavigation(a, true) && engine.Get(a)!.Navigation == NavigationMode.RouteArmed, "ROUTE chosen: waiting for a point");
+    engine.SetHeading(a, 0);
+    engine.RunFor(0.2);
+    Check(engine.Get(a)!.Navigation == NavigationMode.Manual, "A heading in ROUTE waiting: MANUAL");
+    engine.SetNavigation(a, true);
+    engine.RunFor(20);
+    s = engine.Get(a)!;
+    Check(s.Navigation == NavigationMode.RouteArmed && Near(s.HeadingTrue, 0, 1e-9), "ROUTE waiting for a point: the heading is kept", $"heading {s.HeadingTrue:F2}");
+    engine.NextWaypoint(a);
+    engine.RunFor(0.2);
+    s = engine.Get(a)!;
+    Check(s.Navigation == NavigationMode.Route && s.RouteNext == 0, "Next WPT while waiting: the next point not passed (P1)", $"next {s.RouteNext}");
+    engine.NextWaypoint(a);
+    engine.RunFor(0.2);
+    s = engine.Get(a)!;
+    Check(s.RouteNext == 1, "Next WPT while flying the route: the point after (P2)", $"next {s.RouteNext}");
+    engine.DirectTo(a, 2);
+    engine.RunFor(0.2);
+    Check(engine.Get(a)!.RouteNext == 2, "Direct to a point of the route: P3");
+    RoutePoint off = new(-5, 10, double.NaN, double.NaN, "OFF");
+    engine.DirectToPoint(a, off);
+    engine.RunFor(0.2);
+    s = engine.Get(a)!;
+    Check(s.Route?.Count == 4 && s.RouteNext == 2 && s.Route[2].Name == "OFF" && s.Route[3].Name == "P3", "Direct to a point off the route: it becomes the next point, then the rest", $"next {s.RouteNext}");
+    double nearest = double.MaxValue;
+    for (int i = 0; i < 9000 && engine.Get(a)!.Navigation == NavigationMode.Route; i++)
+    {
+        engine.RunFor(0.1);
+        nearest = Math.Min(nearest, Distance(engine.Get(a)!, -5, 10));
+    }
+    s = engine.Get(a)!;
+    Check(nearest < 0.1 && s.Navigation == NavigationMode.Manual && s.RouteNext == 4, "Off-route point flown over, then the rest, then MANUAL", $"nearest {nearest:F3} next {s.RouteNext}");
+    engine.DirectTo(a, 0);
+    engine.RunFor(0.2);
+    Check(engine.Get(a)!.Navigation == NavigationMode.Route && engine.Get(a)!.RouteNext == 0, "Direct to a point already passed: flown again");
+    Check(engine.SetNavigation(a, false) && engine.Get(a)!.Navigation == NavigationMode.Manual && engine.Get(a)!.Route?.Count == 4, "MANUAL chosen: the route kept");
+
+    // The instructor's altitude rules from then on, also when the route is edited.
+    string b = engine.Add(20, 0, 3000, 0, 150);
+    engine.SetRoute(b, [new RoutePoint(20, 5, 5000, 150), new RoutePoint(20, 10, 6000, 150)]);
+    engine.SetAltitude(b, 4000);
+    engine.RunFor(0.2);
+    engine.SetRoute(b, engine.Get(b)!.Route!.Select(p => p with { AltitudeFt = 7000 }).ToList());
+    s = engine.Get(b)!;
+    Check(!s.RouteAltitude && s.TargetAltitudeFt == 4000, "Altitude given: the route's altitudes no more, also after the route is changed", $"target {s.TargetAltitudeFt:F0}");
+    Check(!engine.SetNavigation(engine.Add(30, 0, 3000, 0, 150), true), "ROUTE without a route: not possible");
 }
 
 Console.WriteLine();

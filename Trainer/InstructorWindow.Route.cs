@@ -10,19 +10,17 @@ using ATCRoom.Sim;
 namespace AuroraPAR
 {
     /// <summary>
-    /// AuroraPAR v2 Trainer, Instructor+: the route of the selected aircraft. Points are added by a click on the plan
-    /// view, by the name of a point of the maps (or the ICAO of an airport of runways.par), or by magnetic bearing and
-    /// distance from the threshold; each has an altitude and a speed (empty: kept as they are). A new point goes after
-    /// the selected one, or at the end. Not flown yet, the route is a draft of the window ("Fly route" gives it); while
-    /// the aircraft flies it, the list shows the points still to fly and every change is given at once.
+    /// AuroraPAR v2 Trainer, Instructor+: the route editor. It changes the route of the flight plan selected in the
+    /// Advanced tab (while it waits), or, in the "Route of …" window opened by Edit route…, the points still to fly of an
+    /// aircraft (given at once; MANUAL / ROUTE stay as they are). Points are added by a click on the plan view, by the
+    /// name of a point of the maps (or the ICAO of an airport of runways.par), or by magnetic bearing and distance from
+    /// the threshold; each has an altitude and a speed (empty: kept). A new point goes after the selected one, or at
+    /// the end.
     /// </summary>
     internal sealed partial class InstructorWindow
     {
-        /// <summary>Routes made but not flown yet, by callsign.</summary>
-        private readonly Dictionary<string, List<RoutePoint>> drafts = new(StringComparer.OrdinalIgnoreCase);
-
         private readonly TextBlock routeStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 0, 4) };
-        private readonly ListBox routeList = new() { Height = 100, FontFamily = new FontFamily("Consolas"), FontSize = 12 };
+        private readonly ListBox routeList = new() { Height = 96, FontFamily = new FontFamily("Consolas"), FontSize = 12 };
         private readonly TextBox routeAltitudeBox = NumberBox("");
         private readonly TextBlock routeAltitudeCaption = Caption("ft QNH");
         private readonly TextBox routeSpeedBox = NumberBox("");
@@ -30,13 +28,18 @@ namespace AuroraPAR
         private readonly TextBox routeBearingBox = NumberBox("");
         private readonly TextBox routeDistanceBox = NumberBox("");
         private readonly ToggleButton routeClickButton = new() { Content = "Add by click", Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(8, 2, 8, 2), ToolTip = "While pressed, a click on the plan view adds a point there (instead of selecting a track)." };
-        private readonly Button routeFlyButton = SmallButton("Fly route");
-        private readonly Button routeStopButton = SmallButton("Stop route");
         private readonly Button routeSetButton = SmallButton("Set alt/speed");
         private readonly Button routeRemoveButton = SmallButton("Remove point");
         private readonly Button routeClearButton = SmallButton("Clear");
 
-        /// <summary>The aircraft whose route the list shows, what the list shows (to rebuild it only when it changes), and the point to select after a change.</summary>
+        /// <summary>The editor (moved into the "Route of …" window while it is open) and its place in the Advanced tab.</summary>
+        private FrameworkElement? routeEditor;
+        private readonly Border routeEditorHost = new();
+        /// <summary>The aircraft whose route the "Route of …" window changes (null: the window is closed).</summary>
+        private string? routeEditCallsign;
+        private Window? routeWindow;
+
+        /// <summary>What the list shows (to rebuild it only when it changes), and the point to select after a change.</summary>
         private object? routeShownFor;
         private string routeShownKey = "";
         private RoutePoint? routeSelectNext;
@@ -56,9 +59,13 @@ namespace AuroraPAR
             values.Children.Add(Caption("speed"));
             values.Children.Add(routeSpeedBox);
             values.Children.Add(Caption("kt"));
-            routeSetButton.Margin = new Thickness(8, 0, 0, 0);
+            routeSetButton.Margin = new Thickness(8, 0, 4, 0);
             routeSetButton.ToolTip = "Gives this altitude and speed to the point selected in the list.";
             values.Children.Add(routeSetButton);
+            routeRemoveButton.ToolTip = "Removes the point selected in the list.";
+            routeClearButton.ToolTip = "Removes all the points.";
+            values.Children.Add(routeRemoveButton);
+            values.Children.Add(routeClearButton);
             panel.Children.Add(values);
 
             WrapPanel add = new() { Margin = new Thickness(0, 6, 0, 0) };
@@ -75,21 +82,9 @@ namespace AuroraPAR
             Button addBearing = SmallButton("Add");
             add.Children.Add(addBearing);
             panel.Children.Add(add);
-
-            WrapPanel actions = new() { Margin = new Thickness(0, 6, 0, 0) };
-            routeFlyButton.FontWeight = FontWeights.SemiBold;
-            routeFlyButton.ToolTip = "The aircraft starts flying the route: to the first point, then the others in order; after the last it keeps the course of the last leg.";
-            routeStopButton.ToolTip = "The aircraft stops flying the route and goes on straight; the points still to fly stay here (Fly route gives them again).";
-            routeRemoveButton.ToolTip = "Removes the point selected in the list.";
-            routeClearButton.ToolTip = "Removes all the points (while flying: the aircraft goes on straight).";
-            actions.Children.Add(routeFlyButton);
-            actions.Children.Add(routeStopButton);
-            actions.Children.Add(routeRemoveButton);
-            actions.Children.Add(routeClearButton);
-            panel.Children.Add(actions);
             panel.Children.Add(new TextBlock
             {
-                Text = "The list shows the points still to fly. A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. An altitude or speed instruction replaces the route's altitude or speed until the route is changed. A heading instruction or the stick ends the route (its points are then gone; a flight plan stays in its list).",
+                Text = "A new point goes after the selected one (or at the end). Altitude or speed empty: kept as they are. The points' altitudes and speeds are flown in ROUTE until you give the aircraft an altitude or a speed.",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.Gray,
                 FontSize = 11,
@@ -121,24 +116,27 @@ namespace AuroraPAR
             routeSetButton.Click += (s, e) => SetPointValues();
             routeRemoveButton.Click += (s, e) => RemovePoint();
             routeClearButton.Click += (s, e) => EditRoute(points => points.Clear());
-            routeFlyButton.Click += (s, e) => FlyRoute();
-            routeStopButton.Click += (s, e) => StopRoute();
             return Group("Route", panel);
         }
 
         // ----- The points ----------------------------------------------------------------------------------------------
 
-        /// <summary>The points of the selected aircraft: still to fly (flying the route) or of its draft.</summary>
-        private static List<RoutePoint> RoutePoints(AircraftState state, Dictionary<string, List<RoutePoint>> drafts) =>
-            state.Route != null ? state.Route.Skip(Math.Max(0, state.RouteNext)).ToList()
-            : drafts.TryGetValue(state.Callsign, out List<RoutePoint>? draft) ? new List<RoutePoint>(draft) : new List<RoutePoint>();
+        /// <summary>The points of an aircraft still to fly (the one it flies to, or will fly to, first).</summary>
+        private static List<RoutePoint> RemainingPoints(AircraftState state) =>
+            state.Route == null ? new List<RoutePoint>() : state.Route.Skip(Math.Clamp(state.RouteNext, 0, state.Route.Count)).ToList();
 
-        /// <summary>Changes the points of the selected aircraft: while it flies the route, given at once; else its draft.</summary>
+        /// <summary>The flight plan the editor changes now (selected and waiting, the "Route of …" window closed), or null.</summary>
+        private FlightPlan? EditedPlan() =>
+            routeEditCallsign == null && routeFpl != null && routeFpl.Active == null && flightPlans.Contains(routeFpl) ? routeFpl : null;
+
+        /// <summary>The aircraft the editor changes now (in the "Route of …" window), or null.</summary>
+        private AircraftState? EditedAircraft() => routeEditCallsign == null ? null : bridge.Engine.Get(routeEditCallsign);
+
+        /// <summary>Changes the points of what the editor shows: a flight plan waiting, or the aircraft of the window (given at once).</summary>
         private void EditRoute(Action<List<RoutePoint>> change)
         {
             if (EditedPlan() is FlightPlan edited)
             {
-                // A flight plan waiting: its own route.
                 List<RoutePoint> planned = new(edited.Points);
                 change(planned);
                 edited.Points = planned;
@@ -146,28 +144,18 @@ namespace AuroraPAR
                 Refresh();
                 return;
             }
-            if (Selected() is not AircraftState state)
+            if (EditedAircraft() is not AircraftState state)
             {
                 System.Media.SystemSounds.Beep.Play();
                 return;
             }
-            List<RoutePoint> points = RoutePoints(state, drafts);
+            List<RoutePoint> points = RemainingPoints(state);
             change(points);
-            if (state.Route != null)
-            {
-                if (points.Count == 0) bridge.Engine.ClearRoute(state.Callsign);
-                else bridge.Engine.SetRoute(state.Callsign, points);
-            }
-            else
-            {
-                drafts[state.Callsign] = points;
-            }
+            if (points.Count == 0) bridge.Engine.ClearRoute(state.Callsign);
+            else bridge.Engine.SetRoute(state.Callsign, points, follow: null);
             routeShownKey = "";
             Refresh();
         }
-
-        /// <summary>The flight plan the Route group changes now (selected and waiting), or null (then the selected aircraft).</summary>
-        private FlightPlan? EditedPlan() => routeFpl != null && routeFpl.Active == null && flightPlans.Contains(routeFpl) ? routeFpl : null;
 
         /// <summary>The point selected in the list, or null.</summary>
         private RoutePoint? SelectedPoint => (routeList.SelectedItem as ListBoxItem)?.Tag as RoutePoint;
@@ -200,9 +188,9 @@ namespace AuroraPAR
         /// <summary>Adds a point (in the plane of the engine) after the selected one, or at the end, with the values of the fields.</summary>
         private void AddPoint(double x, double y, string name)
         {
-            if (EditedPlan() == null && Selected() == null)
+            if (EditedPlan() == null && EditedAircraft() == null)
             {
-                Warn("Select a flight plan or an aircraft first.");
+                Warn("Select a waiting flight plan (Advanced tab), or open Edit route… of an aircraft.");
                 return;
             }
             if (!ReadPointValues(out double altitude, out double speed)) return;
@@ -249,7 +237,20 @@ namespace AuroraPAR
 
         private List<string> PointNames() => NamedPoints().Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToList();
 
-        /// <summary>The maps and runways the names of the name box come from (the list is made again when they change).</summary>
+        /// <summary>A named point of the maps (or an airport) in the plane: the nearest to the threshold when several have the name; null: none.</summary>
+        private (string Name, double X, double Y)? FindNamedPoint(string name)
+        {
+            List<(string Name, double X, double Y)> found = [];
+            foreach ((string Name, double Latitude, double Longitude) named in NamedPoints())
+            {
+                if (!string.Equals(named.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
+                if (bridge.FromGeo(named.Latitude, named.Longitude) is { } at) found.Add((named.Name.ToUpperInvariant(), at.X, at.Y));
+            }
+            if (found.Count == 0) return null;
+            return found.OrderBy(p => p.X * p.X + p.Y * p.Y).First();
+        }
+
+        /// <summary>The maps and runways the names of the name boxes come from (the lists are made again when they change).</summary>
         private object? namesFromLayers;
         private object? namesFromRunways;
 
@@ -261,6 +262,7 @@ namespace AuroraPAR
             string typed = routeNameBox.Text;
             routeNameBox.ItemsSource = PointNames();
             routeNameBox.Text = typed;
+            navigationNamesKey = "";
         }
 
         private void AddNamedPoint()
@@ -271,20 +273,12 @@ namespace AuroraPAR
                 System.Media.SystemSounds.Beep.Play();
                 return;
             }
-            // Several points with the same name (in different maps): the nearest to the threshold.
-            List<(string Name, double X, double Y)> found = [];
-            foreach ((string Name, double Latitude, double Longitude) named in NamedPoints())
-            {
-                if (!string.Equals(named.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
-                if (bridge.FromGeo(named.Latitude, named.Longitude) is { } at) found.Add((named.Name, at.X, at.Y));
-            }
-            if (found.Count == 0)
+            if (FindNamedPoint(name) is not { } found)
             {
                 Warn($"No map point or airport named {name}.");
                 return;
             }
-            (string Name, double X, double Y) nearest = found.OrderBy(p => p.X * p.X + p.Y * p.Y).First();
-            AddPoint(nearest.X, nearest.Y, nearest.Name.ToUpperInvariant());
+            AddPoint(found.X, found.Y, found.Name);
         }
 
         private void AddBearingPoint()
@@ -330,38 +324,53 @@ namespace AuroraPAR
             EditRoute(points => points.RemoveAll(p => ReferenceEquals(p, selected)));
         }
 
-        private void FlyRoute()
-        {
-            if (EditedPlan() != null || Selected() is not AircraftState state || state.Route != null) return;
-            if (!drafts.TryGetValue(state.Callsign, out List<RoutePoint>? draft) || draft.Count == 0)
-            {
-                Warn("The route has no points yet.");
-                return;
-            }
-            bridge.Engine.SetRoute(state.Callsign, draft);
-            if (bridge.Engine.Get(state.Callsign)?.Route == null)
-            {
-                Warn($"{state.Callsign} is on the ground: the route cannot be flown.");
-                return;
-            }
-            drafts.Remove(state.Callsign);
-            routeShownKey = "";
-            Refresh();
-        }
+        // ----- The "Route of …" window ---------------------------------------------------------------------------------
 
-        private void StopRoute()
+        /// <summary>Edit route…: the editor in a small window for the selected aircraft (the points still to fly).</summary>
+        private void OpenRouteWindow()
         {
-            if (EditedPlan() != null || Selected() is not AircraftState state || state.Route == null) return;
-            // The points still to fly stay, as a draft.
-            drafts[state.Callsign] = RoutePoints(state, drafts);
-            bridge.Engine.ClearRoute(state.Callsign);
+            if (SelectedCallsign is not string callsign || routeEditor == null) return;
+            if (routeWindow != null)
+            {
+                if (string.Equals(routeEditCallsign, callsign, StringComparison.OrdinalIgnoreCase))
+                {
+                    routeWindow.Activate();
+                    return;
+                }
+                routeWindow.Close();
+            }
+            routeEditCallsign = callsign;
+            routeEditorHost.Child = new TextBlock { Text = $"The route editor is in the window \"Route of {callsign}\".", Foreground = Brushes.Gray, Margin = new Thickness(4) };
+            Border holder = new() { Padding = new Thickness(10), Child = routeEditor };
+            Window window = new()
+            {
+                Title = $"Route of {callsign}",
+                Owner = this,
+                Width = 600,
+                SizeToContent = SizeToContent.Height,
+                ResizeMode = ResizeMode.CanResize,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Content = holder
+            };
+            window.Closed += (s, e) =>
+            {
+                holder.Child = null;
+                routeEditorHost.Child = routeEditor;
+                routeEditCallsign = null;
+                routeWindow = null;
+                routeShownKey = "";
+                Refresh();
+            };
+            routeWindow = window;
             routeShownKey = "";
             Refresh();
+            window.Show();
         }
 
         // ----- Showing -------------------------------------------------------------------------------------------------
 
-        /// <summary>Name of a point for the list and the plan view: its own, or magnetic bearing and distance from the threshold.</summary>
+        /// <summary>Name of a point for the lists and the plan view: its own, or magnetic bearing and distance from the threshold.</summary>
         private string PointLabel(RoutePoint point, double magneticVariation)
         {
             if (point.Name.Length > 0) return point.Name;
@@ -375,11 +384,9 @@ namespace AuroraPAR
 
         private static string PointSpeed(RoutePoint point) => double.IsFinite(point.SpeedKt) ? point.SpeedKt.ToString("0", CultureInfo.InvariantCulture) : "---";
 
-        /// <summary>The route panel of the selected aircraft and the routes on the plan view (each refresh).</summary>
+        /// <summary>The route editor and the routes on the plan view (each refresh).</summary>
         private void RefreshRoute(IReadOnlyList<AircraftState> states, double magneticVariation)
         {
-            // Drafts of aircraft that are gone.
-            foreach (string callsign in drafts.Keys.Where(k => !states.Any(s => string.Equals(s.Callsign, k, StringComparison.OrdinalIgnoreCase))).ToList()) drafts.Remove(callsign);
             routeAltitudeCaption.Text = Qfe ? "ft QFE" : "ft QNH";
             // QNH / QFE switched: the altitude typed keeps its meaning.
             if (routeQfe != Qfe)
@@ -392,69 +399,63 @@ namespace AuroraPAR
                 routeShownKey = "";
             }
             RefreshPointNames();
+            // The aircraft of the window gone: the window closes.
+            if (routeEditCallsign != null && !states.Any(s => string.Equals(s.Callsign, routeEditCallsign, StringComparison.OrdinalIgnoreCase)))
+            {
+                routeWindow?.Close();
+            }
             FlightPlan? edited = EditedPlan();
-            AircraftState? selected = edited != null ? null : states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase));
-            List<RoutePoint> points = edited != null ? new List<RoutePoint>(edited.Points) : selected == null ? new List<RoutePoint>() : RoutePoints(selected, drafts);
-            bool flying = selected?.Route != null;
+            AircraftState? aircraft = routeEditCallsign == null ? null : states.FirstOrDefault(s => string.Equals(s.Callsign, routeEditCallsign, StringComparison.OrdinalIgnoreCase));
+            List<RoutePoint> points = edited != null ? new List<RoutePoint>(edited.Points) : aircraft != null ? RemainingPoints(aircraft) : new List<RoutePoint>();
 
             if (edited != null)
             {
                 string name = edited.Callsign.Length > 0 ? edited.Callsign : "(next free callsign)";
                 routeStatus.Text = points.Count == 0
-                    ? $"Flight plan {name}: no route yet. Add its points below (the first one with altitude and speed: the aircraft starts there)."
-                    : $"Flight plan {name}: {Plural(points.Count)}, waiting. Activate starts it on the first point.";
+                    ? $"Flight plan {name}: no route yet. Add its points (the first one with altitude and speed: the aircraft starts there)."
+                    : $"Flight plan {name}: {Plural(points.Count)}. Activate starts it on the first point.";
             }
-            else if (selected == null)
+            else if (aircraft != null)
             {
-                routeStatus.Text = "Select a flight plan, or an aircraft (in the list or with a click on the plan view).";
+                routeStatus.Text = $"{aircraft.Callsign}: {Plural(points.Count)} still to fly ({NavText(aircraft)}). Changes are given at once.";
             }
-            else if (flying)
+            else if (routeFpl != null && routeFpl.Active != null)
             {
-                routeStatus.Text = $"{selected.Callsign}: flying the route, next point {(points.Count > 0 ? PointLabel(points[0], magneticVariation) : "")} ({Plural(points.Count)} to fly).";
+                routeStatus.Text = $"{routeFpl.Active} is flying this plan: change its route with Edit route… in Aircraft control.";
             }
             else
             {
-                routeStatus.Text = points.Count == 0
-                    ? $"{selected.Callsign}: no route. Add points below, then Fly route."
-                    : $"{selected.Callsign}: route ready, not started ({Plural(points.Count)}). Press Fly route.";
+                routeStatus.Text = "Select a flight plan (New FPL makes one).";
             }
-            routeFlyButton.IsEnabled = selected != null && !flying && points.Count > 0;
-            routeStopButton.IsEnabled = flying;
+            bool editing = edited != null || aircraft != null;
             routeSetButton.IsEnabled = routeRemoveButton.IsEnabled = routeClearButton.IsEnabled = points.Count > 0;
+            routeClickButton.IsEnabled = editing;
+            if (!editing && routeClickButton.IsChecked == true) routeClickButton.IsChecked = false;
 
-            // Another aircraft or plan: the fields start from its values (the last point, or the aircraft's own).
-            object? target = (object?)edited ?? selected?.Callsign;
+            // Another plan or aircraft: the fields start from its values (the last point, or the aircraft's own).
+            object? target = (object?)edited ?? aircraft?.Callsign;
             if (!Equals(routeShownFor, target))
             {
                 routeShownFor = target;
                 routeShownKey = "";
-                RoutePoint? lastPlanned = points.LastOrDefault();
-                if (edited != null && lastPlanned == null)
+                RoutePoint? last = points.LastOrDefault();
+                if (edited != null && last == null)
                 {
                     // A new plan: a start the aircraft can fly (3000 ft above the threshold, the approach speed of its class).
                     PerformanceClass? kind = bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, edited.Class, StringComparison.OrdinalIgnoreCase));
                     if (!TryRead(routeAltitudeBox, out _)) routeAltitudeBox.Text = (Qfe ? 3000 : Math.Round((Elevation + 3000) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
                     if (!TryRead(routeSpeedBox, out _) && kind != null) routeSpeedBox.Text = kind.ApproachSpeedKt.ToString("0", CultureInfo.InvariantCulture);
                 }
-                if (edited != null && lastPlanned != null)
-                {
-                    if (double.IsFinite(lastPlanned.AltitudeFt)) routeAltitudeBox.Text = (Math.Round((Qfe ? lastPlanned.AltitudeFt - Elevation : lastPlanned.AltitudeFt) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
-                    if (double.IsFinite(lastPlanned.SpeedKt)) routeSpeedBox.Text = Math.Round(lastPlanned.SpeedKt).ToString("0", CultureInfo.InvariantCulture);
-                }
-                if (selected != null)
-                {
-                    RoutePoint? last = points.LastOrDefault();
-                    double altitude = last != null && double.IsFinite(last.AltitudeFt) ? last.AltitudeFt : selected.TargetAltitudeFt;
-                    double speed = last != null && double.IsFinite(last.SpeedKt) ? last.SpeedKt : selected.TargetSpeedKt;
-                    routeAltitudeBox.Text = (Math.Round((Qfe ? altitude - Elevation : altitude) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
-                    routeSpeedBox.Text = Math.Round(speed).ToString("0", CultureInfo.InvariantCulture);
-                }
+                double altitude = last != null && double.IsFinite(last.AltitudeFt) ? last.AltitudeFt : aircraft?.TargetAltitudeFt ?? double.NaN;
+                double speed = last != null && double.IsFinite(last.SpeedKt) ? last.SpeedKt : aircraft?.TargetSpeedKt ?? double.NaN;
+                if (double.IsFinite(altitude)) routeAltitudeBox.Text = (Math.Round((Qfe ? altitude - Elevation : altitude) / 100) * 100).ToString("0", CultureInfo.InvariantCulture);
+                if (double.IsFinite(speed)) routeSpeedBox.Text = Math.Round(speed).ToString("0", CultureInfo.InvariantCulture);
             }
 
             // The list, rebuilt only when what it shows changes (so the selection stays).
             List<string> rows = points.Select((p, i) => string.Format(CultureInfo.InvariantCulture, "{0,2}  {1,-12} {2,6} ft  {3,3} kt",
                 i + 1, PointLabel(p, magneticVariation), PointAltitude(p), PointSpeed(p))).ToList();
-            string key = (edited != null ? "P|" : flying ? "F|" : "D|") + string.Join("|", rows) + "|" + string.Join(",", points.Select(p => p.GetHashCode()));
+            string key = (edited != null ? "P|" : aircraft != null ? "A|" : "-|") + string.Join("|", rows) + "|" + string.Join(",", points.Select(p => p.GetHashCode()));
             if (key != routeShownKey)
             {
                 routeShownKey = key;
@@ -467,29 +468,27 @@ namespace AuroraPAR
                     routeList.Items.Add(item);
                     if (keep != null && ReferenceEquals(points[i], keep)) routeList.SelectedItem = item;
                 }
-                // The same point given again (values equal but a new copy): by value.
                 if (routeList.SelectedItem == null && keep != null)
                 {
                     routeList.SelectedItem = routeList.Items.OfType<ListBoxItem>().FirstOrDefault(i => Equals(i.Tag, keep));
                 }
             }
 
-            // The routes on the plan view: those flown, and the draft of the selected aircraft.
+            // The routes on the plan view: the plan being made (from its first point), the routes of the aircraft (the
+            // selected one bright, dashed in MANUAL; the others dim).
             if (plan == null) return;
-            // A flight plan being made: no aircraft shown as selected.
-            if (edited != null) plan.SelectedCallsign = null;
             List<PlanRoute> routes = [];
-            // The flight plan being made: from its first point (where the aircraft will start).
             if (edited != null && points.Count > 0 && bridge.ToGeo(points[0].X, points[0].Y) is { } first)
             {
+                plan.SelectedCallsign = null;
                 routes.Add(new PlanRoute(first.Latitude, first.Longitude, PlacePoints(points, magneticVariation), true, true));
             }
             foreach (AircraftState state in states)
             {
-                bool isSelected = selected != null && ReferenceEquals(state, selected);
-                List<RoutePoint> shown = state.Route != null ? RoutePoints(state, drafts) : isSelected ? points : new List<RoutePoint>();
+                List<RoutePoint> shown = RemainingPoints(state);
                 if (shown.Count == 0 || bridge.ToGeo(state.X, state.Y) is not { } start) continue;
-                routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(shown, magneticVariation), isSelected, state.Route == null));
+                bool isSelected = edited == null && string.Equals(state.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase);
+                routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(shown, magneticVariation), isSelected, state.Navigation == NavigationMode.Manual));
             }
             plan.Routes = routes;
             plan.InvalidateVisual();

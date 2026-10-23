@@ -17,8 +17,9 @@ namespace ATCRoom.Sim
     /// - Speed: at the accelerations of the class, within its speeds.
     /// - Wind: one direction and speed for all heights, with optional gusts; the aircraft flies its heading through
     ///   the air and drifts, and the "Normal" rate follows the ground speed along the final.
-    /// - Route (<see cref="SetRoute"/>): points flown in order, each with its altitude and speed; after the last one
-    ///   the aircraft keeps the course of the last leg.
+    /// - Route (<see cref="SetRoute"/>): MANUAL or ROUTE; in ROUTE points flown in order (each with its altitude and
+    ///   speed until the instructor gives his); direct to a point, next point; after the last one the aircraft keeps
+    ///   the course of the last leg, in MANUAL.
     ///
     /// Instructions (heading, vertical, speed) are carried out after the pilot reaction (<see cref="ReactionSeconds"/>,
     /// counted in simulation time); a new instruction of the same kind for the same aircraft replaces the one still
@@ -290,7 +291,7 @@ namespace ATCRoom.Sim
 
         /// <summary>Instruction: heading to fly (degrees true), turning on this side.</summary>
         public void SetHeading(string callsign, double headingTrue, TurnDirection direction = TurnDirection.Shortest) =>
-            Instruct(callsign, Kind.Heading, a => { a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; a.Route = null; });
+            Instruct(callsign, Kind.Heading, a => { a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; a.Navigation = NavigationMode.Manual; });
 
         /// <summary>Instruction: altitude to reach (ft above mean sea level), optionally with a new vertical rate (ft/min).</summary>
         public void SetAltitude(string callsign, double altitudeFt, double? verticalRateFpm = null) =>
@@ -298,7 +299,7 @@ namespace ATCRoom.Sim
             {
                 a.VerticalMode = VerticalMode.Altitude;
                 a.TargetAltitudeFt = Math.Clamp(altitudeFt, runwayElevation, MaxAltitude);
-                a.RouteAltitude = false;
+                a.AltitudeGiven = true;
                 if (verticalRateFpm is double rate) a.SelectedVerticalRateFpm = Math.Clamp(Math.Abs(rate), MinVerticalRate, MaxVerticalRate);
             });
 
@@ -308,16 +309,16 @@ namespace ATCRoom.Sim
             {
                 a.VerticalMode = VerticalMode.Rate;
                 a.CommandedVerticalSpeedFpm = Math.Clamp(verticalSpeedFpm, -a.Class.MaxDescentFpm, a.Class.MaxClimbFpm);
-                a.RouteAltitude = false;
+                a.AltitudeGiven = true;
             });
 
         /// <summary>Instruction: the "Normal" rate, the vertical speed that keeps the glide path at the aircraft's ground speed.</summary>
         public void SetGlidePathRate(string callsign) =>
-            Instruct(callsign, Kind.Vertical, a => { a.VerticalMode = VerticalMode.GlidePath; a.RouteAltitude = false; });
+            Instruct(callsign, Kind.Vertical, a => { a.VerticalMode = VerticalMode.GlidePath; a.AltitudeGiven = true; });
 
         /// <summary>Instruction: speed to reach (kt, true airspeed), within the class.</summary>
         public void SetSpeed(string callsign, double speedKt) =>
-            Instruct(callsign, Kind.Speed, a => { a.TargetSpeedKt = Math.Clamp(speedKt, a.Class.MinSpeedKt, a.Class.MaxSpeedKt); a.RouteSpeed = false; });
+            Instruct(callsign, Kind.Speed, a => { a.TargetSpeedKt = Math.Clamp(speedKt, a.Class.MinSpeedKt, a.Class.MaxSpeedKt); a.SpeedGiven = true; });
 
         /// <summary>Vertical rate used to reach a commanded altitude (ft/min). At once.</summary>
         public void SetVerticalRate(string callsign, double verticalRateFpm) =>
@@ -350,9 +351,9 @@ namespace ATCRoom.Sim
                 if (plane == null) return;
                 if (x != 0) pending.RemoveAll(p => Same(p.Callsign, callsign) && p.Kind == Kind.Heading);
                 if (y != 0) pending.RemoveAll(p => Same(p.Callsign, callsign) && p.Kind == Kind.Vertical);
-                // The pilot flying by hand: the stick sideways ends the route, up or down takes over its altitudes.
-                if (x != 0) plane.Route = null;
-                if (y != 0) plane.RouteAltitude = false;
+                // The pilot flying by hand: the stick sideways means MANUAL (the route is kept), up or down takes over its altitudes.
+                if (x != 0) plane.Navigation = NavigationMode.Manual;
+                if (y != 0) plane.AltitudeGiven = true;
                 if (x == 0 && plane.StickX != 0)
                 {
                     // Released: the heading where the roll-out ends (the turn goes on a little while the wings level).
@@ -372,20 +373,21 @@ namespace ATCRoom.Sim
         }
 
         /// <summary>
-        /// The route of an aircraft, at once (the instructor's plan, not a pilot instruction; the instructions still
-        /// waiting for it are dropped, except when the route is edited with the same place next). It flies to the points in order, each time turning towards the next one (its
-        /// track pointed at the point, against the wind) and at once climbing or descending (at its selected vertical
-        /// rate) and changing speed to reach that point's altitude and speed (a NaN altitude or speed: kept as it is).
-        /// A point is passed when it is flown over, or when it falls behind after the aircraft turned towards it; a
-        /// point inside the circle of the turn is first left behind, flying straight, then turned to (never circled). After the last point it keeps the course of the last leg (from the point before,
-        /// or from where the route was given) with that point's altitude and speed: no capture of the final, the
-        /// aircraft is on the final only if the last two points are on the extended centreline. A heading instruction
-        /// or the stick sideways ends the route; an altitude, rate or speed instruction (or the stick up or down) takes
-        /// that over for the rest of the route. Given again while flown (the route edited), with the same place next,
+        /// The route of an aircraft, at once (the instructor's plan, not a pilot instruction). In ROUTE it flies to the
+        /// points in order, each time turning towards the next one (its track pointed at the point, against the wind) and
+        /// at once climbing or descending (at its selected vertical rate) and changing speed to reach that point's
+        /// altitude and speed (a NaN altitude or speed: kept), until the instructor gives an altitude (a rate) or a
+        /// speed: from then on those of the instructor. A point is passed when it is flown over, or when it falls
+        /// behind after the aircraft turned towards it; a point inside the circle of the turn is first left behind,
+        /// flying straight, then turned to (never circled). After the last point it keeps the course of the last leg
+        /// and goes to MANUAL: no capture of the final (on the final only if the last two points are on the extended
+        /// centreline). A heading instruction or the stick sideways: MANUAL, the route kept.
+        /// <paramref name="follow"/>: true = ROUTE from the first point (a new flight plan); false = MANUAL; null = as
+        /// it was (a new route: MANUAL). Given again while flown in ROUTE (the route edited) with the same place next,
         /// the leg being flown and the instructions still waiting stay as they are; points it passed meanwhile (the
-        /// same objects) are left out. Empty or null: no route.
+        /// same objects) are left out. Empty or null: no route (MANUAL).
         /// </summary>
-        public void SetRoute(string callsign, IEnumerable<RoutePoint>? points)
+        public void SetRoute(string callsign, IEnumerable<RoutePoint>? points, bool? follow = true)
         {
             List<RoutePoint> list = (points ?? Enumerable.Empty<RoutePoint>()).Where(p => p != null && double.IsFinite(p.X) && double.IsFinite(p.Y)).ToList();
             lock (sync)
@@ -396,43 +398,126 @@ namespace ATCRoom.Sim
                 {
                     // Points of the route given again that the aircraft passed meanwhile (the same points, while the
                     // window was changing the route): not flown again.
-                    IReadOnlyList<RoutePoint> passed = plane.Route.Take(plane.RouteNext).ToList();
+                    IReadOnlyList<RoutePoint> passed = plane.Route.Take(Math.Min(plane.RouteNext, plane.Route.Count)).ToList();
                     while (list.Count > 0 && passed.Any(p => ReferenceEquals(p, list[0]))) list.RemoveAt(0);
                 }
                 if (list.Count == 0 || plane.Contact != GroundContact.Airborne)
                 {
-                    pending.RemoveAll(p => Same(p.Callsign, callsign));
+                    if (plane.Navigation == NavigationMode.Route) pending.RemoveAll(p => Same(p.Callsign, callsign));
                     plane.Route = null;
+                    plane.Navigation = NavigationMode.Manual;
                     return;
                 }
-                // A route changed while flown, with the same place next (a point added or changed further on, or the
-                // values of the next point changed): the leg being flown stays as it is (where it started, whether it
-                // was turned towards), and so do the instructions still waiting.
-                bool sameLeg = plane.Route != null && plane.Route[plane.RouteNext].X == list[0].X && plane.Route[plane.RouteNext].Y == list[0].Y;
-                if (!sameLeg) pending.RemoveAll(p => Same(p.Callsign, callsign));
+                NavigationMode mode = follow == true ? NavigationMode.Route : follow == false ? NavigationMode.Manual
+                    : plane.Route != null ? plane.Navigation : NavigationMode.Manual;
+                // A route changed while flown in ROUTE, with the same place next (a point added or changed further on,
+                // or the values of the next point changed): the leg being flown stays as it is (where it started,
+                // whether it was turned towards), and so do the instructions still waiting.
+                bool flying = plane.Route != null && plane.Navigation == NavigationMode.Route && plane.RouteNext < plane.Route.Count;
+                bool sameLeg = flying && mode == NavigationMode.Route && plane.Route![plane.RouteNext].X == list[0].X && plane.Route[plane.RouteNext].Y == list[0].Y;
+                if (mode == NavigationMode.Route && !sameLeg) pending.RemoveAll(p => Same(p.Callsign, callsign));
                 plane.Route = list.ToArray();
                 plane.RouteNext = 0;
+                plane.Navigation = mode;
                 if (!sameLeg)
                 {
                     plane.LegStartX = plane.X;
                     plane.LegStartY = plane.Y;
                     plane.RouteApproached = false;
                 }
-                plane.RouteAltitude = true;
-                plane.RouteSpeed = true;
-                StartLeg(plane);
+                if (mode == NavigationMode.Route) StartLeg(plane);
             }
         }
 
-        /// <summary>Ends the route at once: the aircraft goes on straight, at the altitude and speed it was given.</summary>
+        /// <summary>No route any more, at once: MANUAL, the aircraft goes on straight, at the altitude and speed it was given.</summary>
         public void ClearRoute(string callsign) => Change(callsign, a =>
         {
             if (a.Route == null) return;
+            bool wasFlying = a.Navigation == NavigationMode.Route;
             a.Route = null;
+            a.Navigation = NavigationMode.Manual;
             // Straight on: the heading where the turn now going on can end.
-            a.TargetHeading = Normalize(a.HeadingTrue + a.TurnRateDps * Math.Abs(a.TurnRateDps) / (2 * TurnRateChange));
-            a.TurnDirection = TurnDirection.Shortest;
+            if (wasFlying) StraightOn(a);
         });
+
+        /// <summary>
+        /// MANUAL (false) or ROUTE (true), at once (the instructor's choice of mode, not a pilot instruction). MANUAL: the
+        /// aircraft goes on straight (the route is kept). ROUTE: it keeps its heading until a point is given
+        /// (<see cref="DirectTo"/>, <see cref="NextWaypoint"/>); only with a route. False if ROUTE cannot be chosen.
+        /// </summary>
+        public bool SetNavigation(string callsign, bool route)
+        {
+            lock (sync)
+            {
+                SimAircraft? plane = Find(callsign);
+                if (plane == null) return false;
+                if (!route)
+                {
+                    if (plane.Navigation == NavigationMode.Route) StraightOn(plane);
+                    plane.Navigation = NavigationMode.Manual;
+                    return true;
+                }
+                if (plane.Route == null || plane.Route.Count == 0 || plane.Contact != GroundContact.Airborne) return false;
+                if (plane.Navigation == NavigationMode.Manual) plane.Navigation = NavigationMode.RouteArmed;
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Instruction: direct to a point of the route (its index, also one already passed), then on along the route;
+        /// ROUTE. After the pilot reaction; a heading instruction still waiting is replaced.
+        /// </summary>
+        public void DirectTo(string callsign, int index) =>
+            Instruct(callsign, Kind.Heading, a =>
+            {
+                if (a.Route == null || index < 0 || index >= a.Route.Count || a.Contact != GroundContact.Airborne) return;
+                StartDirect(a, index);
+            });
+
+        /// <summary>
+        /// Instruction: direct to a point that is not on the route (a point of the maps): it becomes the next point,
+        /// then on along the rest of the route; ROUTE. Without a route: a route of that point alone.
+        /// </summary>
+        public void DirectToPoint(string callsign, RoutePoint point) =>
+            Instruct(callsign, Kind.Heading, a =>
+            {
+                if (point == null || !double.IsFinite(point.X) || !double.IsFinite(point.Y) || a.Contact != GroundContact.Airborne) return;
+                List<RoutePoint> list = a.Route?.ToList() ?? [];
+                int index = Math.Clamp(a.Route == null ? 0 : a.RouteNext, 0, list.Count);
+                list.Insert(index, point);
+                a.Route = list.ToArray();
+                StartDirect(a, index);
+            });
+
+        /// <summary>
+        /// Instruction: direct to the next point: flying the route, the point after the one it flies to; in ROUTE
+        /// waiting for a point, the next one not passed yet. Nothing when there is none.
+        /// </summary>
+        public void NextWaypoint(string callsign) =>
+            Instruct(callsign, Kind.Heading, a =>
+            {
+                if (a.Route == null || a.Contact != GroundContact.Airborne) return;
+                int index = a.Navigation == NavigationMode.Route ? a.RouteNext + 1 : a.RouteNext;
+                if (index >= 0 && index < a.Route.Count) StartDirect(a, index);
+            });
+
+        /// <summary>Flies direct to the point of the route at this index: a new leg from here, ROUTE.</summary>
+        private void StartDirect(SimAircraft plane, int index)
+        {
+            plane.RouteNext = index;
+            plane.LegStartX = plane.X;
+            plane.LegStartY = plane.Y;
+            plane.RouteApproached = false;
+            plane.Navigation = NavigationMode.Route;
+            StartLeg(plane);
+        }
+
+        /// <summary>Straight on: the heading where the turn now going on can end.</summary>
+        private static void StraightOn(SimAircraft plane)
+        {
+            plane.TargetHeading = Normalize(plane.HeadingTrue + plane.TurnRateDps * Math.Abs(plane.TurnRateDps) / (2 * TurnRateChange));
+            plane.TurnDirection = TurnDirection.Shortest;
+        }
 
         /// <summary>Holds an aircraft where it is (true) or lets it go on (false). At once, not a pilot instruction.</summary>
         public void SetFrozen(string callsign, bool frozen) => Change(callsign, a => a.Frozen = frozen);
@@ -637,6 +722,7 @@ namespace ATCRoom.Sim
             plane.Contact = onRunway ? GroundContact.Landed : GroundContact.OnGround;
             plane.LandedStep = steps;
             plane.Route = null;
+            plane.Navigation = NavigationMode.Manual;
             plane.VerticalSpeedFpm = 0;
             plane.VerticalMode = VerticalMode.Altitude;
             plane.TargetAltitudeFt = plane.AltitudeFt;
@@ -677,13 +763,14 @@ namespace ATCRoom.Sim
         private void StartLeg(SimAircraft plane)
         {
             if (plane.Route == null) return;
+            if (plane.RouteNext < 0 || plane.RouteNext >= plane.Route.Count) return;
             RoutePoint point = plane.Route[plane.RouteNext];
-            if (plane.RouteAltitude && double.IsFinite(point.AltitudeFt))
+            if (!plane.AltitudeGiven && double.IsFinite(point.AltitudeFt))
             {
                 plane.VerticalMode = VerticalMode.Altitude;
                 plane.TargetAltitudeFt = Math.Clamp(point.AltitudeFt, runwayElevation, MaxAltitude);
             }
-            if (plane.RouteSpeed && double.IsFinite(point.SpeedKt))
+            if (!plane.SpeedGiven && double.IsFinite(point.SpeedKt))
             {
                 plane.TargetSpeedKt = Math.Clamp(point.SpeedKt, plane.Class.MinSpeedKt, plane.Class.MaxSpeedKt);
             }
@@ -705,10 +792,10 @@ namespace ATCRoom.Sim
         /// <summary>One step of the route: the heading to the point it flies to; passing a point, the next one (or, after the last, the course of the last leg).</summary>
         private void FollowRoute(SimAircraft plane)
         {
-            if (plane.Route == null) return;
-            if (plane.StickX != 0 || plane.Route.Count == 0)
+            if (plane.Route == null || plane.Navigation != NavigationMode.Route) return;
+            if (plane.StickX != 0 || plane.RouteNext < 0 || plane.RouteNext >= plane.Route.Count)
             {
-                plane.Route = null;
+                plane.Navigation = NavigationMode.Manual;
                 return;
             }
             RoutePoint point = plane.Route[plane.RouteNext];
@@ -734,7 +821,9 @@ namespace ATCRoom.Sim
                     double course = Math.Sqrt(legX * legX + legY * legY) > 0.01 ? Normalize(Math.Atan2(legX, legY) * 180 / Math.PI) : plane.TrackTrue;
                     plane.TargetHeading = HeadingForCourse(course, plane.SpeedKt);
                     plane.TurnDirection = TurnDirection.Shortest;
-                    plane.Route = null;
+                    // All points passed: MANUAL, on along that course (the route is kept: a point can be given again).
+                    plane.RouteNext = plane.Route.Count;
+                    plane.Navigation = NavigationMode.Manual;
                     return;
                 }
                 // The next point: steered to from the next step.

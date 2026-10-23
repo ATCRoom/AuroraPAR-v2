@@ -445,6 +445,13 @@ namespace AuroraPAR
         private void FeedInstructorView()
         {
             if (instructorView == null || radarPanel == null) return;
+            // The maps of the airport in use, also while the RDR is not shown (the student on the PAR): ApplyMapLayers
+            // sets mapAirport and comes back here.
+            if ((runway?.ICAO ?? "").Trim().ToUpperInvariant() != mapAirport)
+            {
+                ApplyMapLayers();
+                return;
+            }
             Profile profile = settings.Active;
             bool qfe = profile.PressureReference == PressureReference.QFE;
             string pressure = qnh == 0 ? "----" : Pressure.Format(qfe ? Pressure.QfeFromQnh(qnh, runway.Elevation) : qnh, profile.PressureUnit);

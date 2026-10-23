@@ -170,41 +170,33 @@ namespace AuroraPAR
         {
             plan = view;
             Title = $"{AppInfo.ProductName} - Instructor+";
-            UIElement? controls = Content as UIElement;
+            // The controls built above, moved into the three areas of the Instructor+ (Trainer/InstructorWindow.Layout.cs).
+            UIElement column = BuildTrainerColumn();
             Content = null;
-            ScrollViewer scroll = new()
-            {
-                Content = controls,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-            };
             Grid grid = new();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 300 });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(600) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(660) });
             Grid.SetColumn(view, 0);
-            Grid.SetColumn(scroll, 1);
+            Grid.SetColumn(column, 1);
             grid.Children.Add(view);
-            grid.Children.Add(scroll);
+            grid.Children.Add(column);
             Content = grid;
             SizeToContent = SizeToContent.Manual;
             ResizeMode = ResizeMode.CanResize;
             Rect area = SystemParameters.WorkArea;
             WindowPlacement? saved = settings.Window;
-            double width = saved != null && double.IsFinite(saved.Width) && saved.Width >= 800 ? saved.Width : 1280;
-            double height = saved != null && double.IsFinite(saved.Height) && saved.Height >= 520 ? saved.Height : 860;
-            MinWidth = 900;
+            double width = saved != null && double.IsFinite(saved.Width) && saved.Width >= 800 ? saved.Width : 1600;
+            double height = saved != null && double.IsFinite(saved.Height) && saved.Height >= 520 ? saved.Height : 1000;
+            MinWidth = 960;
             MinHeight = 520;
             Width = Math.Min(width, area.Width - 20);
             Height = Math.Min(height, area.Height - 20);
             view.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
             list.PreviewMouseLeftButtonUp += (s, e) => AircraftClickedAgain();
-            if (controls is StackPanel root)
-            {
-                int after = root.Children.IndexOf(controlPanel) + 1;
-                root.Children.Insert(after, BuildFlightPlans());
-                root.Children.Insert(after + 1, BuildRoute());
-            }
+            PreviewKeyDown += TrainerKey;
+            Closed += (s, e) => { routeWindow?.Close(); keysWindow?.Close(); };
+            Refresh();
         }
 
         /// <summary>Selects an aircraft of the list by its callsign (a click on the plan view).</summary>
@@ -958,8 +950,12 @@ namespace AuroraPAR
             if (manualCallsign == callsign) manualCallsign = name;
             if (joystickCallsign == callsign) joystickCallsign = name;
 #if TRAINER
-            // A route not flown yet follows the aircraft.
-            if (drafts.Remove(callsign, out List<RoutePoint>? draft)) drafts[name] = draft;
+            // The "Route of …" window follows the aircraft.
+            if (string.Equals(routeEditCallsign, callsign, StringComparison.OrdinalIgnoreCase))
+            {
+                routeEditCallsign = name;
+                if (routeWindow != null) routeWindow.Title = $"Route of {name}";
+            }
             foreach (FlightPlan plan in flightPlans.Where(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase))) plan.Active = name;
 #endif
             Refresh();
@@ -1100,6 +1096,9 @@ namespace AuroraPAR
                     item.Content = string.Format(CultureInfo.InvariantCulture, "{0,-8}  {1:000}  {2,6:0}{3}  {4,4:0}  {5,5}  {6}{7}",
                         state.Callsign, Magnetic(state.HeadingTrue, magneticVariation), altitude, climbing, state.SpeedKt, distance, seen,
                         state.Contact switch { GroundContact.Landed => " LANDED", GroundContact.OnGround => " GROUND", _ => state.Frozen ? " FRZ" : "" });
+#if TRAINER
+                    item.Content = $"{item.Content}  {NavText(state)}";
+#endif
                     item.Foreground = state.Contact == GroundContact.OnGround ? Brushes.Red : Brushes.Black;
                 }
                 if (list.SelectedItem == null && list.Items.Count > 0 && selected == null) list.SelectedIndex = 0;
@@ -1118,6 +1117,9 @@ namespace AuroraPAR
             }
             ShowSelected(states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase)), runway, magneticVariation);
 #if TRAINER
+            AircraftState? trainerSelected = states.FirstOrDefault(s => string.Equals(s.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase));
+            RefreshTrainerLayout(trainerSelected);
+            RefreshNavigation(trainerSelected, magneticVariation);
             RefreshFlightPlans(states);
             RefreshRoute(states, magneticVariation);
 #endif
