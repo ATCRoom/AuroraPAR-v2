@@ -1093,11 +1093,14 @@ namespace AuroraPAR
                     string seen = position != null && isSeen(position) ? "●" : "○";
                     double altitude = Qfe ? state.AltitudeFt - Elevation : state.AltitudeFt;
                     string climbing = state.VerticalSpeedFpm > 0 ? "↑" : state.VerticalSpeedFpm < 0 ? "↓" : " ";
-                    item.Content = string.Format(CultureInfo.InvariantCulture, "{0,-8}  {1:000}  {2,6:0}{3}  {4,4:0}  {5,5}  {6}{7}",
+                    string row = string.Format(CultureInfo.InvariantCulture, "{0,-8}  {1:000}  {2,6:0}{3}  {4,4:0}  {5,5}  {6}{7}",
                         state.Callsign, Magnetic(state.HeadingTrue, magneticVariation), altitude, climbing, state.SpeedKt, distance, seen,
                         state.Contact switch { GroundContact.Landed => " LANDED", GroundContact.OnGround => " GROUND", _ => state.Frozen ? " FRZ" : "" });
 #if TRAINER
-                    item.Content = $"{item.Content}  {NavText(state)}";
+                    // Instructor+: the row with its buttons (Pause / Unpause, Reactivate, Remove).
+                    ShowAircraftRow(item, state, row);
+#else
+                    item.Content = row;
 #endif
                     item.Foreground = state.Contact == GroundContact.OnGround ? Brushes.Red : Brushes.Black;
                 }

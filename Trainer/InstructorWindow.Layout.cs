@@ -313,7 +313,9 @@ namespace AuroraPAR
             StackPanel panel = new();
             panel.Children.Add(new TextBlock { Text = "Call      HDG    ALT/HGT   SPD    NM PAR  NAV", FontFamily = new FontFamily("Consolas"), FontSize = 12, Foreground = Brushes.Gray, Margin = new Thickness(4, 0, 0, 2) });
             Detach(list);
-            list.Height = 92;
+            list.Height = 104;
+            list.FontSize = 12;
+            list.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             panel.Children.Add(list);
             Detach(info);
             info.Margin = new Thickness(2, 4, 0, 4);
@@ -473,6 +475,68 @@ namespace AuroraPAR
         }
 
         private NavigationMode? shownNavigation;
+
+        /// <summary>
+        /// A row of the aircraft list: its text and, on the right, Pause / Unpause (only this aircraft held where it is),
+        /// Reactivate (an aircraft of a flight plan starts again from the first point of its plan) and Remove. The row is
+        /// made once and then only changed, so a click on its buttons is never lost under a refresh.
+        /// </summary>
+        private void ShowAircraftRow(ListBoxItem item, AircraftState state, string text)
+        {
+            string callsign = state.Callsign;
+            if (state.Frozen) text = text.Replace(" FRZ", "");
+            text = $"{text}  {(state.Frozen ? "PAUSED" : NavText(state))}";
+            if (item.Content is not DockPanel { Tag: RowParts parts })
+            {
+                TextBlock label = new() { VerticalAlignment = VerticalAlignment.Center };
+                Button pause = RowButton("Pause");
+                Button reactivate = RowButton("Reactivate");
+                Button remove = RowButton("Remove");
+                pause.Click += (s, e) => { if (item.Tag is string name && bridge.Engine.Get(name) is AircraftState now) bridge.Engine.SetFrozen(name, !now.Frozen); Refresh(); };
+                reactivate.Click += (s, e) => { if (item.Tag is string name) Reactivate(name); };
+                remove.Click += (s, e) => { if (item.Tag is string name) bridge.Engine.Remove(name); Refresh(); };
+                pause.ToolTip = "Pause: only this aircraft stays where it is (the others go on); Unpause: it goes on from there.";
+                reactivate.ToolTip = "The aircraft of a flight plan starts again from the first point of its plan.";
+                remove.ToolTip = "Removes this aircraft (its flight plan, if any, waits again).";
+                DockPanel row = new() { LastChildFill = true };
+                foreach (Button button in new[] { remove, reactivate, pause })
+                {
+                    DockPanel.SetDock(button, Dock.Right);
+                    row.Children.Add(button);
+                }
+                row.Children.Add(label);
+                parts = new RowParts(label, pause, reactivate);
+                row.Tag = parts;
+                item.Content = row;
+                item.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            }
+            if (parts.Label.Text != text) parts.Label.Text = text;
+            parts.Pause.Content = state.Frozen ? "Unpause" : "Pause";
+            parts.Reactivate.Visibility = flightPlans.Any(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>The parts of a row of the aircraft list that change.</summary>
+        private sealed record RowParts(TextBlock Label, Button Pause, Button Reactivate);
+
+        private static Button RowButton(string text) => new()
+        {
+            Content = text,
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = 11,
+            Padding = new Thickness(6, 0, 6, 0),
+            Margin = new Thickness(3, 1, 0, 1),
+            Focusable = false
+        };
+
+        /// <summary>Reactivate: the aircraft of a flight plan removed and started again from the first point of its plan.</summary>
+        private void Reactivate(string callsign)
+        {
+            FlightPlan? plan = flightPlans.FirstOrDefault(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase));
+            if (plan == null) return;
+            bridge.Engine.Remove(callsign);
+            plan.Active = null;
+            Activate(plan);
+        }
 
         /// <summary>The NAV column of the list: MANUAL, ROUTE → point, or ROUTE waiting for a point.</summary>
         private static string NavText(AircraftState state) => state.Navigation switch
