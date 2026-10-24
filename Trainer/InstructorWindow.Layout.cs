@@ -188,23 +188,22 @@ namespace AuroraPAR
             offsetBox.Text = "3.0";
             offsetBox.ToolTip = "Distance from the extended centreline at the start (NM; 30° / 45° / 90° and downwind). Mouse wheel: 0.1 NM (+Shift: 1).";
             distanceBox.ToolTip = "Distance from touchdown (NM): where the aircraft starts on the final, the point of the centreline it heads for, or where it is abeam on the downwind. Mouse wheel: 0.5 NM (+Shift: 1).";
+            // Each field with its name and unit in one piece: a narrow panel wraps between the pieces, never inside one.
+            static StackPanel Piece(params UIElement[] parts)
+            {
+                StackPanel piece = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 8, 3) };
+                foreach (UIElement part in parts) piece.Children.Add(part);
+                return piece;
+            }
             WrapPanel row1 = new() { Margin = new Thickness(0, 3, 0, 0) };
-            row1.Children.Add(Caption("Distance"));
-            row1.Children.Add(distanceBox);
-            row1.Children.Add(Caption("NM from touchdown   off the centreline"));
-            row1.Children.Add(offsetBox);
-            row1.Children.Add(Caption("NM   altitude"));
-            row1.Children.Add(newAltitudeBox);
-            row1.Children.Add(Caption("ft (empty: glide path)"));
+            row1.Children.Add(Piece(Caption("Distance"), distanceBox, Caption("NM from touchdown")));
+            row1.Children.Add(Piece(Caption("off the centreline"), offsetBox, Caption("NM")));
+            row1.Children.Add(Piece(Caption("altitude"), newAltitudeBox, Caption("ft (empty: glide path)")));
             panel.Children.Add(row1);
             WrapPanel row2 = new() { Margin = new Thickness(0, 3, 0, 0) };
-            row2.Children.Add(Caption("Speed"));
-            row2.Children.Add(newSpeedBox);
-            row2.Children.Add(Caption("kt   class"));
-            row2.Children.Add(classBox);
-            row2.Children.Add(PerformanceButton());
-            row2.Children.Add(Caption("callsign"));
-            row2.Children.Add(newCallsignBox);
+            row2.Children.Add(Piece(Caption("Speed"), newSpeedBox, Caption("kt")));
+            row2.Children.Add(Piece(Caption("class"), classBox, PerformanceButton()));
+            row2.Children.Add(Piece(Caption("callsign"), newCallsignBox));
             panel.Children.Add(row2);
             WrapPanel row3 = new() { Margin = new Thickness(0, 6, 0, 0) };
             Button create = new() { Content = "Create & start", FontWeight = FontWeights.SemiBold, Padding = new Thickness(12, 3, 12, 3), Margin = new Thickness(0, 0, 6, 0), ToolTip = "The aircraft is created and starts flying now." };
