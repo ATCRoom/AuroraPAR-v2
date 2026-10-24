@@ -60,11 +60,26 @@ namespace AuroraPAR
             pauseButton.Focusable = false;
             pauseButton.ToolTip = "Pause / Resume: the whole simulation stops and goes on.";
             buttons.Children.Add(pauseButton);
-            Button removeAll = new() { Content = "Remove all aircraft", Padding = new Thickness(8, 1, 8, 1), ToolTip = "Removes all the aircraft flying (their flight plans wait again in Traffic generation); those waiting stay." };
-            removeAll.Click += (s, e) => { bridge.Clear(); Refresh(); };
+            Button removeAll = new() { Content = "Remove all aircraft", Padding = new Thickness(8, 1, 8, 1), ToolTip = "Removes all the aircraft, flying and waiting (after a question): the flight plans wait again in Traffic generation; the aircraft of Quick are gone." };
+            removeAll.Click += (s, e) => RemoveAllAircraft();
             buttons.Children.Add(removeAll);
             panel.Children.Add(buttons);
             return panel;
+        }
+
+        /// <summary>Remove all aircraft: flying and waiting, after a question; the flight plans wait again in Traffic generation.</summary>
+        private void RemoveAllAircraft()
+        {
+            int flying = bridge.Count;
+            int waiting = flightPlans.Count(p => p.Queued && p.Active == null);
+            if (flying + waiting == 0) return;
+            string what = flying > 0 && waiting > 0 ? $"{flying} flying and {waiting} waiting aircraft" : flying > 0 ? $"{flying} flying aircraft" : $"{waiting} waiting aircraft";
+            if (MessageBox.Show(this, $"Remove {what}? Their flight plans wait again in Traffic generation.", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            bridge.Clear();
+            foreach (FlightPlan plan in flightPlans) plan.Queued = false;
+            flightPlans.RemoveAll(p => p.Quick);
+            fplShownKey = trafficShownKey = routeShownKey = "";
+            Refresh();
         }
 
         /// <summary>Start all: each aircraft waiting in the list, in order.</summary>
