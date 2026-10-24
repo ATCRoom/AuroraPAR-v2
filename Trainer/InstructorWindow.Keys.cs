@@ -63,13 +63,35 @@ namespace AuroraPAR
         private void TrainerKey(object sender, KeyEventArgs e)
         {
             Key key = PressedKey(e);
+            if (key == Key.None) return;
+            // N / Shift+N (fixed, not assigned): the next / previous aircraft, only while not typing in a field.
+            if (key == Key.N && (Keyboard.Modifiers == ModifierKeys.None || Keyboard.Modifiers == ModifierKeys.Shift) && !Typing()
+                && !KeyMap.Values.Any(v => string.Equals(v, nameof(Key.N), StringComparison.OrdinalIgnoreCase)))
+            {
+                StepAircraft(Keyboard.Modifiers == ModifierKeys.Shift ? -1 : 1);
+                e.Handled = true;
+                return;
+            }
             // Keys held with Ctrl, Alt or Shift are not the assigned ones.
-            if (key == Key.None || Keyboard.Modifiers != ModifierKeys.None) return;
+            if (Keyboard.Modifiers != ModifierKeys.None) return;
             string name = key.ToString();
             string? command = KeyMap.FirstOrDefault(k => string.Equals(k.Value, name, StringComparison.OrdinalIgnoreCase)).Key;
             if (command == null) return;
             RunKeyCommand(command);
             e.Handled = true;
+        }
+
+        /// <summary>The keyboard is in a field where one types (a box, an editable list).</summary>
+        private static bool Typing() =>
+            Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase or PasswordBox or ComboBox { IsEditable: true };
+
+        /// <summary>The next (+1) or previous (−1) aircraft of the TRAFFIC LIST (after the last, the first).</summary>
+        private void StepAircraft(int step)
+        {
+            int count = list.Items.Count;
+            if (count == 0) return;
+            list.SelectedIndex = list.SelectedIndex < 0 ? (step > 0 ? 0 : count - 1) : ((list.SelectedIndex + step) % count + count) % count;
+            if (list.SelectedItem != null) list.ScrollIntoView(list.SelectedItem);
         }
 
         private void RunKeyCommand(string command)
@@ -89,9 +111,7 @@ namespace AuroraPAR
                 case "Navigation": ToggleNavigation(); break;
                 case "NextWaypoint": NextWaypoint(); break;
                 case "SlowToFinal": SlowToFinal(); break;
-                case "NextAircraft":
-                    if (list.Items.Count > 0) list.SelectedIndex = (list.SelectedIndex + 1) % list.Items.Count;
-                    break;
+                case "NextAircraft": StepAircraft(1); break;
                 case "Pause": TogglePause(); break;
             }
         }
@@ -111,7 +131,7 @@ namespace AuroraPAR
             StackPanel panel = new() { Margin = new Thickness(10) };
             panel.Children.Add(new TextBlock
             {
-                Text = "Keys for the selected aircraft, also for a macro keyboard. Click Assign, then press the key (or turn the knob). They work while the Instructor+ window is in front, also while typing in a field: choose keys that are not used for typing (F13–F24 are free on normal keyboards).",
+                Text = "Keys for the selected aircraft, also for a macro keyboard. Click Assign, then press the key (or turn the knob). They work while the Instructor+ window is in front, also while typing in a field: choose keys that are not used for typing (F13–F24 are free on normal keyboards). Fixed: N = next aircraft, Shift+N = previous (not while typing in a field).",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
