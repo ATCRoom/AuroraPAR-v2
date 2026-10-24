@@ -745,6 +745,14 @@ namespace AuroraPAR
 
         private void WindFromMetar()
         {
+#if TRAINER
+            // Without Aurora: the METAR from the internet (Trainer/InstructorWindow.Qnh.cs).
+            if (metar() == null && !auroraConnected())
+            {
+                WindFromInternet();
+                return;
+            }
+#endif
             if (!MetarWind.TryParse(metar(), out double from, out double speed, out double gust))
             {
                 System.Media.SystemSounds.Beep.Play();

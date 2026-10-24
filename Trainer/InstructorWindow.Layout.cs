@@ -131,6 +131,12 @@ namespace AuroraPAR
                 // Wind from [°T] (°M), [speed kt], gusts + [kt], From METAR.
                 Regroup(windRow, 4, 2, 3);
                 simulation.Children.Add(Detach(windRow));
+                // The QNH under the wind (Trainer/InstructorWindow.Qnh.cs).
+                simulation.Children.Add(BuildQnhRow());
+                if (windRow.Children.OfType<Button>().FirstOrDefault() is Button fromMetar)
+                {
+                    fromMetar.ToolTip = "The wind (and without Aurora the QNH) of the METAR of the airport: from Aurora, or without Aurora from the internet (aviationweather.gov). A METAR gives the direction in degrees true.";
+                }
             }
             if (pauseButton.Parent is WrapPanel optionsRow)
             {
@@ -536,6 +542,7 @@ namespace AuroraPAR
             }
             ShowInformation(state);
             RefreshTrafficList(state);
+            ShowQnh();
             // An instruction carried out by the pilot (one less waiting): the fields show the new values (after STOP TURN,
             // STOP CLIMB/DESCENT, a heading…), so the keys and buttons start from them.
             int pending = state?.PendingCommands ?? 0;

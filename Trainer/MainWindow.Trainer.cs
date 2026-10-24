@@ -314,6 +314,13 @@ namespace AuroraPAR
                 qnhBox.Background = new SolidColorBrush(Color.FromRgb(255, 215, 215));
                 return;
             }
+            SetManualQnh(hpa);
+        }
+
+        /// <summary>The QNH by hand (without Aurora): from the box, or from the Instructor+ (typed, or a METAR from the internet).</summary>
+        private void SetManualQnh(int hpa)
+        {
+            if (aurora.Connected || hpa < 850 || hpa > 1090) return;
             qnh = hpa;
             settings.Trainer.ManualQnh = hpa;
             SettingsStore.Save(settings);
@@ -434,6 +441,8 @@ namespace AuroraPAR
             instructorView.RangeStepRequested += StepInstructorRange;
             instructorPar = new MiniParView();
             window.AttachPlan(instructorView, instructorPar);
+            // The QNH of the Instructor+ is the one of the main window (by hand without Aurora).
+            window.AttachWeather(() => aurora.Connected, () => qnh, SetManualQnh);
             FeedInstructorView();
             UpdatePlusButton();
         }
