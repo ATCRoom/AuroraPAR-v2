@@ -187,6 +187,7 @@ namespace AuroraPAR
             Height = Math.Min(height, area.Height - 20);
             view.AircraftClicked += SelectCallsign;
             par.AircraftClicked += SelectCallsign;
+            par.IsSeen = isSeen;
             view.PointPicked += AddClickedPoint;
             view.RoutePointMoved += MoveDraggedPoint;
             view.RoutePointMenuRequested += OpenRoutePointMenu;

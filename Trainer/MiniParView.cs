@@ -24,6 +24,9 @@ namespace AuroraPAR
         private static readonly Pen SelectPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xD0, 0x00))), 1.6));
         private static readonly Brush LabelBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xE6)));
         private static readonly Brush InfoBrush = Freeze(new SolidColorBrush(Colors.White));
+        private static readonly Color UnseenColor = Color.FromRgb(0x80, 0x80, 0x80);
+        private static readonly Pen UnseenPen = Freeze(new Pen(Freeze(new SolidColorBrush(UnseenColor)), 1.6));
+        private static readonly Brush UnseenBrush = Freeze(new SolidColorBrush(UnseenColor));
         private static readonly Typeface Face = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         private static readonly Typeface MonoFace = new(new FontFamily("Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         /// <summary>Margins: touchdown this far from the left edge, the end of the range this far from the right edge (pixels).</summary>
@@ -35,6 +38,8 @@ namespace AuroraPAR
         public Runway? Runway { get; set; }
         public double RangeNM { get; set; } = 10;
         public string? SelectedCallsign { get; set; }
+        /// <summary>Whether the student's PAR sees an aircraft (inside its beams): the others are drawn grey, "not seen". Null: all as seen.</summary>
+        public Func<Aircraft, bool>? IsSeen { get; set; }
         /// <summary>A track was clicked (the nearest one, within a few pixels).</summary>
         public event Action<string>? AircraftClicked;
 
@@ -136,6 +141,11 @@ namespace AuroraPAR
                 if (distance < -0.5 || distance > range * 1.05) continue;
                 double feet = shown.Altitude - runway.Elevation;
                 double lateral = shown.LateralOffset(runway);
+                // Not seen by the student's PAR (outside its beams): grey.
+                bool seen = IsSeen?.Invoke(aircraft) ?? true;
+                Pen trackPen = seen ? TrackPen : UnseenPen;
+                Brush dotBrush = seen ? DotBrush : UnseenBrush;
+                Brush labelBrush = seen ? LabelBrush : UnseenBrush;
                 if (histories.TryGetValue(aircraft.Callsign, out var history))
                 {
                     foreach ((double latitude, double longitude, double altitude) in history.Points)
@@ -146,8 +156,8 @@ namespace AuroraPAR
                         // Each dot only inside its own view.
                         double upY = HeightY(altitude - runway.Elevation);
                         double downY = LateralY(past.LateralOffset(runway));
-                        if (upY >= elevationTop && upY <= elevationBase) dc.DrawEllipse(DotBrush, null, new Point(X(pastDistance), upY), 1.4, 1.4);
-                        if (downY >= azimuthTop && downY <= height) dc.DrawEllipse(DotBrush, null, new Point(X(pastDistance), downY), 1.4, 1.4);
+                        if (upY >= elevationTop && upY <= elevationBase) dc.DrawEllipse(dotBrush, null, new Point(X(pastDistance), upY), 1.4, 1.4);
+                        if (downY >= azimuthTop && downY <= height) dc.DrawEllipse(dotBrush, null, new Point(X(pastDistance), downY), 1.4, 1.4);
                     }
                 }
                 Point up = new(X(distance), Math.Clamp(HeightY(feet), elevationTop - 10, elevationBase));
@@ -157,17 +167,17 @@ namespace AuroraPAR
                 {
                     drawn.Add((p, aircraft.Callsign));
                     if (selected) dc.DrawRectangle(null, SelectPen, new Rect(p.X - 9, p.Y - 9, 18, 18));
-                    dc.DrawEllipse(null, TrackPen, p, 5, 5);
-                    dc.DrawLine(TrackPen, p + new Vector(-5, 0), p + new Vector(5, 0));
-                    dc.DrawLine(TrackPen, p + new Vector(0, -5), p + new Vector(0, 5));
+                    dc.DrawEllipse(null, trackPen, p, 5, 5);
+                    dc.DrawLine(trackPen, p + new Vector(-5, 0), p + new Vector(5, 0));
+                    dc.DrawLine(trackPen, p + new Vector(0, -5), p + new Vector(0, 5));
                 }
                 double deviation = feet - runway.GlidePathHeight(distance);
-                string upper = string.Format(CultureInfo.InvariantCulture, "{0}  {1:0.0} NM\nA {2:0}  {3} {4:0}", aircraft.Callsign, distance, shown.Altitude, deviation >= 0 ? "U" : "D", Math.Abs(deviation));
+                string upper = string.Format(CultureInfo.InvariantCulture, "{0}  {1:0.0} NM{5}\nA {2:0}  {3} {4:0}", aircraft.Callsign, distance, shown.Altitude, deviation >= 0 ? "U" : "D", Math.Abs(deviation), seen ? "" : "  not seen");
                 string lower = string.Format(CultureInfo.InvariantCulture, "{0}  {1} {2:0} ft", aircraft.Callsign, lateral >= 0 ? "R" : "L", Math.Abs(lateral * Runway.FeetPerNM));
-                FormattedText upperText = Text(upper, 11, LabelBrush, Face, pixelsPerDip);
+                FormattedText upperText = Text(upper, 11, labelBrush, Face, pixelsPerDip);
                 // The labels inside their own views (not over the title or the distances).
                 dc.DrawText(upperText, new Point(up.X + 12, Math.Max(elevationTop, up.Y - 12 - upperText.Height)));
-                dc.DrawText(Text(lower, 11, LabelBrush, Face, pixelsPerDip), new Point(down.X + 12, Math.Max(azimuthTop + 12, down.Y - 26)));
+                dc.DrawText(Text(lower, 11, labelBrush, Face, pixelsPerDip), new Point(down.X + 12, Math.Max(azimuthTop + 12, down.Y - 26)));
             }
 
             dc.DrawText(Text(string.Format(CultureInfo.InvariantCulture, "PAR  RWY {0}  GP {1:0.0#}°  {2:0} NM  (as the student)", runway.DisplayName, runway.GlideSlope, range),
