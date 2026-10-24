@@ -44,6 +44,29 @@ namespace AuroraPAR
             return element;
         }
 
+        /// <summary>A field with its name and unit (or a few buttons) in one piece: a narrow panel wraps between the pieces, never inside one.</summary>
+        private static StackPanel Piece(params UIElement[] parts)
+        {
+            StackPanel piece = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 8, 3) };
+            foreach (UIElement part in parts) piece.Children.Add(part);
+            return piece;
+        }
+
+        /// <summary>The parts of a wrapping row put again in pieces (a field with its name and unit together).</summary>
+        private static void Regroup(WrapPanel row, params int[] sizes)
+        {
+            List<UIElement> parts = row.Children.Cast<UIElement>().ToList();
+            row.Children.Clear();
+            int at = 0;
+            foreach (int size in sizes)
+            {
+                if (at >= parts.Count) break;
+                row.Children.Add(Piece(parts.Skip(at).Take(size).ToArray()));
+                at += size;
+            }
+            foreach (UIElement rest in parts.Skip(at)) row.Children.Add(rest);
+        }
+
         /// <summary>A row of the narrow panel: its name on the left (a fixed column), then the controls.</summary>
         private static DockPanel Line(string name, params UIElement[] children)
         {
@@ -96,10 +119,24 @@ namespace AuroraPAR
             // ----- Simulation ------------------------------------------------------------------------------------------
             StackPanel simulation = new() { Margin = new Thickness(0, 0, 0, 2) };
             simulation.Children.Add(Detach((FrameworkElement)referenceText.Parent));
-            if (windFromBox.Parent is FrameworkElement windRow) simulation.Children.Add(Detach(windRow));
-            if (pauseButton.Parent is FrameworkElement optionsRow)
+            if (windFromBox.Parent is WrapPanel windRow)
+            {
+                // "kt   gusts +" in two: the speed and the gusts each with their unit.
+                TextBlock? gusts = windRow.Children.OfType<TextBlock>().FirstOrDefault(t => t.Text.Contains("gusts"));
+                if (gusts != null)
+                {
+                    gusts.Text = "kt";
+                    windRow.Children.Insert(windRow.Children.IndexOf(gusts) + 1, Caption("gusts +"));
+                }
+                // Wind from [°T] (°M), [speed kt], gusts + [kt], From METAR.
+                Regroup(windRow, 4, 2, 3);
+                simulation.Children.Add(Detach(windRow));
+            }
+            if (pauseButton.Parent is WrapPanel optionsRow)
             {
                 Detach(pauseButton);
+                // QNH, QFE, Aurora-like, the callsign prefix with its box.
+                Regroup(optionsRow, 1, 1, 1, 2);
                 simulation.Children.Add(Detach(optionsRow));
             }
             if (reactionBox.Parent is StackPanel reactionRow)
@@ -188,13 +225,6 @@ namespace AuroraPAR
             offsetBox.Text = "3.0";
             offsetBox.ToolTip = "Distance from the extended centreline at the start (NM; 30° / 45° / 90° and downwind). Mouse wheel: 0.1 NM (+Shift: 1).";
             distanceBox.ToolTip = "Distance from touchdown (NM): where the aircraft starts on the final, the point of the centreline it heads for, or where it is abeam on the downwind. Mouse wheel: 0.5 NM (+Shift: 1).";
-            // Each field with its name and unit in one piece: a narrow panel wraps between the pieces, never inside one.
-            static StackPanel Piece(params UIElement[] parts)
-            {
-                StackPanel piece = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 8, 3) };
-                foreach (UIElement part in parts) piece.Children.Add(part);
-                return piece;
-            }
             WrapPanel row1 = new() { Margin = new Thickness(0, 3, 0, 0) };
             row1.Children.Add(Piece(Caption("Distance"), distanceBox, Caption("NM from touchdown")));
             row1.Children.Add(Piece(Caption("off the centreline"), offsetBox, Caption("NM")));

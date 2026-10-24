@@ -32,11 +32,8 @@ namespace AuroraPAR
             StackPanel panel = new();
             panel.Children.Add(fplList);
             WrapPanel fields = new() { Margin = new Thickness(0, 6, 0, 0) };
-            fields.Children.Add(Caption("Callsign"));
-            fields.Children.Add(fplCallsignBox);
-            fields.Children.Add(Caption("Class"));
-            fields.Children.Add(fplClassBox);
-            fields.Children.Add(PerformanceButton());
+            fields.Children.Add(Piece(Caption("Callsign"), fplCallsignBox));
+            fields.Children.Add(Piece(Caption("Class"), fplClassBox, PerformanceButton()));
             Button newPlan = SmallButton("New FPL");
             newPlan.FontWeight = FontWeights.SemiBold;
             newPlan.ToolTip = "A new flight plan: then make its route in the route editor below.";
@@ -531,6 +528,21 @@ namespace AuroraPAR
                     if (ReferenceEquals(plan, SelectedFpl)) ShowFplFields();
                     else if (ReferenceEquals(plan, routeFpl)) routeFpl = null;
                 }
+            }
+            // A plan waiting in the TRAFFIC LIST that cannot start any more (its points removed, the first one without
+            // altitude or speed): back to Traffic generation, said once.
+            List<string> cannot = [];
+            foreach (FlightPlan plan in flightPlans.Where(p => p.Queued && p.Active == null && CannotStart(p) != null))
+            {
+                plan.Queued = false;
+                trafficShownKey = fplShownKey = "";
+                cannot.Add(plan.Callsign.Length > 0 ? plan.Callsign : "(next free)");
+            }
+            if (cannot.Count > 0)
+            {
+                // After this refresh (not a message box in the middle of it).
+                string names = string.Join(", ", cannot);
+                Dispatcher.BeginInvoke(new Action(() => Warn($"Back to Traffic generation (it cannot start: no route, or the first point without altitude and speed): {names}.")));
             }
             if (flightPlans.RemoveAll(p => p.Quick && p.Active == null && !p.Queued) > 0) trafficShownKey = "";
             // Traffic generation lists the flight plans (not the aircraft made by Quick).

@@ -56,8 +56,10 @@ jobs:
           -p:BuildCommit=${{ github.sha }}
           -o publish-trainer
 
-      - name: Add the user manual to the Trainer
-        run: Copy-Item docs/MANUAL.md publish-trainer/MANUAL.md
+      - name: Add the user manual and the Instructor+ guide to the Trainer
+        run: |
+          Copy-Item docs/MANUAL.md publish-trainer/MANUAL.md
+          Copy-Item docs/TRAINER.md publish-trainer/TRAINER.md
 
       # Checks the map format and the importers (Aurora, EuroScope .ese, AIP table): the build fails if a check fails.
       - name: Self-test of the map format and importers
@@ -87,6 +89,7 @@ jobs:
             publish-trainer/runways.par
             publish-trainer/terrain.par
             publish-trainer/MANUAL.md
+            publish-trainer/TRAINER.md
             publish-trainer/Profiles/
             publish-trainer/Profiles/*.json
 

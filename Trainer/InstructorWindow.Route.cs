@@ -56,36 +56,25 @@ namespace AuroraPAR
             routeEditorBody.Children.Add(routeList);
 
             WrapPanel values = new() { Margin = new Thickness(0, 6, 0, 0) };
-            values.Children.Add(Caption("Altitude"));
-            values.Children.Add(routeAltitudeBox);
-            values.Children.Add(routeAltitudeCaption);
-            values.Children.Add(Caption("speed"));
-            values.Children.Add(routeSpeedBox);
-            values.Children.Add(Caption("kt"));
-            routeSetButton.Margin = new Thickness(8, 0, 4, 0);
+            values.Children.Add(Piece(Caption("Altitude"), routeAltitudeBox, routeAltitudeCaption));
+            values.Children.Add(Piece(Caption("speed"), routeSpeedBox, Caption("kt")));
+            routeSetButton.Margin = new Thickness(0, 0, 4, 3);
             routeSetButton.ToolTip = "Gives this altitude and speed to the point selected in the list.";
             values.Children.Add(routeSetButton);
             routeRemoveButton.ToolTip = "Removes the point selected in the list.";
             routeClearButton.ToolTip = "Removes all the points.";
-            values.Children.Add(routeRemoveButton);
-            values.Children.Add(routeClearButton);
+            values.Children.Add(Piece(routeRemoveButton, routeClearButton));
             routeEditorBody.Children.Add(values);
 
             WrapPanel add = new() { Margin = new Thickness(0, 6, 0, 0) };
-            add.Children.Add(routeClickButton);
-            add.Children.Add(Caption("Name"));
-            add.Children.Add(routeNameBox);
+            add.Children.Add(Piece(routeClickButton));
             Button addName = SmallButton("Add");
-            add.Children.Add(addName);
+            add.Children.Add(Piece(Caption("Name"), routeNameBox, addName));
             routeEditorBody.Children.Add(add);
             WrapPanel addBearingRow = new() { Margin = new Thickness(0, 4, 0, 0) };
-            addBearingRow.Children.Add(Caption("Bearing"));
-            addBearingRow.Children.Add(routeBearingBox);
-            addBearingRow.Children.Add(Caption("°M"));
-            addBearingRow.Children.Add(routeDistanceBox);
-            addBearingRow.Children.Add(Caption("NM from the threshold"));
             Button addBearing = SmallButton("Add");
-            addBearingRow.Children.Add(addBearing);
+            addBearingRow.Children.Add(Piece(Caption("Bearing"), routeBearingBox, Caption("°M")));
+            addBearingRow.Children.Add(Piece(routeDistanceBox, Caption("NM from the threshold"), addBearing));
             routeEditorBody.Children.Add(addBearingRow);
             routeEditorBody.Children.Add(new TextBlock
             {
