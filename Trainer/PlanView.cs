@@ -712,6 +712,16 @@ namespace AuroraPAR
         private static readonly Brush On = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
         private static readonly Brush BorderOff = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8));
 
+        /// <summary>At the top right instead (the Instructor+: the mini-PAR floats at the bottom right), the line under the bar.</summary>
+        public void PlaceTop()
+        {
+            VerticalAlignment = VerticalAlignment.Top;
+            Margin = new Thickness(0, 10, 10, 0);
+            Children.Remove(hint);
+            Children.Add(hint);
+            hint.Margin = new Thickness(0, 4, 0, 0);
+        }
+
         public CentreBar(PlanView view)
         {
             this.view = view;

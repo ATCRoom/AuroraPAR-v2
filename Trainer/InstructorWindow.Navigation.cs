@@ -31,23 +31,29 @@ namespace AuroraPAR
 
         private UIElement BuildNavigation()
         {
-            StackPanel panel = new();
-            StackPanel modes = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            // Narrow: MANUAL | ROUTE and Next WPT; → a point and Go, Route… (Edit route); one line of status. The points
+            // of the route are not listed here: they are on the plan view and in the label's → point list.
+            StackPanel panel = new() { Margin = new Thickness(0, 4, 0, 0) };
+            manualButton.Padding = routeButton.Padding = new Thickness(8, 2, 8, 2);
+            StackPanel modes = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 4, 0) };
             modes.Children.Add(manualButton);
             modes.Children.Add(routeButton);
-            panel.Children.Add(modes);
-            panel.Children.Add(navigationStatus);
-            panel.Children.Add(navigationList);
-            panel.Children.Add(navigationHint);
-            directRow.Children.Add(nextWaypointButton);
-            directRow.Children.Add(Caption("Direct to"));
-            directRow.Children.Add(directBox);
-            directRow.Children.Add(directGoButton);
-            panel.Children.Add(directRow);
-            Button edit = new() { Content = "Edit route…", Padding = new Thickness(10, 2, 10, 2), HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Add, remove and change the points still to fly of the selected aircraft (in a small window)." };
+            nextWaypointButton.Padding = new Thickness(6, 2, 6, 2);
+            panel.Children.Add(Line("NAV", modes, nextWaypointButton));
+            directBox.Width = 96;
+            directBox.Margin = new Thickness(0, 0, 3, 0);
+            directGoButton.Padding = new Thickness(6, 2, 6, 2);
+            Button edit = new() { Content = "Route…", Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(6, 0, 0, 0), ToolTip = "Edit route: add, remove and change the points still to fly of the selected aircraft (in a small window)." };
             edit.Click += (s, e) => OpenRouteWindow();
-            panel.Children.Add(edit);
-
+            panel.Children.Add(Line("", new TextBlock { Text = "→", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) }, directBox, directGoButton, edit));
+            navigationStatus.Height = double.NaN;
+            navigationStatus.TextWrapping = TextWrapping.NoWrap;
+            navigationStatus.HorizontalAlignment = HorizontalAlignment.Left;
+            navigationStatus.TextAlignment = TextAlignment.Left;
+            navigationStatus.Foreground = Brushes.DimGray;
+            navigationStatus.FontSize = 11;
+            navigationStatus.Margin = new Thickness(42, 1, 0, 1);
+            panel.Children.Add(navigationStatus);
             manualButton.Click += (s, e) => ChooseNavigation(false);
             routeButton.Click += (s, e) => ChooseNavigation(true);
             navigationList.MouseDoubleClick += (s, e) =>
@@ -156,7 +162,9 @@ namespace AuroraPAR
             else if (state.Route != null)
                 navigationStatus.Text = $"MANUAL: heading {heading} (route finished)";
             else
-                navigationStatus.Text = $"MANUAL: heading {heading} (no route: Edit route… makes one)";
+                navigationStatus.Text = $"MANUAL: heading {heading} (no route: Route… makes one)";
+            // The whole line when it is longer than the panel.
+            navigationStatus.ToolTip = navigationStatus.Text.Length > 0 ? navigationStatus.Text : null;
 
             // Hidden (not collapsed): the controls below never move.
             Visibility listShown = state != null && !manual && count > 0 ? Visibility.Visible : Visibility.Hidden;

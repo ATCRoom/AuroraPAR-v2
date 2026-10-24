@@ -22,6 +22,8 @@ namespace AuroraPAR
         /// <summary>Instructor+: the mini-PAR under the plan view shown, and its height (pixels).</summary>
         public bool MiniParShown { get; set; } = true;
         public double MiniParHeight { get; set; } = 320;
+        /// <summary>Instructor+: the floating panels (by name): place, open or closed, size.</summary>
+        public Dictionary<string, PanelPlacement>? Panels { get; set; }
         public double HeadingKeyStep { get; set; } = 5;
         public double RateKeyStep { get; set; } = 100;
         public Dictionary<string, string>? Keys { get; set; }
@@ -34,6 +36,16 @@ namespace AuroraPAR
             HeadingKeyStep = double.IsFinite(HeadingKeyStep) ? Math.Clamp(Math.Round(HeadingKeyStep), 1, 10) : 5;
             RateKeyStep = double.IsFinite(RateKeyStep) ? Math.Clamp(Math.Round(RateKeyStep / 10) * 10, 10, 500) : 100;
         }
+    }
+
+    /// <summary>Instructor+: a floating panel: its place in the view (null: its first place), open or closed, its size (null: the first one; resizable panels only).</summary>
+    internal sealed class PanelPlacement
+    {
+        public double? Left { get; set; }
+        public double? Top { get; set; }
+        public bool Open { get; set; } = true;
+        public double? Width { get; set; }
+        public double? Height { get; set; }
     }
 
     /// <summary>

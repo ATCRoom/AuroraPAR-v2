@@ -9,29 +9,28 @@ using ATCRoom.Sim;
 namespace AuroraPAR
 {
     /// <summary>
-    /// AuroraPAR v2 Trainer, Instructor+: the column beside the plan view, in three areas.
-    /// 1 Simulation (opens and closes; Pause and a summary always on its bar): runway, wind, QNH / QFE, Aurora-like
-    ///   data, pilot reaction, callsign prefix.
-    /// 2 Traffic generation: "Quick" (an aircraft at once: on final, 30° / 45° / 90° from left or right, downwind left
+    /// AuroraPAR v2 Trainer, Instructor+: the plan view over the whole window and, floating over it, four panels that
+    /// are moved by their bar, closed to the bar alone and opened again (<see cref="FloatingPanel"/>; places saved):
+    /// SIMULATION (Pause and a summary always on its bar): runway, wind, QNH / QFE, Aurora-like data, pilot reaction,
+    ///   callsign prefix, Remove all.
+    /// TRAFFIC GENERATION: "Quick" (an aircraft at once: on final, 30° / 45° / 90° from left or right, downwind left
     ///   or right) and "Advanced" (flight plans, scenarios, the route of a flight plan).
-    /// 3 Aircraft control: the aircraft flying and everything to fly the selected one (heading, turn rate, rate,
-    ///   altitude, speed, the stick that can be hidden, MANUAL / ROUTE with its points, Next WPT, Direct to, Edit
-    ///   route…, rename, remove).
+    /// AIRCRAFT CONTROL, narrow: the aircraft flying and the commands of the selected one, a row each (heading, turn
+    ///   rate, altitude, rate, speed, MANUAL / ROUTE with Next WPT and Direct to, the stick that can be shown, rename).
+    /// MINI-PAR: the PAR of the student, resizable.
     /// The controls are those of the window (built by the shared code, with their events): they are moved here.
     /// </summary>
     internal sealed partial class InstructorWindow
     {
-        private readonly TextBlock simulationSummary = new() { VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.DimGray, Margin = new Thickness(6, 0, 6, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+        private readonly TextBlock simulationSummary = new() { VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Color.FromRgb(0xB9, 0xC9, 0xDA)), Margin = new Thickness(8, 0, 6, 0), TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 190 };
         private readonly ToggleButton[] startButtons = new ToggleButton[9];
         private int quickStart;
         private readonly Border stickArea = new();
-        private readonly Button stickToggle = new() { FontSize = 10, Padding = new Thickness(6, 0, 6, 0), Focusable = false };
-        private readonly TextBlock altitudeHint = Hint("the route's altitudes until you give one");
-        private readonly TextBlock speedHint = Hint("the route's speeds until you give one");
-        private readonly TextBlock headingHintTrainer = Hint("a heading puts the aircraft in MANUAL");
+        private readonly Button stickToggle = new() { Padding = new Thickness(6, 1, 6, 1), Focusable = false };
+        /// <summary>Under the commands, only in ROUTE: the route's altitudes and speeds are flown until one is given.</summary>
+        private readonly TextBlock routeValuesHint = new() { FontSize = 11, Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 2, 0, 0) };
+        private readonly TextBlock altitudeUnit = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(3, 0, 3, 0) };
         private FrameworkElement? controlArea;
-
-        private static TextBlock Hint(string text) => new() { Text = text, FontSize = 11, Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center, TextWrapping = TextWrapping.Wrap };
 
         /// <summary>Takes an element out of the panel or border it is in.</summary>
         private static T Detach<T>(T element) where T : FrameworkElement
@@ -45,76 +44,54 @@ namespace AuroraPAR
             return element;
         }
 
-        private static Border Area(string title, UIElement content, FrameworkElement? headerRight = null)
+        /// <summary>A row of the narrow panel: its name on the left (a fixed column), then the controls.</summary>
+        private static DockPanel Line(string name, params UIElement[] children)
         {
-            DockPanel header = new() { Margin = new Thickness(0, 0, 0, 3) };
-            if (headerRight != null)
+            DockPanel line = new() { Margin = new Thickness(0, 2, 0, 2), LastChildFill = true };
+            TextBlock caption = new() { Text = name, Width = 40, FontWeight = FontWeights.SemiBold, Foreground = Brushes.DimGray, VerticalAlignment = VerticalAlignment.Center };
+            DockPanel.SetDock(caption, Dock.Left);
+            line.Children.Add(caption);
+            WrapPanel row = new() { VerticalAlignment = VerticalAlignment.Center };
+            foreach (UIElement child in children)
             {
-                DockPanel.SetDock(headerRight, Dock.Right);
-                header.Children.Add(headerRight);
+                if (child is FrameworkElement element && element.Margin == default) element.Margin = new Thickness(0, 0, 3, 0);
+                row.Children.Add(child);
             }
-            header.Children.Add(new TextBlock { Text = title, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Brushes.DimGray, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-            StackPanel stack = new();
-            stack.Children.Add(header);
-            stack.Children.Add(content);
-            return new Border
-            {
-                BorderBrush = Frozen(Color.FromRgb(0xDD, 0xDD, 0xDD)),
-                BorderThickness = new Thickness(1),
-                Background = Frozen(Color.FromRgb(0xFB, 0xFB, 0xFB)),
-                Padding = new Thickness(5),
-                Margin = new Thickness(0, 0, 0, 5),
-                Child = stack
-            };
+            line.Children.Add(row);
+            return line;
         }
 
-        private static StackPanel Row(params UIElement[] children)
+        /// <summary>The place of a panel (saved by name) and what saves it.</summary>
+        private PanelPlacement Placement(string name, bool open)
         {
-            StackPanel row = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 2, 0, 2) };
-            foreach (UIElement child in children) row.Children.Add(child);
-            return row;
+            settings.Panels ??= new Dictionary<string, PanelPlacement>(StringComparer.OrdinalIgnoreCase);
+            if (!settings.Panels.TryGetValue(name, out PanelPlacement? placement) || placement == null)
+            {
+                placement = new PanelPlacement { Open = open };
+                settings.Panels[name] = placement;
+            }
+            return placement;
         }
 
-        private static Expander Section(string number, string title, UIElement content, bool open, UIElement? extra = null)
+        /// <summary>The plan view (with its CENTRE selector) and, over it, the floating panels.</summary>
+        private UIElement BuildTrainerView(PlanView view, MiniParView par)
         {
-            DockPanel header = new() { LastChildFill = true };
-            StackPanel left = new() { Orientation = Orientation.Horizontal };
-            left.Children.Add(new Border
-            {
-                Background = Frozen(Color.FromRgb(0x3A, 0x5F, 0x8A)),
-                CornerRadius = new CornerRadius(9),
-                Width = 18,
-                Height = 18,
-                Margin = new Thickness(0, 0, 6, 0),
-                Child = new TextBlock { Text = number, Foreground = Brushes.White, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
-            });
-            left.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
-            DockPanel.SetDock(left, Dock.Left);
-            header.Children.Add(left);
-            if (extra != null) header.Children.Add(extra);
-            Expander expander = new()
-            {
-                Header = header,
-                Content = new Border { Padding = new Thickness(6, 4, 2, 4), Child = content },
-                IsExpanded = open,
-                Margin = new Thickness(0, 0, 0, 6),
-                Background = Frozen(Color.FromRgb(0xF7, 0xF7, 0xF7)),
-                BorderBrush = Frozen(Color.FromRgb(0xB8, 0xB8, 0xB8)),
-                BorderThickness = new Thickness(1),
-                HorizontalContentAlignment = HorizontalAlignment.Stretch
-            };
-            // The header across the whole bar (its buttons on the right).
-            expander.SizeChanged += (s, e) => header.Width = Math.Max(0, expander.ActualWidth - 36);
-            return expander;
-        }
+            Grid root = new();
+            Grid planHost = new();
+            planHost.Children.Add(view);
+            CentreBar centre = new(view);
+            centre.PlaceTop();
+            planHost.Children.Add(centre);
+            root.Children.Add(planHost);
+            // The panels: on a canvas over the view (no background: a click beside the panels reaches the view).
+            Canvas overlay = new() { ClipToBounds = true };
+            root.Children.Add(overlay);
+            const double left = 10;
+            const double first = 52;
+            const double step = 30;
 
-        /// <summary>The column of the three areas, made from the controls of the window.</summary>
-        private UIElement BuildTrainerColumn()
-        {
-            StackPanel column = new() { Margin = new Thickness(8, 8, 8, 8) };
-
-            // ----- 1 Simulation ---------------------------------------------------------------------------------------
-            StackPanel simulation = new();
+            // ----- Simulation ------------------------------------------------------------------------------------------
+            StackPanel simulation = new() { Margin = new Thickness(0, 0, 0, 2) };
             simulation.Children.Add(Detach((FrameworkElement)referenceText.Parent));
             if (windFromBox.Parent is FrameworkElement windRow) simulation.Children.Add(Detach(windRow));
             if (pauseButton.Parent is FrameworkElement optionsRow)
@@ -129,19 +106,21 @@ namespace AuroraPAR
                 simulation.Children.Add(reactionRow);
             }
             simulation.Children.Add(Detach(noticeText));
-            DockPanel simulationExtra = new();
+            Button removeAll = new() { Content = "Remove all aircraft", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "Removes all the simulated aircraft (the flight plans wait again)." };
+            removeAll.Click += (s, e) => { bridge.Clear(); Refresh(); };
+            simulation.Children.Add(removeAll);
+            StackPanel simulationBar = new() { Orientation = Orientation.Horizontal };
+            simulationBar.Children.Add(simulationSummary);
             pauseButton.FontWeight = FontWeights.SemiBold;
-            pauseButton.Margin = new Thickness(6, 0, 4, 0);
-            DockPanel.SetDock(pauseButton, Dock.Right);
-            simulationExtra.Children.Add(pauseButton);
-            simulationExtra.Children.Add(simulationSummary);
-            Expander simulationSection = Section("1", "Simulation", simulation, settings.SimulationOpen, simulationExtra);
-            simulationSection.Expanded += (s, e) => { settings.SimulationOpen = true; save(); };
-            simulationSection.Collapsed += (s, e) => { settings.SimulationOpen = false; save(); };
-            column.Children.Add(simulationSection);
+            pauseButton.Padding = new Thickness(8, 0, 8, 0);
+            pauseButton.Margin = new Thickness(0);
+            pauseButton.Focusable = false;
+            simulationBar.Children.Add(pauseButton);
+            overlay.Children.Add(new FloatingPanel("SIMULATION", simulation, simulationBar, 440, Placement("Simulation", false),
+                (area, size) => new Point(left, first), save));
 
-            // ----- 2 Traffic generation -------------------------------------------------------------------------------
-            TabControl tabs = new() { Margin = new Thickness(0, 2, 0, 0) };
+            // ----- Traffic generation ----------------------------------------------------------------------------------
+            TabControl tabs = new();
             tabs.Items.Add(new TabItem { Header = "Quick (starts)", Content = BuildQuick() });
             StackPanel advanced = new();
             GroupBox plans = BuildFlightPlans();
@@ -155,21 +134,22 @@ namespace AuroraPAR
             routeEditorHost.Child = routeEditor;
             advanced.Children.Add(routeEditorHost);
             tabs.Items.Add(new TabItem { Header = "Advanced (flight plans, scenarios)", Content = new Border { Padding = new Thickness(4), Child = advanced } });
-            column.Children.Add(Section("2", "Traffic generation", tabs, true));
+            overlay.Children.Add(new FloatingPanel("TRAFFIC GENERATION", tabs, null, 460, Placement("Traffic", false),
+                (area, size) => new Point(left, first + step), save));
 
-            // ----- 3 Aircraft control ---------------------------------------------------------------------------------
-            column.Children.Add(Section("3", "Aircraft control", BuildAircraftControl(), true, KeysButton()));
-            return new ScrollViewer
-            {
-                Content = column,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-            };
+            // ----- Aircraft control ------------------------------------------------------------------------------------
+            overlay.Children.Add(new FloatingPanel("AIRCRAFT CONTROL", BuildAircraftControl(), KeysButton(), 376, Placement("Aircraft", true),
+                (area, size) => new Point(left, first + 2 * step), save));
+
+            // ----- Mini-PAR ---------------------------------------------------------------------------------------------
+            overlay.Children.Add(new FloatingPanel("MINI-PAR", par, null, 640, Placement("MiniPar", true),
+                (area, size) => new Point(area.Width - size.Width - 12, area.Height - size.Height - 12), save, resizable: true, height: 260));
+            return root;
         }
 
         private FrameworkElement KeysButton()
         {
-            Button keys = new() { Content = "Keys…", Padding = new Thickness(8, 0, 8, 0), HorizontalAlignment = HorizontalAlignment.Right, Focusable = false, ToolTip = "Keys for the commands of the selected aircraft (also for a macro keyboard), and their steps." };
+            Button keys = new() { Content = "Keys…", Padding = new Thickness(6, 0, 6, 0), Focusable = false, ToolTip = "Keys for the commands of the selected aircraft (also for a macro keyboard), and their steps." };
             keys.Click += (s, e) => OpenKeysWindow();
             return keys;
         }
@@ -308,14 +288,19 @@ namespace AuroraPAR
 
         // ----- Aircraft control -----------------------------------------------------------------------------------------
 
-        private UIElement BuildAircraftControl()
+        private FrameworkElement BuildAircraftControl()
         {
+            // As wide as the panel (narrower when its scroll bar shows).
             StackPanel panel = new();
-            panel.Children.Add(new TextBlock { Text = "Call      HDG    ALT/HGT   SPD    NM PAR  NAV", FontFamily = new FontFamily("Consolas"), FontSize = 12, Foreground = Brushes.Gray, Margin = new Thickness(4, 0, 0, 2) });
+            panel.Children.Add(new TextBlock { Text = AircraftHeader, FontFamily = new FontFamily("Consolas"), FontSize = 12, Foreground = Brushes.Gray, Margin = new Thickness(4, 0, 0, 2) });
             Detach(list);
-            list.Height = 104;
+            // As high as its rows (up to about six, then it scrolls).
+            list.Height = double.NaN;
+            list.MinHeight = 24;
+            list.MaxHeight = 128;
             list.FontSize = 12;
             list.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
             panel.Children.Add(list);
             // The information in two columns (the shared one, with lines that come and go, is not used here).
             Detach(info);
@@ -331,91 +316,84 @@ namespace AuroraPAR
             if (bestValue.Parent is FrameworkElement stack && stack.Parent is FrameworkElement border && border.Parent is FrameworkElement readouts)
             {
                 Detach(readouts);
-                readouts.Margin = new Thickness(0, 0, 0, 6);
+                readouts.Margin = new Thickness(0, 0, 0, 4);
                 control.Children.Add(readouts);
             }
 
-            Grid grid = new();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            // Left: heading, turn rate, rate, altitude, speed.
-            StackPanel left = new() { Margin = new Thickness(0, 0, 4, 0) };
-            RepeatButton headingLeft = StepKey("◀ L", "Heading 1° left (held: repeats). After the pilot reaction.");
+            // Heading and turn rate.
+            RepeatButton headingLeft = StepKey("◀", "Heading 1° left (held: repeats). After the pilot reaction. A heading puts the aircraft in MANUAL.");
             headingLeft.Click += (s, e) => StepHeading(-1);
-            RepeatButton headingRight = StepKey("R ▶", "Heading 1° right (held: repeats). After the pilot reaction.");
+            RepeatButton headingRight = StepKey("▶", "Heading 1° right (held: repeats). After the pilot reaction. A heading puts the aircraft in MANUAL.");
             headingRight.Click += (s, e) => StepHeading(1);
+            headingLeft.MinWidth = headingRight.MinWidth = 26;
             Detach(headingBox);
+            headingBox.Margin = new Thickness(0, 0, 3, 0);
             Detach(finalCourseButton);
-            finalCourseButton.Margin = new Thickness(4, 0, 0, 0);
-            finalCourseButton.Padding = new Thickness(6, 3, 6, 3);
-            StackPanel turns = Row();
-            // 3°/s, FREE, 1.5°/s (the buttons of the shared code: 0 half, 1 rate one, 2 free).
-            string[] turnTexts = ["1.5°/s", "3°/s", "FREE"];
+            finalCourseButton.Padding = new Thickness(6, 2, 6, 2);
+            control.Children.Add(Line("HDG", headingLeft, headingBox, headingRight, finalCourseButton));
+            // 3°/s, FREE, 1.5°/s (the buttons of the shared code: 0 half, 1 rate one, 2 free), STOP TURN.
+            List<UIElement> turns = [];
+            string[] turnTexts = ["1.5°", "3°", "FREE"];
             foreach (int i in new[] { 1, 2, 0 })
             {
                 Button button = Detach(turnButtons[i]);
                 button.Content = turnTexts[i];
-                button.MinWidth = 54;
-                button.Margin = new Thickness(2, 0, 2, 0);
-                turns.Children.Add(button);
+                button.MinWidth = 38;
+                button.Padding = new Thickness(4, 2, 4, 2);
+                button.Margin = new Thickness(0, 0, 1, 0);
+                turns.Add(button);
             }
-            Button stopTurn = new() { Content = "STOP TURN", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once." };
+            Button stopTurn = new() { Content = "STOP TURN", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(6, 0, 0, 0), ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once." };
             stopTurn.Click += (s, e) => StopTurn();
-            StackPanel heading = new();
-            heading.Children.Add(Row(headingLeft, headingBox, headingRight, finalCourseButton));
-            heading.Children.Add(turns);
-            heading.Children.Add(Row(stopTurn));
-            heading.Children.Add(headingHintTrainer);
-            left.Children.Add(Area("HEADING °M", heading));
+            turns.Add(stopTurn);
+            control.Children.Add(Line("", turns.ToArray()));
 
-            RepeatButton up = StepKey("▲ UP", "Rate 50 ft/min up: less descent (held: repeats; stops once at the Normal rate). After the pilot reaction.");
-            up.Click += (s, e) => StepRate(RateKeyStep);
-            RepeatButton down = StepKey("▼ DN", "Rate 50 ft/min down: more descent (held: repeats; stops once at the Normal rate). After the pilot reaction.");
-            down.Click += (s, e) => StepRate(-RateKeyStep);
-            Detach(rateBox);
-            rateBox.Width = 60;
-            rateBox.Margin = new Thickness(3, 0, 3, 0);
-            Detach(normalButton);
-            normalButton.Margin = new Thickness(4, 0, 0, 0);
-            normalButton.Padding = new Thickness(6, 3, 6, 3);
-            Button stopVertical = new() { Content = "STOP CLIMB/DESCENT", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), ToolTip = "Stop climb / descent: the aircraft levels off where it is (after the pilot reaction). From then on the route's altitudes are not flown." };
-            stopVertical.Click += (s, e) => StopVertical();
-            StackPanel rate = new();
-            rate.Children.Add(Row(up, rateBox, down, normalButton));
-            rate.Children.Add(Row(stopVertical));
-            left.Children.Add(Area("RATE ft/min", rate));
-
+            // Altitude (with the rate to reach it).
             Detach(altitudeBox);
             Detach(altitudeRateBox);
-            Detach(altitudeCaption);
+            altitudeBox.Margin = new Thickness(0);
+            altitudeRateBox.Margin = new Thickness(0, 0, 3, 0);
             Button giveAltitude = SmallButton("Go");
             giveAltitude.FontWeight = FontWeights.SemiBold;
-            giveAltitude.Margin = new Thickness(4, 0, 0, 0);
+            giveAltitude.Margin = new Thickness(3, 0, 0, 0);
             giveAltitude.Click += (s, e) => GiveAltitude();
-            StackPanel altitude = new();
-            altitude.Children.Add(altitudeCaption);
-            altitude.Children.Add(Row(altitudeBox, Caption("at"), altitudeRateBox, Caption("ft/min"), giveAltitude));
-            altitude.Children.Add(altitudeHint);
-            left.Children.Add(Area("", altitude));
+            control.Children.Add(Line("ALT", altitudeBox, altitudeUnit, altitudeRateBox, Caption("ft/min"), giveAltitude));
 
+            // Rate.
+            RepeatButton up = StepKey("▲", "Rate up: less descent (held: repeats; stops once at the Normal rate). After the pilot reaction.");
+            up.Click += (s, e) => StepRate(RateKeyStep);
+            RepeatButton down = StepKey("▼", "Rate down: more descent (held: repeats; stops once at the Normal rate). After the pilot reaction.");
+            down.Click += (s, e) => StepRate(-RateKeyStep);
+            up.MinWidth = down.MinWidth = 26;
+            Detach(rateBox);
+            rateBox.Width = 54;
+            rateBox.Margin = new Thickness(0, 0, 3, 0);
+            Detach(normalButton);
+            normalButton.Padding = new Thickness(6, 2, 6, 2);
+            Button stopVertical = new() { Content = "STOP", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), ToolTip = "Stop climb / descent: the aircraft levels off where it is (after the pilot reaction). From then on the route's altitudes are not flown." };
+            stopVertical.Click += (s, e) => StopVertical();
+            control.Children.Add(Line("RATE", up, rateBox, down, normalButton, stopVertical));
+
+            // Speed.
             Detach(speedBox);
             Button giveSpeed = SmallButton("Go");
             giveSpeed.FontWeight = FontWeights.SemiBold;
-            giveSpeed.Margin = new Thickness(4, 0, 0, 0);
+            giveSpeed.Margin = new Thickness(3, 0, 0, 0);
             giveSpeed.Click += (s, e) => GiveSpeed();
-            StackPanel speed = new();
-            speed.Children.Add(Row(speedBox, giveSpeed));
-            speed.Children.Add(speedHint);
-            left.Children.Add(Area("SPEED kt", speed));
-            grid.Children.Add(left);
+            speedBox.Margin = new Thickness(0);
+            control.Children.Add(Line("SPD", speedBox, Caption("kt"), giveSpeed));
 
-            // Right: the stick (can be hidden), navigation, service.
-            StackPanel right = new() { Margin = new Thickness(4, 0, 0, 0) };
+            // Navigation (Trainer/InstructorWindow.Navigation.cs).
+            control.Children.Add(BuildNavigation());
+            routeValuesHint.Text = "In ROUTE the route's altitudes and speeds are flown until you give one.";
+            control.Children.Add(routeValuesHint);
+
+            // The stick (shown or not), a real joystick, the name.
             if (pad.Parent is FrameworkElement padBorder)
             {
                 Detach(padBorder);
                 padBorder.HorizontalAlignment = HorizontalAlignment.Center;
+                padBorder.Margin = new Thickness(0, 4, 0, 2);
                 stickArea.Child = padBorder;
             }
             stickToggle.Click += (s, e) =>
@@ -424,36 +402,39 @@ namespace AuroraPAR
                 save();
                 ShowStick();
             };
-            right.Children.Add(Area("STICK (also a joystick)", stickArea, stickToggle));
-            ShowStick();
-            right.Children.Add(Area("NAVIGATION", BuildNavigation()));
-
-            WrapPanel service = new() { HorizontalAlignment = HorizontalAlignment.Center };
-            Detach(renameBox);
-            Button rename = SmallButton("Rename");
-            rename.Click += (s, e) => Rename();
-            Button remove = SmallButton("Remove");
-            remove.Click += (s, e) => { if (SelectedCallsign is string callsign) bridge.Engine.Remove(callsign); Refresh(); };
-            Button removeAll = SmallButton("Remove all");
-            removeAll.Click += (s, e) => { bridge.Clear(); Refresh(); };
-            service.Children.Add(renameBox);
-            service.Children.Add(rename);
-            service.Children.Add(remove);
-            service.Children.Add(removeAll);
+            List<UIElement> stickRow = [stickToggle];
             if (openJoystick != null)
             {
-                Button joystick = SmallButton("Joystick...");
+                Button joystick = SmallButton("Joystick…");
+                joystick.Padding = new Thickness(6, 1, 6, 1);
+                joystick.Margin = new Thickness(4, 0, 0, 0);
                 joystick.ToolTip = "A real joystick or gamepad: device, buttons, live test.";
                 joystick.Click += (s, e) => openJoystick(this);
-                service.Children.Add(joystick);
+                stickRow.Add(joystick);
             }
-            foreach (UIElement child in service.Children) if (child is FrameworkElement element) element.Margin = new Thickness(2, 2, 2, 2);
-            right.Children.Add(service);
-            Grid.SetColumn(right, 1);
-            grid.Children.Add(right);
-            control.Children.Add(grid);
+            DockPanel stickLine = Line("STICK", stickRow.ToArray());
+            stickLine.Margin = new Thickness(0, 6, 0, 2);
+            control.Children.Add(stickLine);
+            control.Children.Add(stickArea);
+            ShowStick();
+
+            Detach(renameBox);
+            renameBox.Margin = new Thickness(0);
+            Button rename = SmallButton("Rename");
+            rename.Padding = new Thickness(6, 1, 6, 1);
+            rename.Margin = new Thickness(3, 0, 0, 0);
+            rename.Click += (s, e) => Rename();
+            control.Children.Add(Line("NAME", renameBox, rename));
             controlArea = control;
             panel.Children.Add(control);
+            panel.Children.Add(new TextBlock
+            {
+                Text = "Also on the radar: click or wheel on the label, right click on an aircraft (Pause, Rename, Remove…), drag the route points.",
+                FontSize = 11,
+                Foreground = Brushes.Gray,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(2, 6, 0, 0)
+            });
             return panel;
         }
 
@@ -490,11 +471,10 @@ namespace AuroraPAR
             simulationSummary.Text = string.Format(CultureInfo.InvariantCulture, "{0} · {1} · {2} · reaction {3:0.0} s",
                 runway?.DisplayName ?? "no runway", wind, Qfe ? "QFE" : "QNH", bridge.Engine.ReactionSeconds);
             if (controlArea != null) controlArea.IsEnabled = state != null;
-            bool routeValues = state != null && state.Route != null && state.Navigation != NavigationMode.Manual;
-            // The hints keep their place when not shown (Hidden, not Collapsed): the controls never move.
-            altitudeHint.Visibility = routeValues && state!.RouteAltitude ? Visibility.Visible : Visibility.Hidden;
-            speedHint.Visibility = routeValues && state!.RouteSpeed ? Visibility.Visible : Visibility.Hidden;
-            headingHintTrainer.Visibility = state != null && state.Navigation != NavigationMode.Manual ? Visibility.Visible : Visibility.Hidden;
+            bool routeValues = state != null && state.Route != null && state.Navigation != NavigationMode.Manual && (state.RouteAltitude || state.RouteSpeed);
+            // At the bottom of the commands: nothing moves when it comes and goes.
+            routeValuesHint.Visibility = routeValues ? Visibility.Visible : Visibility.Collapsed;
+            altitudeUnit.Text = Qfe ? "QFE at" : "QNH at";
             // While the route turns the aircraft the heading box follows, so that the keys and ◀ L / R ▶ start from the
             // heading it is flying (a heading given puts it in MANUAL at once, and then the box is left as typed).
             if (state != null && state.Navigation != NavigationMode.Manual && !headingBox.IsKeyboardFocused)
@@ -513,15 +493,15 @@ namespace AuroraPAR
         private string? pendingFor;
         private int lastPending;
 
-        private readonly TextBlock infoLeft = new() { Height = 51, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 17, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 4, 0, 4) };
-        private readonly TextBlock infoRight = new() { Height = 51, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 17, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(8, 4, 0, 4) };
+        private readonly TextBlock infoLeft = new() { FontSize = 11, Height = 45, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 15, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(2, 3, 0, 3) };
+        private readonly TextBlock infoRight = new() { FontSize = 11, Height = 45, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, LineHeight = 15, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(6, 3, 0, 3) };
 
         /// <summary>The information of the selected aircraft in two columns of three lines each (always three: nothing moves).</summary>
         private void ShowInformation(AircraftState? state)
         {
             if (state == null)
             {
-                infoLeft.Text = bridge.Count == 0 ? "No simulated aircraft:\ncreate one (Quick) or activate a flight plan." : "";
+                infoLeft.Text = bridge.Count == 0 ? "No simulated aircraft:\nTraffic generation → Quick,\nor Activate a flight plan." : "";
                 infoRight.Text = "";
                 return;
             }
@@ -542,28 +522,44 @@ namespace AuroraPAR
                 state.PendingCommands > 0 ? $"pilot: {state.PendingCommands} pending" : "");
         }
 
+        /// <summary>The header of the aircraft list (as the rows of <see cref="ShowAircraftRow"/>).</summary>
+        private static readonly string AircraftHeader = string.Format(CultureInfo.InvariantCulture, "{0,-7} {1,6} {2,3} {3,4} {4} {5}", "Call", "ALT", "SPD", "NM", "P", "NAV");
+
         /// <summary>
-        /// A row of the aircraft list: its text and, on the right, Pause / Unpause (only this aircraft held where it is),
-        /// Reactivate (an aircraft of a flight plan starts again from the first point of its plan) and Remove. The row is
-        /// made once and then only changed, so a click on its buttons is never lost under a refresh.
+        /// A row of the aircraft list, short for the narrow panel (callsign, altitude with ↑↓, speed, distance from
+        /// touchdown, seen by the PAR ● / ○, navigation) and, on the right, II / ▶ (Pause / Unpause: only this aircraft
+        /// held where it is), ↺ (Reactivate: an aircraft of a flight plan starts again from the first point of its plan)
+        /// and ✕ (Remove). The row is made once and then only changed, so a click on its buttons is never lost under a
+        /// refresh. (<paramref name="text"/>: the long row of the shared window, not used here.)
         /// </summary>
         private void ShowAircraftRow(ListBoxItem item, AircraftState state, string text)
         {
             string callsign = state.Callsign;
-            if (state.Frozen) text = text.Replace(" FRZ", "");
-            text = $"{text}  {(state.Frozen ? "PAUSED" : NavText(state))}";
+            Runway? runway = bridge.Reference;
+            Aircraft? position = bridge.LastPosition(callsign);
+            string distance = position != null && runway != null ? position.DistanceFromTouchdown(runway).ToString("0.0", CultureInfo.InvariantCulture) : "--";
+            string seen = position != null && isSeen(position) ? "●" : "○";
+            double altitude = Qfe ? state.AltitudeFt - Elevation : state.AltitudeFt;
+            string climbing = state.VerticalSpeedFpm > 50 ? "↑" : state.VerticalSpeedFpm < -50 ? "↓" : " ";
+            string navigation = state.Contact switch
+            {
+                GroundContact.Landed => "LANDED",
+                GroundContact.OnGround => "GROUND",
+                _ => state.Frozen ? "PAUSED" : NavShort(state)
+            };
+            text = string.Format(CultureInfo.InvariantCulture, "{0,-7} {1,5:0}{2} {3,3:0} {4,4} {5} {6}",
+                callsign.Length > 7 ? callsign[..7] : callsign, altitude, climbing, state.SpeedKt, distance, seen, navigation);
             if (item.Content is not DockPanel { Tag: RowParts parts })
             {
-                TextBlock label = new() { VerticalAlignment = VerticalAlignment.Center };
-                Button pause = RowButton("Pause");
-                Button reactivate = RowButton("Reactivate");
-                Button remove = RowButton("Remove");
+                TextBlock label = new() { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+                Button pause = RowButton("II");
+                Button reactivate = RowButton("↺");
+                Button remove = RowButton("✕");
                 pause.Click += (s, e) => { if (item.Tag is string name && bridge.Engine.Get(name) is AircraftState now) bridge.Engine.SetFrozen(name, !now.Frozen); Refresh(); };
                 reactivate.Click += (s, e) => { if (item.Tag is string name) Reactivate(name); };
                 remove.Click += (s, e) => { if (item.Tag is string name) bridge.Engine.Remove(name); Refresh(); };
-                pause.ToolTip = "Pause: only this aircraft stays where it is (the others go on); Unpause: it goes on from there.";
-                reactivate.ToolTip = "The aircraft of a flight plan starts again from the first point of its plan.";
-                remove.ToolTip = "Removes this aircraft (its flight plan, if any, waits again).";
+                reactivate.ToolTip = "Reactivate: the aircraft of a flight plan starts again from the first point of its plan.";
+                remove.ToolTip = "Remove this aircraft (its flight plan, if any, waits again).";
                 DockPanel row = new() { LastChildFill = true };
                 foreach (Button button in new[] { remove, reactivate, pause })
                 {
@@ -577,8 +573,21 @@ namespace AuroraPAR
                 item.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             }
             if (parts.Label.Text != text) parts.Label.Text = text;
-            parts.Pause.Content = state.Frozen ? "Unpause" : "Pause";
+            parts.Label.ToolTip = $"{callsign}: {(state.Frozen ? "PAUSED" : NavText(state))}";
+            parts.Pause.Content = state.Frozen ? "▶" : "II";
+            parts.Pause.ToolTip = state.Frozen ? "Unpause: it goes on from where it is." : "Pause: only this aircraft stays where it is (the others go on).";
             parts.Reactivate.Visibility = flightPlans.Any(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>The NAV column of the narrow list: →point (ROUTE), RTE? (ROUTE waiting for a point), MAN.</summary>
+        private static string NavShort(AircraftState state)
+        {
+            if (state.Navigation == NavigationMode.Route && state.Route != null && state.RouteNext >= 0 && state.RouteNext < state.Route.Count)
+            {
+                string name = state.Route[state.RouteNext].Name.Length > 0 ? state.Route[state.RouteNext].Name : $"P{state.RouteNext + 1}";
+                return "→" + (name.Length > 6 ? name[..6] : name);
+            }
+            return state.Navigation == NavigationMode.RouteArmed ? "RTE?" : "MAN";
         }
 
         /// <summary>The parts of a row of the aircraft list that change.</summary>
@@ -589,8 +598,9 @@ namespace AuroraPAR
             Content = text,
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = 11,
-            Padding = new Thickness(6, 0, 6, 0),
-            Margin = new Thickness(3, 1, 0, 1),
+            Padding = new Thickness(4, 0, 4, 0),
+            MinWidth = 20,
+            Margin = new Thickness(2, 1, 0, 1),
             Focusable = false
         };
 
