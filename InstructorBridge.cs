@@ -96,9 +96,37 @@ namespace AuroraPAR
         /// </summary>
         public string? LoadPerformance(string folder)
         {
-            (List<PerformanceClass> classes, _, string? message) = PerformanceFile.Load(System.IO.Path.Combine(folder, PerformanceFile.FileName));
+            PerformancePath = System.IO.Path.Combine(folder, PerformanceFile.FileName);
+            (List<PerformanceClass> classes, bool readOnly, string? message) = PerformanceFile.Load(PerformancePath);
+            PerformanceReadOnly = readOnly;
             Engine.SetPerformanceClasses(classes);
             return message;
+        }
+
+        /// <summary>Where performance.json is (null: not read yet), and whether it must not be written (a newer version's, or not readable).</summary>
+        public string? PerformancePath { get; private set; }
+        public bool PerformanceReadOnly { get; private set; }
+
+        /// <summary>
+        /// New performance classes (the Aircraft performance window): given to the engine (for the aircraft created from
+        /// now on) and written to performance.json. Returns a message when the file could not be written, else null.
+        /// </summary>
+        public string? SavePerformance(IEnumerable<PerformanceClass> classes)
+        {
+            List<PerformanceClass> list = classes.Select(c => c.Copy()).ToList();
+            Engine.SetPerformanceClasses(list);
+            if (PerformancePath == null) return null;
+            if (PerformanceReadOnly) return $"{PerformanceFile.FileName} was made by a newer version (or could not be read): the new values are used until the program is closed, but not saved.";
+            try
+            {
+                PerformanceFile file = new() { Classes = list };
+                PerformanceFile.Write(PerformancePath, file);
+                return null;
+            }
+            catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+            {
+                return $"{PerformanceFile.FileName} could not be written ({ex.Message}): the new values are used until the program is closed.";
+            }
         }
 
         /// <summary>Positions as Aurora gives them (see <see cref="InstructorSettings.AuroraLike"/>).</summary>

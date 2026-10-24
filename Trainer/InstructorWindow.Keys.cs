@@ -27,6 +27,7 @@ namespace AuroraPAR
             ("StopVertical", "Stop climb/descent"),
             ("Navigation", "MANUAL / ROUTE"),
             ("NextWaypoint", "Next WPT"),
+            ("SlowToFinal", "Slow dwn to final"),
             ("NextAircraft", "Next aircraft"),
             ("Pause", "Pause")
         ];
@@ -87,6 +88,7 @@ namespace AuroraPAR
                 case "StopVertical": StopVertical(); break;
                 case "Navigation": ToggleNavigation(); break;
                 case "NextWaypoint": NextWaypoint(); break;
+                case "SlowToFinal": SlowToFinal(); break;
                 case "NextAircraft":
                     if (list.Items.Count > 0) list.SelectedIndex = (list.SelectedIndex + 1) % list.Items.Count;
                     break;

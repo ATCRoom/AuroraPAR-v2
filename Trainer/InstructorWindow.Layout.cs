@@ -22,7 +22,7 @@ namespace AuroraPAR
     /// </summary>
     internal sealed partial class InstructorWindow
     {
-        private readonly TextBlock simulationSummary = new() { VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Color.FromRgb(0xB9, 0xC9, 0xDA)), Margin = new Thickness(8, 0, 6, 0), TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 190 };
+        private readonly TextBlock simulationSummary = new() { VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Color.FromRgb(0xB9, 0xC9, 0xDA)), Margin = new Thickness(8, 0, 6, 0), TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 250 };
         private readonly ToggleButton[] startButtons = new ToggleButton[9];
         private int quickStart;
         private readonly Border stickArea = new();
@@ -106,17 +106,10 @@ namespace AuroraPAR
                 simulation.Children.Add(reactionRow);
             }
             simulation.Children.Add(Detach(noticeText));
-            Button removeAll = new() { Content = "Remove all aircraft", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "Removes all the simulated aircraft (the flight plans wait again)." };
-            removeAll.Click += (s, e) => { bridge.Clear(); Refresh(); };
-            simulation.Children.Add(removeAll);
-            StackPanel simulationBar = new() { Orientation = Orientation.Horizontal };
-            simulationBar.Children.Add(simulationSummary);
-            pauseButton.FontWeight = FontWeights.SemiBold;
-            pauseButton.Padding = new Thickness(8, 0, 8, 0);
-            pauseButton.Margin = new Thickness(0);
-            pauseButton.Focusable = false;
-            simulationBar.Children.Add(pauseButton);
-            overlay.Children.Add(new FloatingPanel("SIMULATION", simulation, simulationBar, 440, Placement("Simulation", false),
+            Button performance = new() { Content = "Aircraft performance…", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "The performance classes (speeds, initial and final speed, climb, descent, turns): a table to change them." };
+            performance.Click += (s, e) => OpenPerformanceWindow();
+            simulation.Children.Add(performance);
+            overlay.Children.Add(new FloatingPanel("SIMULATION SETTINGS", simulation, simulationSummary, 440, Placement("Simulation", false),
                 (area, size) => new Point(left, first), save));
 
             // ----- Traffic generation ----------------------------------------------------------------------------------
@@ -138,11 +131,18 @@ namespace AuroraPAR
                 (area, size) => new Point(left, first + step), save));
 
             // ----- Aircraft control ------------------------------------------------------------------------------------
-            overlay.Children.Add(new FloatingPanel("AIRCRAFT CONTROL", BuildAircraftControl(), KeysButton(), 376, Placement("Aircraft", true),
+            StackPanel aircraftBar = new() { Orientation = Orientation.Horizontal };
+            aircraftBar.Children.Add(aircraftTitle);
+            aircraftBar.Children.Add(KeysButton());
+            overlay.Children.Add(new FloatingPanel("AIRCRAFT CONTROL", BuildAircraftControl(), aircraftBar, 376, Placement("Aircraft", true),
                 (area, size) => new Point(left, first + 2 * step), save));
 
-            // ----- Mini-PAR ---------------------------------------------------------------------------------------------
-            overlay.Children.Add(new FloatingPanel("MINI-PAR", par, null, 640, Placement("MiniPar", true),
+            // ----- Traffic list ------------------------------------------------------------------------------------------
+            overlay.Children.Add(new FloatingPanel("TRAFFIC LIST", BuildTrafficList(), trafficSummary, 400, Placement("TrafficList", true),
+                (area, size) => new Point(area.Width - size.Width - 12, 84), save));
+
+            // ----- Trainee PAR (the mini-PAR) ---------------------------------------------------------------------------
+            overlay.Children.Add(new FloatingPanel("TRAINEE PAR", par, null, 640, Placement("MiniPar", true),
                 (area, size) => new Point(area.Width - size.Width - 12, area.Height - size.Height - 12), save, resizable: true, height: 260));
             return root;
         }
@@ -199,12 +199,18 @@ namespace AuroraPAR
             row2.Children.Add(newSpeedBox);
             row2.Children.Add(Caption("kt   class"));
             row2.Children.Add(classBox);
+            row2.Children.Add(PerformanceButton());
             row2.Children.Add(Caption("callsign"));
             row2.Children.Add(newCallsignBox);
-            Button create = new() { Content = "Create aircraft", FontWeight = FontWeights.SemiBold, Padding = new Thickness(12, 3, 12, 3), Margin = new Thickness(10, 0, 0, 0) };
-            create.Click += (s, e) => CreateQuick();
-            row2.Children.Add(create);
             panel.Children.Add(row2);
+            WrapPanel row3 = new() { Margin = new Thickness(0, 6, 0, 0) };
+            Button create = new() { Content = "Create & start", FontWeight = FontWeights.SemiBold, Padding = new Thickness(12, 3, 12, 3), Margin = new Thickness(0, 0, 6, 0), ToolTip = "The aircraft is created and starts flying now." };
+            create.Click += (s, e) => CreateQuick(start: true);
+            Button toList = new() { Content = "Move to TFC list", FontWeight = FontWeights.SemiBold, Padding = new Thickness(12, 3, 12, 3), ToolTip = "The aircraft waits in the TRAFFIC LIST (only you see it, grey) until you start it (▶ or Start all)." };
+            toList.Click += (s, e) => CreateQuick(start: false);
+            row3.Children.Add(create);
+            row3.Children.Add(toList);
+            panel.Children.Add(row3);
             panel.Children.Add(new TextBlock { Text = "The aircraft starts level, in MANUAL: heading, rate, altitude and speed are yours (Normal starts the descent).", FontSize = 11, Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 4, 0, 0) });
             ChooseStart(0);
             return panel;
@@ -220,8 +226,8 @@ namespace AuroraPAR
             offsetBox.IsEnabled = index != 0;
         }
 
-        /// <summary>A new aircraft at once, from the start chosen.</summary>
-        private void CreateQuick()
+        /// <summary>A new aircraft from the start chosen: flying at once, or waiting in the TRAFFIC LIST.</summary>
+        private void CreateQuick(bool start)
         {
             Runway? runway = bridge.Reference;
             if (runway == null) return;
@@ -272,6 +278,29 @@ namespace AuroraPAR
                 heading = SimEngine.Normalize(runway.Heading + 180);
             }
             string? callsign = string.IsNullOrWhiteSpace(newCallsignBox.Text) ? null : newCallsignBox.Text;
+            if (!start)
+            {
+                // Waiting in the TRAFFIC LIST: a plan of one point (the start) with its heading.
+                string typed = (callsign ?? "").Trim().ToUpperInvariant();
+                if (typed.Length > 0 && !ValidCallsign(typed))
+                {
+                    Warn("Callsign: 2 to 10 letters or digits, or empty for the next free one.");
+                    return;
+                }
+                if (typed.Length > 0 && (CallsignInPlans(typed, null) || bridge.Engine.IsCallsignTaken(typed) || otherCallsigns().Contains(typed, StringComparer.OrdinalIgnoreCase)))
+                {
+                    typed = NextCallsign(typed);
+                }
+                FlightPlan waiting = NewPlan(typed, classBox.SelectedItem as string ?? ProposedClass(), [new RoutePoint(x, y, altitude, speed)]);
+                waiting.Quick = true;
+                waiting.Queued = true;
+                waiting.StartHeading = heading;
+                flightPlans.Add(waiting);
+                newCallsignBox.Text = "";
+                trafficShownKey = "";
+                Refresh();
+                return;
+            }
             try
             {
                 string name = bridge.Add(x, y, altitude, heading, speed, callsign, otherCallsigns(), classBox.SelectedItem as string);
@@ -292,16 +321,6 @@ namespace AuroraPAR
         {
             // As wide as the panel (narrower when its scroll bar shows).
             StackPanel panel = new();
-            panel.Children.Add(new TextBlock { Text = AircraftHeader, FontFamily = new FontFamily("Consolas"), FontSize = 12, Foreground = Brushes.Gray, Margin = new Thickness(4, 0, 0, 2) });
-            Detach(list);
-            // As high as its rows (up to about six, then it scrolls).
-            list.Height = double.NaN;
-            list.MinHeight = 24;
-            list.MaxHeight = 128;
-            list.FontSize = 12;
-            list.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-            ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
-            panel.Children.Add(list);
             // The information in two columns (the shared one, with lines that come and go, is not used here).
             Detach(info);
             Grid information = new();
@@ -381,7 +400,9 @@ namespace AuroraPAR
             giveSpeed.Margin = new Thickness(3, 0, 0, 0);
             giveSpeed.Click += (s, e) => GiveSpeed();
             speedBox.Margin = new Thickness(0);
-            control.Children.Add(Line("SPD", speedBox, Caption("kt"), giveSpeed));
+            Button slowToFinal = new() { Content = "Slow dwn to final", Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(8, 0, 0, 0), ToolTip = "The final speed of the aircraft's class (Aircraft performance…), after the pilot reaction." };
+            slowToFinal.Click += (s, e) => SlowToFinal();
+            control.Children.Add(Line("SPD", speedBox, Caption("kt"), giveSpeed, slowToFinal));
 
             // Navigation (Trainer/InstructorWindow.Navigation.cs).
             control.Children.Add(BuildNavigation());
@@ -482,6 +503,7 @@ namespace AuroraPAR
                 headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
             }
             ShowInformation(state);
+            RefreshTrafficList(state);
             // An instruction carried out by the pilot (one less waiting): the fields show the new values (after STOP TURN,
             // STOP CLIMB/DESCENT, a heading…), so the keys and buttons start from them.
             int pending = state?.PendingCommands ?? 0;
@@ -501,7 +523,7 @@ namespace AuroraPAR
         {
             if (state == null)
             {
-                infoLeft.Text = bridge.Count == 0 ? "No simulated aircraft:\nTraffic generation → Quick,\nor Activate a flight plan." : "";
+                infoLeft.Text = bridge.Count == 0 ? "No aircraft flying: Traffic\ngeneration (Create & start), or\n▶ in the TRAFFIC LIST." : "";
                 infoRight.Text = "";
                 return;
             }
@@ -612,6 +634,8 @@ namespace AuroraPAR
             bridge.Engine.Remove(callsign);
             plan.Active = null;
             Activate(plan);
+            // Not started again (a question answered No): an aircraft of Quick waits in the TRAFFIC LIST instead of being lost.
+            if (plan.Active == null && plan.Quick) plan.Queued = true;
         }
 
         /// <summary>The NAV column of the list: MANUAL, ROUTE → point, or ROUTE waiting for a point.</summary>

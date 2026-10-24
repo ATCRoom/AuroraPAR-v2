@@ -22,6 +22,14 @@ namespace AuroraPAR
         public double OriginHeading;
         /// <summary>Callsign of the aircraft flying it now, or null (waiting).</summary>
         public string? Active;
+        /// <summary>In the TRAFFIC LIST, waiting to start (▶ or Start all); false: waiting in Traffic generation, or flying.</summary>
+        public bool Queued;
+        /// <summary>
+        /// Made by Quick (Move to TFC list), not a flight plan of Traffic generation: one point (the start) and the
+        /// heading to start with (MANUAL). Not saved in scenarios; gone once its aircraft is gone or it leaves the list.
+        /// </summary>
+        public bool Quick;
+        public double StartHeading;
     }
 
     /// <summary>A point of a saved scenario: latitude and longitude, altitude and speed (null: kept as they are).</summary>

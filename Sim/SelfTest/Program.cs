@@ -258,6 +258,24 @@ const double RunwayHeading = 325.80;
         var again = PerformanceFile.Load(path);
         Check(again.Classes.Select(c => c.Name).SequenceEqual(new[] { "Light", "Turboprop", "Jet" }), "performance.json read back: the same classes");
 
+        List<PerformanceClass> defaults = PerformanceClass.Defaults();
+        Check(defaults[1].ApproachSpeedKt == 140 && defaults[1].FinalSpeedKt == 110 && defaults[2].ApproachSpeedKt == 180 && defaults[2].FinalSpeedKt == 140,
+            "Default speeds: Turboprop 140 / final 110, Jet 180 / final 140");
+
+        string old = "{ \"FormatVersion\": 1, \"Classes\": [ { \"Name\": \"Light\", \"MinSpeedKt\": 60, \"MaxSpeedKt\": 160, \"ApproachSpeedKt\": 90 }, "
+            + "{ \"Name\": \"Turboprop\", \"MinSpeedKt\": 90, \"MaxSpeedKt\": 280, \"ApproachSpeedKt\": 120 }, "
+            + "{ \"Name\": \"Jet\", \"MinSpeedKt\": 120, \"MaxSpeedKt\": 350, \"ApproachSpeedKt\": 150 }, "
+            + "{ \"Name\": \"Heavy\", \"MinSpeedKt\": 130, \"MaxSpeedKt\": 340, \"ApproachSpeedKt\": 160 } ] }";
+        File.WriteAllText(path, old);
+        var upgraded = PerformanceFile.Load(path);
+        var reread = PerformanceFile.Load(path);
+        Check(upgraded.Classes[0].FinalSpeedKt == 70 && upgraded.Classes[1].ApproachSpeedKt == 140 && upgraded.Classes[1].FinalSpeedKt == 110
+            && upgraded.Classes[2].ApproachSpeedKt == 150 && upgraded.Classes[2].FinalSpeedKt == 140
+            && Near(upgraded.Classes[3].FinalSpeedKt, 140, 1e-9) && File.ReadAllText(path).Contains("FinalSpeedKt")
+            && reread.Classes[1].ApproachSpeedKt == 140 && reread.Classes[2].ApproachSpeedKt == 150,
+            "performance.json before the final speed: final speeds added, initial speeds raised only where never changed, file written once",
+            string.Join(" ", upgraded.Classes.Select(c => $"{c.Name} {c.ApproachSpeedKt}/{c.FinalSpeedKt}")));
+
         string newer = "{ \"FormatVersion\": 2, \"Future\": true, \"Classes\": [ { \"Name\": \"Heavy\", \"MinSpeedKt\": 140, \"MaxSpeedKt\": 340, \"ApproachSpeedKt\": 150, \"Wake\": \"H\" } ] }";
         File.WriteAllText(path, newer);
         var future = PerformanceFile.Load(path);

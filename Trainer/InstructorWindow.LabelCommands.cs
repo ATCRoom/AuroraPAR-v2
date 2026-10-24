@@ -286,8 +286,10 @@ namespace AuroraPAR
                         string text = speed.ToString("0", CultureInfo.InvariantCulture);
                         values.Add((text, () => { speedBox.Text = text; GiveSpeed(); }, step == 0, false));
                     }
+                    List<(string Text, Action Act)> speedButtons = [];
+                    if (FinalSpeed(state) is double final) speedButtons.Add(($"Final ({final:0})", SlowToFinal));
                     ShowFieldPopup(at, $"SPEED kt — {callsign}", values, Math.Round(state.TargetSpeedKt).ToString("0", CultureInfo.InvariantCulture),
-                        text => { speedBox.Text = text; GiveSpeed(); });
+                        text => { speedBox.Text = text; GiveSpeed(); }, speedButtons.ToArray());
                     break;
                 }
                 case "WPT":
@@ -336,7 +338,7 @@ namespace AuroraPAR
             {
                 if (!bridge.Engine.SetNavigation(callsign, state.Navigation == NavigationMode.Manual))
                 {
-                    Warn("This aircraft has no route to fly: make one with Edit route… (or start a flight plan with Activate).");
+                    Warn("This aircraft has no route to fly: make one with Edit route… (or start a flight plan from the TRAFFIC LIST).");
                 }
                 Refresh();
             });

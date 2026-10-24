@@ -13,8 +13,10 @@ namespace ATCRoom.Sim
         public string Name { get; set; } = "";
         public double MinSpeedKt { get; set; }
         public double MaxSpeedKt { get; set; }
-        /// <summary>Usual speed on the final (the default speed of a new aircraft of this class).</summary>
+        /// <summary>The initial speed: the default speed of a new aircraft of this class (and of the first point of a new flight plan).</summary>
         public double ApproachSpeedKt { get; set; }
+        /// <summary>The speed on the final, near the threshold ("Slow down to final"); between the minimum and the initial speed.</summary>
+        public double FinalSpeedKt { get; set; }
         public double MaxClimbFpm { get; set; }
         /// <summary>Largest rate of descent (ft/min, positive).</summary>
         public double MaxDescentFpm { get; set; }
@@ -36,13 +38,14 @@ namespace ATCRoom.Sim
             return copy;
         }
 
-        /// <summary>Repairs values written by hand: inside sensible limits, minimum ≤ approach ≤ maximum.</summary>
+        /// <summary>Repairs values written by hand: inside sensible limits, minimum ≤ final ≤ initial (approach) ≤ maximum.</summary>
         public void Normalize()
         {
             Name = (Name ?? "").Trim();
             MinSpeedKt = Clamp(MinSpeedKt, 30, 400, 100);
             MaxSpeedKt = Clamp(MaxSpeedKt, MinSpeedKt + 10, SimEngine.MaxSpeed, Math.Max(MinSpeedKt + 10, 250));
             ApproachSpeedKt = Clamp(ApproachSpeedKt, MinSpeedKt, MaxSpeedKt, (MinSpeedKt + MaxSpeedKt) / 2);
+            FinalSpeedKt = Clamp(FinalSpeedKt, MinSpeedKt, ApproachSpeedKt, MinSpeedKt + (ApproachSpeedKt - MinSpeedKt) / 3);
             MaxClimbFpm = Clamp(MaxClimbFpm, 200, 8000, 2000);
             MaxDescentFpm = Clamp(MaxDescentFpm, 200, 8000, 3000);
             AccelerationKtPerSecond = Clamp(AccelerationKtPerSecond, 0.2, 10, 1.5);
@@ -57,16 +60,45 @@ namespace ATCRoom.Sim
         /// <summary>The classes of a first start: a light aircraft, a turboprop and a jet.</summary>
         public static List<PerformanceClass> Defaults() =>
         [
-            new() { Name = "Light", MinSpeedKt = 60, MaxSpeedKt = 160, ApproachSpeedKt = 90, MaxClimbFpm = 800, MaxDescentFpm = 1500,
+            new() { Name = "Light", MinSpeedKt = 60, MaxSpeedKt = 160, ApproachSpeedKt = 90, FinalSpeedKt = 70, MaxClimbFpm = 800, MaxDescentFpm = 1500,
                 AccelerationKtPerSecond = 2, DecelerationKtPerSecond = 1.5, VerticalAccelerationFpmPerSecond = 400, MaxBankDegrees = 30 },
-            new() { Name = "Turboprop", MinSpeedKt = 90, MaxSpeedKt = 280, ApproachSpeedKt = 120, MaxClimbFpm = 2000, MaxDescentFpm = 3000,
+            new() { Name = "Turboprop", MinSpeedKt = 90, MaxSpeedKt = 280, ApproachSpeedKt = 140, FinalSpeedKt = 110, MaxClimbFpm = 2000, MaxDescentFpm = 3000,
                 AccelerationKtPerSecond = 1.5, DecelerationKtPerSecond = 1, VerticalAccelerationFpmPerSecond = 400, MaxBankDegrees = 30 },
-            new() { Name = "Jet", MinSpeedKt = 120, MaxSpeedKt = 350, ApproachSpeedKt = 140, MaxClimbFpm = 3000, MaxDescentFpm = 4000,
+            new() { Name = "Jet", MinSpeedKt = 120, MaxSpeedKt = 350, ApproachSpeedKt = 180, FinalSpeedKt = 140, MaxClimbFpm = 3000, MaxDescentFpm = 4000,
                 AccelerationKtPerSecond = 1.5, DecelerationKtPerSecond = 1, VerticalAccelerationFpmPerSecond = 300, MaxBankDegrees = 30 }
         ];
 
-        /// <summary>The class a new aircraft gets when none is chosen.</summary>
+        /// <summary>The class a new aircraft gets when none is chosen (by the engine).</summary>
         public const string DefaultName = "Turboprop";
+        /// <summary>The class the Instructor+ proposes for new aircraft and flight plans.</summary>
+        public const string ProposedName = "Jet";
+
+        /// <summary>The final speeds of the first classes (files written before the final speed existed).</summary>
+        private static double FirstFinalSpeed(string name) => name.Trim().ToUpperInvariant() switch
+        {
+            "LIGHT" => 70,
+            "TURBOPROP" => 110,
+            "JET" => 140,
+            _ => 0
+        };
+
+        /// <summary>
+        /// A class of a file written before the final speed existed: the final speed of its name (others: found by
+        /// <see cref="Normalize"/>), and the initial speeds of 24 Oct 2026 where the old ones were never changed
+        /// (Turboprop 120 → 140, Jet 140 → 180). True when something was changed.
+        /// </summary>
+        public bool UpgradeOld()
+        {
+            if (double.IsFinite(FinalSpeedKt) && FinalSpeedKt > 0) return false;
+            string name = (Name ?? "").Trim().ToUpperInvariant();
+            FinalSpeedKt = FirstFinalSpeed(name);
+            // Another class: a third of the way from its minimum to its initial speed (repaired by Normalize if needed).
+            if (FinalSpeedKt == 0) FinalSpeedKt = double.IsFinite(MinSpeedKt) && double.IsFinite(ApproachSpeedKt) && ApproachSpeedKt > MinSpeedKt && MinSpeedKt > 0
+                ? MinSpeedKt + (ApproachSpeedKt - MinSpeedKt) / 3 : 100;
+            if (name == "TURBOPROP" && ApproachSpeedKt == 120) ApproachSpeedKt = 140;
+            if (name == "JET" && ApproachSpeedKt == 140) ApproachSpeedKt = 180;
+            return true;
+        }
     }
 
     /// <summary>
@@ -130,6 +162,13 @@ namespace ATCRoom.Sim
                 if (file.FormatVersion > CurrentFormatVersion)
                 {
                     return (file.NormalizedClasses(), true, $"{FileName} was made by a newer version of AuroraPAR: it is used as far as this version understands it, and not changed.");
+                }
+                // Written before the final speed existed: the new values, and the file written again with them.
+                bool upgraded = false;
+                foreach (PerformanceClass item in file.Classes ?? []) if (item != null && item.UpgradeOld()) upgraded = true;
+                if (upgraded)
+                {
+                    try { Write(path, file); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
                 }
                 return (file.NormalizedClasses(), false, null);
             }

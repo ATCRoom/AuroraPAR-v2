@@ -14,6 +14,22 @@ namespace AuroraPAR
         /// <summary>A point of the selected route was dropped somewhere else: the route's callsign (null: the flight plan being made), the point (its tag), the new place (latitude, longitude) and where (in the view).</summary>
         public event Action<string?, object, double, double, Point>? RoutePointMoved;
 
+        /// <summary>A right click on a point of the selected route: the route's callsign (null: the flight plan being made), the point (its tag), where.</summary>
+        public event Action<string?, object, Point>? RoutePointMenuRequested;
+        /// <summary>The right button pressed on a point of the selected route: its menu opens when the button is let go.</summary>
+        private (string? Callsign, object Tag, Point At)? pendingPointMenu;
+
+        /// <summary>Right button on a point of the selected route (within a few pixels). True: taken.</summary>
+        private bool RouteRightPress(Point at)
+        {
+            pendingPointMenu = null;
+            if (RoutePointMenuRequested == null || routeHandles.Count == 0) return false;
+            (Point At, string? Callsign, object Tag) handle = routeHandles.OrderBy(h => (h.At - at).Length).First();
+            if ((handle.At - at).Length > 7) return false;
+            pendingPointMenu = (handle.Callsign, handle.Tag, at);
+            return true;
+        }
+
         /// <summary>Where the points of the selected routes were drawn the last time (to take one with the mouse).</summary>
         private readonly List<(Point At, string? Callsign, object Tag)> routeHandles = [];
 

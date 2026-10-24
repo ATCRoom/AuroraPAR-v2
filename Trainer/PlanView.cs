@@ -58,6 +58,8 @@ namespace AuroraPAR
         private static readonly Pen RoutePen = Freeze(new Pen(RouteBrush, 1.4));
         private static readonly Pen RouteDraftPen = Freeze(new Pen(RouteBrush, 1.4) { DashStyle = DashStyles.Dash });
         private static readonly Pen RouteOtherPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x2A, 0x6A, 0x88))), 1));
+        private static readonly Brush WaitingBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8A)));
+        private static readonly Pen WaitingPen = Freeze(new Pen(WaitingBrush, 1.2) { DashStyle = DashStyles.Dash });
         private static readonly Typeface MonoFace = new(new FontFamily("Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         private static readonly Typeface MapFace = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         /// <summary>Runways of the other airports of runways.par, and their ICAO.</summary>
@@ -113,6 +115,8 @@ namespace AuroraPAR
 
         /// <summary>The routes of the Instructor+ (only on its plan view).</summary>
         public IReadOnlyList<PlanRoute> Routes { get; set; } = [];
+        /// <summary>Instructor+: the aircraft waiting in the TRAFFIC LIST (not flying yet): where they will start, their name; drawn grey.</summary>
+        public IReadOnlyList<(double Latitude, double Longitude, string Name)> Waiting { get; set; } = [];
 
         /// <summary>A click gives a point of a route (<see cref="PointPicked"/>) instead of selecting a track.</summary>
         public bool PickingPoints
@@ -175,7 +179,13 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
-            if (labelDrag != null)
+            if (labelDrag != null || routeDrag is { Released: false })
+            {
+                e.Handled = true;
+                return;
+            }
+            // A point of the selected route: its menu when the button is let go (Remove WPT…).
+            if (RouteRightPress(e.GetPosition(this)))
             {
                 e.Handled = true;
                 return;
@@ -211,6 +221,13 @@ namespace AuroraPAR
         protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonUp(e);
+            if (pendingPointMenu is { } pointMenu)
+            {
+                pendingPointMenu = null;
+                RoutePointMenuRequested?.Invoke(pointMenu.Callsign, pointMenu.Tag, pointMenu.At);
+                e.Handled = true;
+                return;
+            }
             // The menu of an aircraft opens when the right button is let go (as a context menu).
             if (pendingMenu is (string menuCallsign, Point menuAt))
             {
@@ -586,6 +603,15 @@ namespace AuroraPAR
                     }
                     previous = p;
                 }
+            }
+
+            // Aircraft waiting to start (Instructor+): a grey square where each will start, with its name.
+            foreach ((double latitude, double longitude, string name) in Waiting)
+            {
+                Point p = Place(latitude, longitude);
+                if (!view.Contains(p)) continue;
+                dc.DrawRectangle(null, WaitingPen, new Rect(p.X - 5, p.Y - 5, 10, 10));
+                dc.DrawText(Text($"{name}  WAITING", 10, WaitingBrush, pixelsPerDip), new Point(p.X + 8, p.Y - 6));
             }
 
             // Tracks: history dots, symbol, label.

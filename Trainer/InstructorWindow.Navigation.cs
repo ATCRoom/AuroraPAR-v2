@@ -81,7 +81,7 @@ namespace AuroraPAR
             if (SelectedCallsign is not string callsign) return;
             if (!bridge.Engine.SetNavigation(callsign, route))
             {
-                Warn("This aircraft has no route to fly: make one with Edit route… (or start a flight plan with Activate).");
+                Warn("This aircraft has no route to fly: make one with Edit route… (or start a flight plan from the TRAFFIC LIST).");
             }
             navigationShownKey = "";
             Refresh();

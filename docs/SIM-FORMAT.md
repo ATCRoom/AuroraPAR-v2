@@ -29,8 +29,10 @@ In the folder `Instructor` beside the settings file of AuroraPAR:
 
 ## performance.json
 
-What each kind of aircraft can do. Changes take effect for the aircraft created after the Instructor window is
-opened again; aircraft already flying keep their class.
+What each kind of aircraft can do. In the Trainer it is changed in the window **Aircraft performance…** (Simulation
+settings, or "…" beside a Class box): the new values are for the aircraft created from then on; aircraft already
+flying keep their class. It can also be changed by hand (then: for the aircraft created after the Instructor window
+is opened again).
 
 ```json
 {
@@ -40,7 +42,8 @@ opened again; aircraft already flying keep their class.
       "Name": "Turboprop",
       "MinSpeedKt": 90,
       "MaxSpeedKt": 280,
-      "ApproachSpeedKt": 120,
+      "ApproachSpeedKt": 140,
+      "FinalSpeedKt": 110,
       "MaxClimbFpm": 2000,
       "MaxDescentFpm": 3000,
       "AccelerationKtPerSecond": 1.5,
@@ -56,7 +59,8 @@ opened again; aircraft already flying keep their class.
 | --- | --- | --- |
 | `Name` | name shown in the Instructor window; unique (not case sensitive) | not empty |
 | `MinSpeedKt` / `MaxSpeedKt` | lowest and highest speed an instruction can give | 30–400 / minimum + 10 to 600 |
-| `ApproachSpeedKt` | default speed of a new aircraft of this class | between minimum and maximum |
+| `ApproachSpeedKt` | initial speed: default speed of a new aircraft of this class (and of the first point of a new flight plan) | between minimum and maximum |
+| `FinalSpeedKt` | speed on the final ("Slow dwn to final"); missing in a file written before 24 Oct 2026: added (Light 70, Turboprop 110, Jet 140, others a third of the way from the minimum to the initial speed), and Turboprop 120 → 140, Jet 140 → 180 where they were never changed | between minimum and initial speed |
 | `MaxClimbFpm` / `MaxDescentFpm` | largest climb and descent rates (both positive) | 200–8000 |
 | `AccelerationKtPerSecond` / `DecelerationKtPerSecond` | how fast the speed changes | 0.2–10 |
 | `VerticalAccelerationFpmPerSecond` | how fast the vertical speed changes (also the smoothness of the level-off) | 50–2000 |
@@ -64,14 +68,14 @@ opened again; aircraft already flying keep their class.
 
 Default classes:
 
-| Name | Speeds (min / approach / max) | Climb / descent | Accel. / decel. | Vertical accel. | Bank |
+| Name | Speeds (min / final / initial / max) | Climb / descent | Accel. / decel. | Vertical accel. | Bank |
 | --- | --- | --- | --- | --- | --- |
-| Light | 60 / 90 / 160 | 800 / 1500 | 2 / 1.5 | 400 | 30 |
-| Turboprop | 90 / 120 / 280 | 2000 / 3000 | 1.5 / 1 | 400 | 30 |
-| Jet | 120 / 140 / 350 | 3000 / 4000 | 1.5 / 1 | 300 | 30 |
+| Light | 60 / 70 / 90 / 160 | 800 / 1500 | 2 / 1.5 | 400 | 30 |
+| Turboprop | 90 / 110 / 140 / 280 | 2000 / 3000 | 1.5 / 1 | 400 | 30 |
+| Jet | 120 / 140 / 180 / 350 | 3000 / 4000 | 1.5 / 1 | 300 | 30 |
 
 A new aircraft gets the class chosen in the window; without one (or with a name that is not in the file) the
-`Turboprop`, or the first class of the file.
+`Turboprop`, or the first class of the file. The Instructor+ proposes `Jet` for new aircraft and flight plans.
 
 ## How the engine flies (for the people who change the values)
 

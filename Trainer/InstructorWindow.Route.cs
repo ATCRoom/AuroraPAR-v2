@@ -239,6 +239,80 @@ namespace AuroraPAR
             ChoosePoint(at.X, at.Y, where, (x, y, name) => MovePoint(callsign, moved, x, y, name), () => plan?.EndRouteMove());
         }
 
+        /// <summary>
+        /// A right click on a point of the selected route: Remove WPT; for an aircraft also Direct to this point and Edit
+        /// route… (the flight plan being made is already in the editor).
+        /// </summary>
+        private void OpenRoutePointMenu(string? callsign, object tag, Point where)
+        {
+            if (tag is not RoutePoint point || plan == null) return;
+            ClosePopup();
+            ContextMenu menu = new() { PlacementTarget = plan, Placement = PlacementMode.MousePoint };
+            string owner = callsign ?? (EditedPlan() is FlightPlan edited && edited.Callsign.Length > 0 ? edited.Callsign : "flight plan");
+            menu.Items.Add(new MenuItem { Header = $"{owner} · {PointLabel(point, variation())}", IsEnabled = false });
+            menu.Items.Add(new Separator());
+            MenuItem remove = new() { Header = "Remove WPT", FontWeight = FontWeights.SemiBold };
+            remove.Click += (s, e) => RemoveRoutePoint(callsign, point);
+            menu.Items.Add(remove);
+            if (callsign != null)
+            {
+                MenuItem direct = new() { Header = "Direct to this point" };
+                direct.Click += (s, e) =>
+                {
+                    if (bridge.Engine.Get(callsign) is not AircraftState state || state.Route == null) return;
+                    int index = Enumerable.Range(0, state.Route.Count).FirstOrDefault(i => ReferenceEquals(state.Route[i], point), -1);
+                    if (index < 0)
+                    {
+                        System.Media.SystemSounds.Beep.Play();
+                        return;
+                    }
+                    bridge.Engine.SetNavigation(callsign, true);
+                    bridge.Engine.DirectTo(callsign, index);
+                    Refresh();
+                };
+                menu.Items.Add(direct);
+                menu.Items.Add(new Separator());
+                MenuItem edit = new() { Header = "Edit route…" };
+                edit.Click += (s, e) => { SelectCallsign(callsign); OpenRouteWindow(); };
+                menu.Items.Add(edit);
+            }
+            menu.IsOpen = true;
+        }
+
+        /// <summary>Remove WPT: a point out of the flight plan being made, or out of the points still to fly of an aircraft.</summary>
+        private void RemoveRoutePoint(string? callsign, RoutePoint point)
+        {
+            if (callsign == null)
+            {
+                int at = EditedPlan() is FlightPlan edited ? edited.Points.FindIndex(p => ReferenceEquals(p, point)) : -1;
+                if (at < 0)
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    return;
+                }
+                EditedPlan()!.Points.RemoveAt(at);
+                fplShownKey = routeShownKey = trafficShownKey = "";
+                Refresh();
+                return;
+            }
+            if (bridge.Engine.Get(callsign) is not AircraftState state)
+            {
+                System.Media.SystemSounds.Beep.Play();
+                return;
+            }
+            List<RoutePoint> points = RemainingPoints(state);
+            if (points.RemoveAll(p => ReferenceEquals(p, point)) == 0)
+            {
+                // Passed meanwhile.
+                System.Media.SystemSounds.Beep.Play();
+                return;
+            }
+            if (points.Count == 0) bridge.Engine.ClearRoute(callsign);
+            else bridge.Engine.SetRoute(callsign, points, follow: null);
+            routeShownKey = "";
+            Refresh();
+        }
+
         /// <summary>Moves a point of a route: the flight plan being made (callsign null) or the points still to fly of an aircraft.</summary>
         private void MovePoint(string? callsign, RoutePoint moved, double x, double y, string name)
         {
@@ -517,7 +591,7 @@ namespace AuroraPAR
                 string name = edited.Callsign.Length > 0 ? edited.Callsign : "(next free callsign)";
                 routeStatus.Text = points.Count == 0
                     ? $"Flight plan {name}: no route yet. Add its points (the first one with altitude and speed: the aircraft starts there)."
-                    : $"Flight plan {name}: {Plural(points.Count)}. Activate starts it on the first point.";
+                    : $"Flight plan {name}: {Plural(points.Count)}. TFC LIST, then ▶: it starts on the first point.";
             }
             else if (aircraft != null)
             {
@@ -595,6 +669,16 @@ namespace AuroraPAR
                 bool isSelected = edited == null && string.Equals(state.Callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase);
                 routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(shown, magneticVariation), isSelected, state.Navigation == NavigationMode.Manual, state.Callsign));
             }
+            // The aircraft waiting in the TRAFFIC LIST: their routes dim, a grey square where each will start.
+            List<(double Latitude, double Longitude, string Name)> waiting = [];
+            foreach (FlightPlan queued in flightPlans.Where(p => p.Queued && p.Active == null && p.Points.Count > 0))
+            {
+                if (bridge.ToGeo(queued.Points[0].X, queued.Points[0].Y) is not { } start) continue;
+                waiting.Add((start.Latitude, start.Longitude, queued.Callsign.Length > 0 ? queued.Callsign : "(next)"));
+                if (ReferenceEquals(queued, edited) || queued.Points.Count < 2) continue;
+                routes.Add(new PlanRoute(start.Latitude, start.Longitude, PlacePoints(queued.Points.Skip(1).ToList(), magneticVariation), false, true, null));
+            }
+            plan.Waiting = waiting;
             plan.Routes = routes;
             plan.InvalidateVisual();
         }

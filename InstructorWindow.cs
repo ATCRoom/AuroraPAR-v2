@@ -21,7 +21,7 @@ namespace AuroraPAR
     internal sealed partial class InstructorWindow : Window, IJoystickTarget
     {
 #if TRAINER
-        private const string FooterText = "Click an aircraft on the plan view to select it. Flight plans: New FPL, its route, then Activate when you decide.\nClosing the window removes the simulated aircraft.";
+        private const string FooterText = "Click an aircraft on the plan view to select it. Flight plans: New FPL, its route, TFC LIST, then ▶ in the TRAFFIC LIST when you decide.\nClosing the window removes the simulated aircraft.";
 #else
         private const string FooterText = "Provisional layout: the plan view, the PAR monitor, the modes and the start positions come in the next steps. Closing the window removes the simulated aircraft.";
 #endif
@@ -189,6 +189,7 @@ namespace AuroraPAR
             par.AircraftClicked += SelectCallsign;
             view.PointPicked += AddClickedPoint;
             view.RoutePointMoved += MoveDraggedPoint;
+            view.RoutePointMenuRequested += OpenRoutePointMenu;
             AttachLabelCommands(view);
             list.PreviewMouseLeftButtonUp += (s, e) => AircraftClickedAgain();
             PreviewKeyDown += TrainerKey;
@@ -303,7 +304,7 @@ namespace AuroraPAR
             row2.Children.Add(Caption("class"));
             row2.Children.Add(classBox);
             classBox.ItemsSource = bridge.Engine.Classes.Select(c => c.Name).ToList();
-            classBox.SelectedItem = bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, PerformanceClass.DefaultName, StringComparison.OrdinalIgnoreCase))?.Name ?? bridge.Engine.Classes[0].Name;
+            classBox.SelectedItem = ProposedClass();
             classBox.SelectionChanged += (s, e) =>
             {
                 PerformanceClass? kind = bridge.Engine.Classes.FirstOrDefault(c => string.Equals(c.Name, classBox.SelectedItem as string, StringComparison.OrdinalIgnoreCase));
@@ -673,6 +674,20 @@ namespace AuroraPAR
         private AircraftState? Selected() => SelectedCallsign is string callsign ? bridge.Engine.Get(callsign) : null;
 
         private bool Qfe => qfeRadio.IsChecked == true;
+
+        /// <summary>The class proposed for a new aircraft: the Jet (else the engine's default, else the first class).</summary>
+        private string ProposedClass()
+        {
+            IReadOnlyList<PerformanceClass> classes = bridge.Engine.Classes;
+#if TRAINER
+            string proposed = PerformanceClass.ProposedName;
+#else
+            string proposed = PerformanceClass.DefaultName;
+#endif
+            return classes.FirstOrDefault(c => string.Equals(c.Name, proposed, StringComparison.OrdinalIgnoreCase))?.Name
+                ?? classes.FirstOrDefault(c => string.Equals(c.Name, PerformanceClass.DefaultName, StringComparison.OrdinalIgnoreCase))?.Name
+                ?? classes[0].Name;
+        }
 
         private double Elevation => bridge.Reference?.Elevation ?? 0;
 
