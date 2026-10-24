@@ -58,6 +58,9 @@ namespace AuroraPAR
         private static readonly Pen RoutePen = Freeze(new Pen(RouteBrush, 1.4));
         private static readonly Pen RouteDraftPen = Freeze(new Pen(RouteBrush, 1.4) { DashStyle = DashStyles.Dash });
         private static readonly Pen RouteOtherPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x2A, 0x6A, 0x88))), 1));
+        private static readonly Brush BeamFill = Freeze(new SolidColorBrush(Color.FromArgb(0x30, 0x40, 0xD0, 0x60)));
+        private static readonly Pen BeamPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromArgb(0x90, 0x40, 0xD0, 0x60))), 1));
+        private static readonly Pen ScanPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromArgb(0x90, 0x40, 0xD0, 0x60))), 1) { DashStyle = DashStyles.Dash });
         private static readonly Brush WaitingBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8A)));
         private static readonly Pen WaitingPen = Freeze(new Pen(WaitingBrush, 1.2) { DashStyle = DashStyles.Dash });
         private static readonly Typeface MonoFace = new(new FontFamily("Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
@@ -115,6 +118,14 @@ namespace AuroraPAR
 
         /// <summary>The routes of the Instructor+ (only on its plan view).</summary>
         public IReadOnlyList<PlanRoute> Routes { get; set; } = [];
+        /// <summary>
+        /// Instructor+: where the student's PAR sees the aircraft, seen from above (BEAM): the azimuth scan limits (an
+        /// outline: the elevation view sees between them) and the azimuth beam (filled: the azimuth view), each a triangle
+        /// from the antenna to the end of the range (latitude, longitude). Drawn only with <see cref="ShowBeam"/>.
+        /// </summary>
+        public IReadOnlyList<(double Latitude, double Longitude)> ScanSector { get; set; } = [];
+        public IReadOnlyList<(double Latitude, double Longitude)> BeamSector { get; set; } = [];
+        public bool ShowBeam { get; set; }
         /// <summary>Instructor+: the aircraft waiting in the TRAFFIC LIST (not flying yet): where they will start, their name; drawn grey.</summary>
         public IReadOnlyList<(double Latitude, double Longitude, string Name)> Waiting { get; set; } = [];
 
@@ -581,6 +592,23 @@ namespace AuroraPAR
                 dc.DrawLine(CentrelinePen, at - across * half, at + across * half);
             }
 
+            // The student's PAR seen from above (BEAM): the beam filled, the scan limits outlined.
+            if (ShowBeam)
+            {
+                foreach ((IReadOnlyList<(double Latitude, double Longitude)> sector, bool filled) in new[] { (BeamSector, true), (ScanSector, false) })
+                {
+                    if (sector.Count < 3) continue;
+                    StreamGeometry shape = new();
+                    using (StreamGeometryContext context = shape.Open())
+                    {
+                        context.BeginFigure(Place(sector[0].Latitude, sector[0].Longitude), filled, true);
+                        for (int i = 1; i < sector.Count; i++) context.LineTo(Place(sector[i].Latitude, sector[i].Longitude), true, false);
+                    }
+                    shape.Freeze();
+                    dc.DrawGeometry(filled ? BeamFill : null, filled ? BeamPen : ScanPen, shape);
+                }
+            }
+
             // Routes of the Instructor+: the others dim, then the selected one with its names and values.
             foreach (PlanRoute route in Routes.OrderBy(r => r.Selected))
             {
@@ -737,6 +765,36 @@ namespace AuroraPAR
         private static readonly Brush Off = new SolidColorBrush(Color.FromArgb(0xE0, 0x2A, 0x3A, 0x4A));
         private static readonly Brush On = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
         private static readonly Brush BorderOff = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8));
+
+        /// <summary>
+        /// A switch after the CENTRE buttons (the Instructor+: BEAM): lit while on; <paramref name="changed"/> gets the new state.
+        /// </summary>
+        public void AddSwitch(string text, string tip, bool on, Action<bool> changed)
+        {
+            if (Children.OfType<Border>().FirstOrDefault()?.Child is not StackPanel row) return;
+            row.Children.Add(new Border { Width = 1, Background = BorderOff, Margin = new Thickness(8, 2, 8, 2) });
+            Button button = new()
+            {
+                Content = text,
+                ToolTip = tip,
+                Focusable = false,
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.White,
+                BorderBrush = BorderOff,
+                BorderThickness = new Thickness(1.5)
+            };
+            void Show() => button.Background = on ? On : Off;
+            button.Click += (s, e) =>
+            {
+                on = !on;
+                Show();
+                changed(on);
+            };
+            Show();
+            row.Children.Add(button);
+        }
 
         /// <summary>At the top right instead (the Instructor+: the mini-PAR floats at the bottom right), the line under the bar.</summary>
         public void PlaceTop()

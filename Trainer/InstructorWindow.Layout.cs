@@ -81,6 +81,9 @@ namespace AuroraPAR
             planHost.Children.Add(view);
             CentreBar centre = new(view);
             centre.PlaceTop();
+            view.ShowBeam = settings.BeamShown;
+            centre.AddSwitch("BEAM", "Where the student's PAR sees the aircraft (from above): the azimuth beam filled, the scan limits dashed. The height limits are in the TRAINEE PAR.",
+                settings.BeamShown, on => { settings.BeamShown = on; save(); view.ShowBeam = on; view.InvalidateVisual(); });
             planHost.Children.Add(centre);
             root.Children.Add(planHost);
             // The panels: on a canvas over the view (no background: a click beside the panels reaches the view).

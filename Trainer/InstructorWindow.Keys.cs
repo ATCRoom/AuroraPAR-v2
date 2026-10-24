@@ -29,7 +29,7 @@ namespace AuroraPAR
             ("NextWaypoint", "Next WPT"),
             ("SlowToFinal", "Slow dwn to final"),
             ("NextAircraft", "Next aircraft"),
-            ("Pause", "Pause")
+            ("Pause", "PAUSE ALL / RESUME ALL")
         ];
 
         /// <summary>Keys at the start: for a macro keyboard of 6 keys and a knob (knob: heading and Final CRS).</summary>

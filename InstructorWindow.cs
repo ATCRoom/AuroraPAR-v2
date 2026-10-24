@@ -151,7 +151,7 @@ namespace AuroraPAR
             reactionBox.Text = settings.ReactionSeconds.ToString("0.0", CultureInfo.InvariantCulture);
             bridge.Engine.ReactionSeconds = settings.ReactionSeconds;
             ShowTurnMode(null);
-            pauseButton.Content = bridge.Engine.Paused ? "Resume" : "Pause";
+            pauseButton.Content = PauseText(bridge.Engine.Paused);
             ShowWindMagnetic();
             refresh.Tick += (s, e) => Refresh();
             Loaded += (s, e) => { refresh.Start(); Refresh(); };
@@ -675,6 +675,13 @@ namespace AuroraPAR
 
         private bool Qfe => qfeRadio.IsChecked == true;
 
+#if TRAINER
+        /// <summary>The Instructor+: PAUSE ALL / RESUME ALL (each aircraft has its own pause in the TRAFFIC LIST).</summary>
+        private static string PauseText(bool paused) => paused ? "RESUME ALL" : "PAUSE ALL";
+#else
+        private static string PauseText(bool paused) => paused ? "Resume" : "Pause";
+#endif
+
         /// <summary>The class proposed for a new aircraft: the Jet (else the engine's default, else the first class).</summary>
         private string ProposedClass()
         {
@@ -694,7 +701,7 @@ namespace AuroraPAR
         private void TogglePause()
         {
             bridge.Engine.Paused = !bridge.Engine.Paused;
-            pauseButton.Content = bridge.Engine.Paused ? "Resume" : "Pause";
+            pauseButton.Content = PauseText(bridge.Engine.Paused);
         }
 
         private void SetAuroraLike(bool on)

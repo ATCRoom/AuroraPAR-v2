@@ -483,7 +483,36 @@ namespace AuroraPAR
             instructorView.SignText = instructor.Count > 0 ? "SIM TRAFFIC" : "";
             instructorView.Layers = radarPanel.View.Layers;
             instructorView.MapAirports = radarPanel.View.MapAirports;
+            // BEAM: where the student's PAR sees the aircraft, from above (it follows the antenna's tilt).
+            instructorView.ScanSector = PlanSector(radar.ScanLeftEdge, radar.ScanRightEdge);
+            instructorView.BeamSector = PlanSector(radar.AzimuthLeftEdge, radar.AzimuthRightEdge);
             instructorView.InvalidateVisual();
+        }
+
+        /// <summary>
+        /// A sector of the PAR seen from above: from the antenna (middle of the runway, with its offset) to the end of the
+        /// range, between two azimuth angles (signed, positive right as seen by the pilot), as latitude and longitude.
+        /// </summary>
+        private List<(double Latitude, double Longitude)> PlanSector(double leftAngle, double rightAngle)
+        {
+            double radius = Earth.Radius(runway);
+            // Along the approach from the threshold (NM, negative over the runway), to the pilot's right (NM).
+            (double Latitude, double Longitude) At(double along, double right)
+            {
+                (double latitude, double longitude) = Earth.Destination(runway.Latitude, runway.Longitude, along >= 0 ? runway.Heading + 180 : runway.Heading, Math.Abs(along), radius);
+                return Earth.Destination(latitude, longitude, right >= 0 ? runway.Heading + 90 : runway.Heading - 90, Math.Abs(right), radius);
+            }
+            double antennaAlong = Radar.AntennaFromRunwayEnd(runway) - runway.LengthNM;
+            double end = runway.Distance;
+            double fromAntenna = end - antennaAlong;
+            if (fromAntenna <= 0) return [];
+            double offset = radar.AntennaOffsetNM;
+            return
+            [
+                At(antennaAlong, offset),
+                At(end, offset + Radar.ScanOffset(fromAntenna, leftAngle)),
+                At(end, offset + Radar.ScanOffset(fromAntenna, rightAngle))
+            ];
         }
 
         private void BringMainToFront()

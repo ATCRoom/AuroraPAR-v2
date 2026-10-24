@@ -19,6 +19,8 @@ namespace AuroraPAR
         /// (heading degrees, rate ft/min) and the keys of the commands (command name → key name).</summary>
         public bool SimulationOpen { get; set; } = true;
         public bool StickShown { get; set; } = true;
+        /// <summary>Instructor+: the student's PAR beam drawn on the plan view (BEAM).</summary>
+        public bool BeamShown { get; set; }
         /// <summary>Instructor+: the mini-PAR under the plan view shown, and its height (pixels).</summary>
         public bool MiniParShown { get; set; } = true;
         public double MiniParHeight { get; set; } = 320;
