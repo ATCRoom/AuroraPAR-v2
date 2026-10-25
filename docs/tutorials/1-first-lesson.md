@@ -30,7 +30,7 @@ In **SIMULATION SETTINGS** look at runway, wind and QNH. Without Aurora connecte
 In **TRAFFIC GENERATION → Quick (starts)**:
 
 1. Choose **On final**.
-2. Distance from touchdown: **8 NM**.
+2. Distance from touchdown: **10 NM**.
 3. Leave the altitude empty (on the glide path) and the class on **Jet**.
 4. Press **Create & start**.
 

@@ -12,7 +12,7 @@
 | # | File | Tutorial | Start state | What to show | Seconds |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `t1-open-instructor.gif` | 1 | Main window only | Shift+I; the Instructor+ opens; drag TRAFFIC LIST to another place; ▴ fold and ▾ open; double-click on the bar: back | 10 |
-| 2 | `t1-quick-start.gif` | 1 | Instructor+ open, no aircraft | Quick: On final, 8 NM, Create & start; the aircraft appears, TRAINEE PAR shows it | 10 |
+| 2 | `t1-quick-start.gif` | 1 | Instructor+ open, no aircraft | Quick: On final, 10 NM, Create & start; the aircraft appears, TRAINEE PAR shows it | 10 |
 | 3 | `t2-new-fpl.gif` | 2 | Instructor+ open | New FPL, callsign AZA101, click 3 points on the radar, altitude and speed in the first | 15 |
 | 4 | `t2-snap-vrp.gif` | 2 | Plan being made, VRP / FIX map on | Click near a VRP: the menu (map point / GPS point), choose the map point | 8 |
 | 5 | `t2-drag-point.gif` | 2 | Aircraft flying to a point of its route | Drag the point; the cursor ✥; the aircraft turns to the new place | 10 |
