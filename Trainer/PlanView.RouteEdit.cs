@@ -125,9 +125,17 @@ namespace AuroraPAR
                 InvalidateVisual();
                 return true;
             }
-            if (pickFrom != null) return true;
+            if (pickFrom is Point pressed)
+            {
+                // FREE: dragged more than a few pixels, it moves the view instead of picking a point.
+                if (Centre != CentreMode.Free || (at - pressed).Length < 4) return true;
+                pickFrom = null;
+                StartLeftPan(pressed);
+                return false;
+            }
+            if (leftPan) return false;
             bool overPoint = routeHandles.Any(h => (h.At - at).Length <= 7);
-            Cursor = overPoint ? Cursors.SizeAll : PickingPoints ? Cursors.Cross : null;
+            Cursor = overPoint ? Cursors.SizeAll : PickingPoints ? Cursors.Cross : Centre == CentreMode.Free ? Cursors.Hand : null;
             return false;
         }
 

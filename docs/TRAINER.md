@@ -56,6 +56,10 @@ The instructor's radar fills the whole window. Over it float five panels:
 - **Wheel**: range. **CENTRE** (top right): **MOUSE** (the wheel zooms at the pointer, the right button drags the
   view, a double-click goes back to the airport), **AIRPORT** (centred on the airport), **TRAFFIC** (the selected
   aircraft always in the middle).
+- **FREE** (left of CENTRE): no centre, the view stays where you leave it. Drag it with the left button (the right one
+  works too), the wheel zooms at the pointer; no double-click (AIRPORT goes back to the airport). Clicks on tracks,
+  labels and route points work as usual; while adding points by click, a still click adds a point and a drag moves
+  the view. The RDR of the student has FREE too.
 - **BEAM** (beside CENTRE, on / off, kept): where the student's PAR sees the aircraft, seen from above. Filled: the
   azimuth beam; dashed: the azimuth scan limits; from the antenna (middle of the runway) to the end of the range. It
   follows the antenna when the student tilts it. Useful to place the aircraft of a scenario just outside the beam, so

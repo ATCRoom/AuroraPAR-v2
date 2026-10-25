@@ -13,12 +13,16 @@ namespace AuroraPAR
     /// </summary>
     internal sealed record MapLayer(MapFile Map, Brush LineBrush, Brush LabelBrush, bool ShowShapes = true, bool ShowTexts = true, MapSymbol? Symbol = null, CustomSymbol? Custom = null);
 
-    /// <summary>What the view is centred on: where the mouse put it (MOUSE), the airport (AIRPORT), the selected aircraft (TRAFFIC).</summary>
+    /// <summary>
+    /// What the view is centred on: where the mouse put it (MOUSE), the airport (AIRPORT), the selected aircraft (TRAFFIC);
+    /// or nothing (FREE: the view stays where it is left, the left button drags it).
+    /// </summary>
     internal enum CentreMode
     {
         Mouse,
         Airport,
-        Traffic
+        Traffic,
+        Free
     }
 
     /// <summary>A point of a route drawn on the plan view: where it is, its name (or number) and its altitude and speed; the point itself (to move it).</summary>
@@ -82,6 +86,21 @@ namespace AuroraPAR
         }
 
         private readonly Dictionary<string, History> histories = new(StringComparer.Ordinal);
+        /// <summary>A track this far (NM) from its last history dot is a new flight: its old dots go.</summary>
+        internal const double JumpNM = 3;
+        /// <summary>Mean radius of the Earth (m), when no runway is known yet.</summary>
+        internal const double MeanEarthRadius = 6371008.8;
+
+        /// <summary>
+        /// Forgets the history dots of an aircraft (null: of all of them): it was removed, or starts again from its
+        /// first point under the same callsign.
+        /// </summary>
+        public void ForgetHistory(string? callsign)
+        {
+            if (callsign == null) histories.Clear();
+            else histories.Remove(callsign);
+            InvalidateVisual();
+        }
 
         /// <summary>Runway in use: its threshold is the centre of the view.</summary>
         public Runway? Runway { get; set; }
@@ -155,7 +174,7 @@ namespace AuroraPAR
         /// </summary>
         public Vector PanOffset { get; set; }
 
-        /// <summary>MOUSE / AIRPORT / TRAFFIC (see <see cref="CentreMode"/>); changing it raises <see cref="CentreChanged"/>.</summary>
+        /// <summary>MOUSE / AIRPORT / TRAFFIC / FREE (see <see cref="CentreMode"/>); changing it raises <see cref="CentreChanged"/>.</summary>
         public CentreMode Centre
         {
             get => centreMode;
@@ -186,11 +205,35 @@ namespace AuroraPAR
         private (double Latitude, double Longitude) panFor;
         private Point? dragFrom;
         private Vector dragOffset;
+        /// <summary>FREE: the view dragged with the left button (<see cref="dragFrom"/> is where it was pressed).</summary>
+        private bool leftPan;
+
+        /// <summary>The mouse moves the view freely (no centre): MOUSE and FREE.</summary>
+        private bool FreeView => Centre is CentreMode.Mouse or CentreMode.Free;
+
+        /// <summary>FREE: the left button starts dragging the view from here.</summary>
+        private void StartLeftPan(Point from)
+        {
+            dragFrom = from;
+            dragOffset = PanOffset;
+            leftPan = true;
+            if (!IsMouseCaptured) CaptureMouse();
+        }
+
+        /// <summary>The left button let go after dragging the view (FREE). True: it was.</summary>
+        private bool EndLeftPan()
+        {
+            if (!leftPan) return false;
+            leftPan = false;
+            dragFrom = null;
+            if (IsMouseCaptured) ReleaseMouseCapture();
+            return true;
+        }
 
         protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseRightButtonDown(e);
-            if (labelDrag != null || routeDrag is { Released: false })
+            if (leftPan || labelDrag != null || routeDrag is { Released: false })
             {
                 e.Handled = true;
                 return;
@@ -219,9 +262,9 @@ namespace AuroraPAR
             if (LabelMove(e.GetPosition(this))) return;
             if (dragFrom is not Point from || lastScale <= 0) return;
             Vector moved = e.GetPosition(this) - from;
-            if (Centre != CentreMode.Mouse)
+            if (!FreeView)
             {
-                // Dragging (a few pixels, not a plain right click) is the MOUSE mode.
+                // Dragging (a few pixels, not a plain right click) is the MOUSE mode (FREE stays FREE).
                 if (moved.Length < 4) return;
                 Centre = CentreMode.Mouse;
             }
@@ -247,7 +290,8 @@ namespace AuroraPAR
                 e.Handled = true;
                 return;
             }
-            if (dragFrom == null) return;
+            // The left button is dragging the view (FREE): the right one does not stop it.
+            if (leftPan || dragFrom == null) return;
             dragFrom = null;
             ReleaseMouseCapture();
             e.Handled = true;
@@ -257,6 +301,7 @@ namespace AuroraPAR
         {
             base.OnLostMouseCapture(e);
             dragFrom = null;
+            leftPan = false;
             labelDrag = null;
             RouteCaptureLost();
         }
@@ -282,9 +327,9 @@ namespace AuroraPAR
                 e.Handled = true;
                 return;
             }
-            if (e.ClickCount == 2 && !PickingPoints && !drawn.Any(d => (d.At - at).Length <= 16))
+            if (e.ClickCount == 2 && Centre != CentreMode.Free && !PickingPoints && !drawn.Any(d => (d.At - at).Length <= 16))
             {
-                // Double-click: centred on the airport again.
+                // Double-click: centred on the airport again (not in FREE: there AIRPORT does it).
                 PanOffset = Runway is Runway current ? AirportOffset(current) : new Vector();
                 InvalidateVisual();
                 e.Handled = true;
@@ -296,6 +341,12 @@ namespace AuroraPAR
             if (nearest != null && (nearest.Value.At - at).Length <= 16)
             {
                 AircraftClicked?.Invoke(nearest.Value.Callsign);
+                e.Handled = true;
+            }
+            else if (Centre == CentreMode.Free && dragFrom == null)
+            {
+                // FREE: the left button on the empty view drags it.
+                StartLeftPan(at);
                 e.Handled = true;
             }
         }
@@ -327,6 +378,18 @@ namespace AuroraPAR
                 {
                     history.Points.Clear();
                     continue;
+                }
+                // Far from its last dot (more than any flight between two dots): a new flight with the same callsign
+                // (started again, or removed and created again): the old dots are not its own.
+                if (history.Points.Count > 0)
+                {
+                    (double lastLatitude, double lastLongitude) = history.Points[^1];
+                    double radius = Runway is Runway reference ? Earth.Radius(reference) : MeanEarthRadius;
+                    if (Earth.DistanceNM(lastLatitude, lastLongitude, aircraft.Latitude, aircraft.Longitude, radius) > JumpNM)
+                    {
+                        history.Points.Clear();
+                        history.LastAdded = DateTime.MinValue;
+                    }
                 }
                 if ((now - history.LastAdded).TotalSeconds >= Math.Max(0.1, interval))
                 {
@@ -393,7 +456,7 @@ namespace AuroraPAR
                 e.Handled = true;
                 return;
             }
-            if (Centre != CentreMode.Mouse)
+            if (!FreeView)
             {
                 // AIRPORT / TRAFFIC: the range only, around the centre.
                 RangeStepRequested?.Invoke(e.Delta > 0 ? 1 : -1);
@@ -755,13 +818,25 @@ namespace AuroraPAR
     /// <summary>
     /// The CENTRE selector of a radar view, bottom right over it: MOUSE (the wheel zooms at the pointer, the right
     /// button drags, a double-click goes back to the airport), AIRPORT (centred on the airport), TRAFFIC (the selected
-    /// aircraft always in the middle), with a line saying what the mouse does.
+    /// aircraft always in the middle); FREE on its left (no centre: the left button drags the view, which stays where it
+    /// is left), with a line saying what the mouse does.
     /// </summary>
     internal sealed class CentreBar : StackPanel
     {
         private readonly PlanView view;
         private readonly TextBlock hint = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x94)), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, TextAlignment = TextAlignment.Right, TextWrapping = TextWrapping.Wrap, MaxWidth = 300, Margin = new Thickness(0, 0, 0, 4), IsHitTestVisible = false };
         private readonly Button[] buttons = new Button[3];
+        private readonly Button freeButton = new()
+        {
+            Content = "FREE",
+            ToolTip = "No centre: the view stays where you leave it. Drag it with the left (or right) button; the wheel zooms at the pointer. AIRPORT goes back to the airport.",
+            Focusable = false,
+            Padding = new Thickness(10, 3, 10, 3),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(1.5)
+        };
         private static readonly Brush Off = new SolidColorBrush(Color.FromArgb(0xE0, 0x2A, 0x3A, 0x4A));
         private static readonly Brush On = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
         private static readonly Brush BorderOff = new SolidColorBrush(Color.FromRgb(0xB0, 0xC4, 0xD8));
@@ -813,6 +888,10 @@ namespace AuroraPAR
             VerticalAlignment = VerticalAlignment.Bottom;
             Margin = new Thickness(0, 0, 10, 10);
             StackPanel row = new() { Orientation = Orientation.Horizontal };
+            // FREE first, apart from the CENTRE buttons: it is no centre.
+            freeButton.Click += (s, e) => { view.Centre = CentreMode.Free; Show(); };
+            row.Children.Add(freeButton);
+            row.Children.Add(new Border { Width = 1, Background = BorderOff, Margin = new Thickness(8, 2, 8, 2) });
             row.Children.Add(new TextBlock { Text = "CENTRE", Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0xAA, 0xBB)), FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
             (string Text, CentreMode Mode, string Tip)[] modes =
             [
@@ -866,9 +945,13 @@ namespace AuroraPAR
                 buttons[i].Background = on ? On : Off;
                 buttons[i].BorderBrush = on ? Brushes.White : BorderOff;
             }
+            bool free = view.Centre == CentreMode.Free;
+            freeButton.Background = free ? On : Off;
+            freeButton.BorderBrush = free ? Brushes.White : BorderOff;
             hint.Text = view.Centre switch
             {
                 CentreMode.Mouse => "wheel: zoom at the pointer · right drag: move · double-click: back to the airport",
+                CentreMode.Free => "free view · drag: move · wheel: zoom at the pointer",
                 CentreMode.Airport => "centred on the airport · wheel: range",
                 _ => "centred on the selected aircraft (click a track) · wheel: range"
             };

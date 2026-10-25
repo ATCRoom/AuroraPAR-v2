@@ -75,6 +75,8 @@ namespace AuroraPAR
             if (flying + waiting == 0) return;
             string what = flying > 0 && waiting > 0 ? $"{flying} flying and {waiting} waiting aircraft" : flying > 0 ? $"{flying} flying aircraft" : $"{waiting} waiting aircraft";
             if (MessageBox.Show(this, $"Remove {what}? Their flight plans wait again in Traffic generation.", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            // Their tracks and history dots go from every view (the plans may start again under the same callsigns).
+            forgetTracks?.Invoke(null);
             bridge.Clear();
             foreach (FlightPlan plan in flightPlans) plan.Queued = false;
             flightPlans.RemoveAll(p => p.Quick);

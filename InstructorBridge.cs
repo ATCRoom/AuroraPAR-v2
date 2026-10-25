@@ -208,6 +208,19 @@ namespace AuroraPAR
             }
         }
 
+        /// <summary>
+        /// Forgets the last position given to the radar of an aircraft (null: of all): it starts again under the same
+        /// callsign, and its new place is given at once (not the old one for up to half a second).
+        /// </summary>
+        public void Forget(string? callsign)
+        {
+            lock (sync)
+            {
+                if (callsign == null) given.Clear();
+                else given.Remove(callsign);
+            }
+        }
+
         /// <summary>The last position given to the radar of an aircraft (for "seen by the PAR"), or null.</summary>
         public Aircraft? LastPosition(string callsign)
         {

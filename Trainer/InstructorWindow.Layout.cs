@@ -618,7 +618,7 @@ namespace AuroraPAR
                 Button remove = RowButton("✕");
                 pause.Click += (s, e) => { if (item.Tag is string name && bridge.Engine.Get(name) is AircraftState now) bridge.Engine.SetFrozen(name, !now.Frozen); Refresh(); };
                 reactivate.Click += (s, e) => { if (item.Tag is string name) Reactivate(name); };
-                remove.Click += (s, e) => { if (item.Tag is string name) bridge.Engine.Remove(name); Refresh(); };
+                remove.Click += (s, e) => { if (item.Tag is string name) RemoveAircraft(name); Refresh(); };
                 reactivate.ToolTip = "Reactivate: the aircraft of a flight plan starts again from the first point of its plan.";
                 remove.ToolTip = "Remove this aircraft (its flight plan, if any, waits again).";
                 DockPanel row = new() { LastChildFill = true };
@@ -665,12 +665,26 @@ namespace AuroraPAR
             Focusable = false
         };
 
+        /// <summary>Forgets the tracks and history dots of an aircraft (null: of all) on every view (given by the main window).</summary>
+        private Action<string?>? forgetTracks;
+
+        /// <summary>The main window: how to forget the tracks of an aircraft removed or started again.</summary>
+        internal void AttachForget(Action<string?> forget) => forgetTracks = forget;
+
+        /// <summary>An aircraft removed (its old track and history dots go from every view).</summary>
+        private void RemoveAircraft(string callsign)
+        {
+            bridge.Engine.Remove(callsign);
+            forgetTracks?.Invoke(callsign);
+        }
+
         /// <summary>Reactivate: the aircraft of a flight plan removed and started again from the first point of its plan.</summary>
         private void Reactivate(string callsign)
         {
             FlightPlan? plan = flightPlans.FirstOrDefault(p => string.Equals(p.Active, callsign, StringComparison.OrdinalIgnoreCase));
             if (plan == null) return;
-            bridge.Engine.Remove(callsign);
+            // The old flight's track and history dots go: the new one starts clean, even under the same callsign.
+            RemoveAircraft(callsign);
             plan.Active = null;
             Activate(plan);
             // Not started again (a question answered No): an aircraft of Quick waits in the TRAFFIC LIST instead of being lost.

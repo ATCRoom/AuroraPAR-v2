@@ -174,6 +174,12 @@ namespace AuroraPAR
         protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonUp(e);
+            // FREE: the end of a drag of the view.
+            if (EndLeftPan())
+            {
+                e.Handled = true;
+                return;
+            }
             if (RouteRelease(e.GetPosition(this)))
             {
                 e.Handled = true;

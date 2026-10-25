@@ -350,6 +350,23 @@ namespace AuroraPAR
             dragging = null;
         }
 
+        /// <summary>
+        /// Forgets the track of an aircraft (null: all of them), with its history: it was removed, or (a simulated one)
+        /// starts again under the same callsign. A new track is made at the next refresh.
+        /// </summary>
+        public void ForgetTrack(string? callsign)
+        {
+            if (callsign == null)
+            {
+                ClearTracks();
+                return;
+            }
+            if (!tracks.TryGetValue(callsign, out Track? track)) return;
+            if (dragging == track) dragging = null;
+            RemoveTrack(track);
+            tracks.Remove(callsign);
+        }
+
         private void RemoveTrack(Track track)
         {
             foreach (UIElement element in track.Elements().ToList())

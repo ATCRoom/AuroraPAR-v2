@@ -443,8 +443,30 @@ namespace AuroraPAR
             window.AttachPlan(instructorView, instructorPar);
             // The QNH of the Instructor+ is the one of the main window (by hand without Aurora).
             window.AttachWeather(() => aurora.Connected, () => qnh, SetManualQnh);
+            // Aircraft removed or started again: their old tracks and history dots go from every view.
+            window.AttachForget(ForgetTracks);
             FeedInstructorView();
             UpdatePlusButton();
+        }
+
+        /// <summary>
+        /// The tracks and history dots of a simulated aircraft (null: of all of them) forgotten on the PAR, the RDR and the
+        /// views of the Instructor+: it was removed, or starts again under the same callsign.
+        /// </summary>
+        private void ForgetTracks(string? callsign)
+        {
+            instructor.Forget(callsign);
+            if (callsign == null)
+            {
+                // Only the simulated ones: real traffic keeps its tracks.
+                foreach (string sim in lastAircrafts.Where(a => a.IsSim).Select(a => a.Callsign).ToList()) ForgetTracks(sim);
+                return;
+            }
+            profileView.ForgetTrack(callsign);
+            horizontalView.ForgetTrack(callsign);
+            radarPanel?.View.ForgetHistory(callsign);
+            instructorView?.ForgetHistory(callsign);
+            instructorPar?.ForgetHistory(callsign);
         }
 
         partial void TrainerInstructorClosed()

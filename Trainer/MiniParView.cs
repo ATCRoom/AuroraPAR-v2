@@ -53,6 +53,14 @@ namespace AuroraPAR
             Focusable = false;
         }
 
+        /// <summary>Forgets the history dots of an aircraft (null: of all of them): removed, or started again.</summary>
+        public void ForgetHistory(string? callsign)
+        {
+            if (callsign == null) histories.Clear();
+            else histories.Remove(callsign);
+            InvalidateVisual();
+        }
+
         /// <summary>The traffic of a refresh, and a history dot every second (the last few).</summary>
         public void Update(IReadOnlyList<Aircraft> aircrafts, DateTime now)
         {
@@ -60,6 +68,16 @@ namespace AuroraPAR
             foreach (Aircraft aircraft in aircrafts)
             {
                 if (!histories.TryGetValue(aircraft.Callsign, out var history)) history = (new List<(double Latitude, double Longitude, double Altitude)>(), DateTime.MinValue);
+                // Far from its last dot: a new flight with the same callsign; the old dots are not its own.
+                if (history.Points.Count > 0)
+                {
+                    Aircraft here = aircraft.Filtered ?? aircraft;
+                    var last = history.Points[^1];
+                    if (Earth.DistanceNM(last.Latitude, last.Longitude, here.Latitude, here.Longitude, PlanView.MeanEarthRadius) > PlanView.JumpNM)
+                    {
+                        history = (new List<(double Latitude, double Longitude, double Altitude)>(), DateTime.MinValue);
+                    }
+                }
                 if ((now - history.Last).TotalSeconds >= 1)
                 {
                     Aircraft at = aircraft.Filtered ?? aircraft;

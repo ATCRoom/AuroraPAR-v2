@@ -25,7 +25,7 @@ namespace AuroraPAR
         public int? ManualQnh { get; set; }
         /// <summary>Which Instructor buttons the main window shows: "Plus" (Instructor+, the default), "Basic" (Instructor) or "Both". A button that is hidden also switches off its key.</summary>
         public string InstructorButtons { get; set; } = "Plus";
-        /// <summary>CENTRE of the RDR and of the Instructor+ plan view: "Mouse", "Airport" (the default) or "Traffic".</summary>
+        /// <summary>CENTRE of the RDR and of the Instructor+ plan view: "Mouse", "Airport" (the default), "Traffic" or "Free".</summary>
         public string RadarCentre { get; set; } = "Airport";
         public string InstructorCentre { get; set; } = "Airport";
 

@@ -346,7 +346,7 @@ namespace AuroraPAR
             Add("Rename…", () => { renameBox.Focus(); renameBox.SelectAll(); });
             Add(plan.IsLabelHidden(callsign) ? "Show label" : "Hide label", () => plan.SetLabelHidden(callsign, !plan.IsLabelHidden(callsign)));
             menu.Items.Add(new Separator());
-            Add("Remove", () => { bridge.Engine.Remove(callsign); Refresh(); });
+            Add("Remove", () => { RemoveAircraft(callsign); Refresh(); });
             menu.IsOpen = true;
         }
     }
