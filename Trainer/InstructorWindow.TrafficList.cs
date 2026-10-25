@@ -80,6 +80,9 @@ namespace AuroraPAR
             // Also those that left a moment ago (their dots stay a while on the plan views) under the callsigns of the plans.
             foreach (FlightPlan plan in flightPlans.Where(p => p.Callsign.Length > 0)) forgetTracks?.Invoke(plan.Callsign);
             bridge.Clear();
+            // A new start: the simulation is not left paused (PAUSE ALL), else the aircraft started next would not move.
+            bridge.Engine.Paused = false;
+            pauseButton.Content = PauseText(false);
             foreach (FlightPlan plan in flightPlans) plan.Queued = false;
             flightPlans.RemoveAll(p => p.Quick);
             fplShownKey = trafficShownKey = routeShownKey = "";

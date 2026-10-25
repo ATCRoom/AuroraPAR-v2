@@ -132,7 +132,8 @@ next free one). Then:
 - **New FPL** makes a plan (callsign, class); its route in the **route editor** below: points by click on the radar,
   by the name of a map point, or by bearing and distance from the threshold; each with an altitude and a speed
   (empty: kept). The first point needs both: the aircraft starts there.
-- **Duplicate** copies the selected plan with the next number (AZA101 → AZA102); **Remove FPL**.
+- **Duplicate** copies the selected plan with the next number (AZA101 → AZA102); **Remove FPL**; **Remove all FPLs**
+  (after a question; also those waiting in the TRAFFIC LIST; aircraft already flying go on).
 - **TFC LIST** (beside each plan) puts it in the TRAFFIC LIST, waiting; **ALL TO TFC LIST** all of them.
 - **Save scenario… / Load scenario…**: all the plans in a file (folder `Scenarios` beside the settings). A scenario
   keeps the name of the class of each plan: a class that is missing on another computer becomes the Jet.
@@ -146,7 +147,8 @@ next free one). Then:
   plan waits again in TRAFFIC GENERATION). A click on a flight plan shows its route in the editor.
 - **Start all**: all the waiting aircraft start.
 - **PAUSE ALL / RESUME ALL**: the whole simulation stops and goes on.
-- **Remove all aircraft**: flying and waiting, after a question (the flight plans wait again).
+- **Remove all aircraft**: flying and waiting, after a question (the flight plans wait again); a PAUSE ALL is ended,
+  so the next aircraft started move at once.
 
 ## 9. AIRCRAFT CONTROL
 

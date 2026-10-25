@@ -19,7 +19,7 @@
 | 6 | `t2-remove-wpt.gif` | 2 | Route of 3–4 points selected | Right click on a point → Remove WPT; the route redraws | 6 |
 | 7 | `t3-beam.gif` | 3 | Instructor+ open, a plan started | BEAM off → on; the beam appears; a point is dragged just outside it | 8 |
 | 8 | `t3-tfc-list.gif` | 3 | 3 plans created | ALL TO TFC LIST; the WAITING rows appear, grey squares on the radar; Start all | 12 |
-| 9 | `t3-save-load.gif` | 3 | 3 plans created | Save scenario…, Remove FPL (all), Load scenario…; the plans are back | 12 |
+| 9 | `t3-save-load.gif` | 3 | 3 plans created | Save scenario…, Remove all FPLs, Load scenario…; the plans are back | 12 |
 | 10 | `t4-label-commands.gif` | 4 | One aircraft on final, selected | Click the heading value and choose one; wheel over the altitude; right click menu opened and closed | 12 |
 | 11 | `t4-aircraft-control.gif` | 4 | One aircraft away from final, AIRCRAFT CONTROL open | HDG to intercept, Final CRS, Slow dwn to final, RATE Normal | 15 |
 | 12 | `t4-route-manual.gif` | 4 | Aircraft in ROUTE with 4 points | Next WPT; a heading → MANUAL; ROUTE again; → direct to a point + Go | 12 |

@@ -44,6 +44,10 @@ namespace AuroraPAR
             fields.Children.Add(newPlan);
             fields.Children.Add(duplicate);
             fields.Children.Add(remove);
+            Button removeAll = SmallButton("Remove all FPLs");
+            removeAll.ToolTip = "Removes all the flight plans, also those waiting in the TRAFFIC LIST (after a question). Aircraft already flying go on; the aircraft of Quick waiting in the TRAFFIC LIST stay.";
+            removeAll.Click += (s, e) => RemoveAllFlightPlans();
+            fields.Children.Add(removeAll);
             panel.Children.Add(fields);
             WrapPanel files = new() { Margin = new Thickness(0, 6, 0, 0) };
             Button save = SmallButton("Save scenario...");
@@ -238,6 +242,20 @@ namespace AuroraPAR
             flightPlans.Remove(plan);
             if (ReferenceEquals(routeFpl, plan)) routeFpl = null;
             fplShownKey = routeShownKey = "";
+            Refresh();
+            ShowFplFields();
+        }
+
+        /// <summary>Remove all FPLs: all the flight plans (not the aircraft of Quick), after a question; aircraft flying go on.</summary>
+        private void RemoveAllFlightPlans()
+        {
+            int count = flightPlans.Count(p => !p.Quick);
+            if (count == 0) return;
+            string what = count == 1 ? "the flight plan" : $"all {count} flight plans";
+            if (MessageBox.Show(this, $"Remove {what}? Aircraft already flying go on.", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            flightPlans.RemoveAll(p => !p.Quick);
+            if (routeFpl is { Quick: false }) routeFpl = null;
+            fplShownKey = routeShownKey = trafficShownKey = "";
             Refresh();
             ShowFplFields();
         }
