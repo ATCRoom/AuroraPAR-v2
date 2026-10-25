@@ -38,7 +38,13 @@ namespace AuroraPAR
             qnhBox.KeyDown += (s, e) =>
             {
                 if (e.Key == Key.Enter) { ApplyQnhTyped(); e.Handled = true; }
-                else if (e.Key == Key.Escape) { qnhBox.Text = ""; ShowQnh(); e.Handled = true; }
+                else if (e.Key == Key.Escape)
+                {
+                    // Back to the QNH in use (the box still has the focus, so ShowQnh would not write it).
+                    qnhBox.Text = currentQnh() > 0 ? currentQnh().ToString(CultureInfo.InvariantCulture) : "";
+                    qnhBox.SelectAll();
+                    e.Handled = true;
+                }
             };
             qnhBox.LostKeyboardFocus += (s, e) => ApplyQnhTyped();
             Wheel(qnhBox, 1, 5, 850, 1090, "0", ApplyQnhTyped, () => currentQnh() > 0 ? currentQnh() : 1013, afterClick: true);

@@ -29,8 +29,9 @@ namespace AuroraPAR
                 if (line.StartsWith("METAR ", StringComparison.Ordinal) || line.StartsWith("SPECI ", StringComparison.Ordinal)) line = line[6..];
                 return line.StartsWith(code, StringComparison.Ordinal) ? line : null;
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            catch (Exception)
             {
+                // No connection, a timeout, a refused or odd answer: no METAR (never a crash).
                 return null;
             }
         }

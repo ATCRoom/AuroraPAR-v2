@@ -335,8 +335,17 @@ namespace AuroraPAR
                 e.Handled = true;
                 return;
             }
-            // A second click of a double-click on a track: nothing (it would select and deselect it).
-            if (e.ClickCount >= 2) return;
+            // A second click of a double-click on a track: nothing (it would select and deselect it). FREE, away from
+            // the tracks: a quick second press drags the view as the first one.
+            if (e.ClickCount >= 2)
+            {
+                if (Centre == CentreMode.Free && dragFrom == null && !drawn.Any(d => (d.At - at).Length <= 16))
+                {
+                    StartLeftPan(at);
+                    e.Handled = true;
+                }
+                return;
+            }
             (Point At, string Callsign)? nearest = drawn.Count == 0 ? null : drawn.OrderBy(d => (d.At - at).Length).First();
             if (nearest != null && (nearest.Value.At - at).Length <= 16)
             {

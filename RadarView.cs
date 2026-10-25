@@ -155,6 +155,8 @@ namespace AuroraPAR
         private bool staticValid = false;
         private readonly List<UIElement> staticElements = [];
         private readonly Dictionary<string, Track> tracks = [];
+        /// <summary>A track this far (NM) from its last position is a new flight: its history goes.</summary>
+        private const double NewFlightJumpNM = 3;
         /// <summary>Label being dragged with the mouse, and where the drag started.</summary>
         private Track? dragging;
         /// <summary>Shared geometry of the history dots, rebuilt when the options change.</summary>
@@ -884,6 +886,15 @@ namespace AuroraPAR
             (double along, double value) = ToWorld(aircraft);
             // History: a dot every HistoryInterval seconds, at a new position given by Aurora.
             bool changed = aircraft.Latitude != track.LastLatitude || aircraft.Longitude != track.LastLongitude || aircraft.Altitude != track.LastAltitude;
+            // Far from where it was (more than any flight between two positions): a new flight with the same callsign
+            // (a simulated aircraft started again): the old dots are not its own.
+            if (changed && !double.IsNaN(track.LastLatitude)
+                && Earth.DistanceNM(track.LastLatitude, track.LastLongitude, aircraft.Latitude, aircraft.Longitude, Earth.Radius(Runway)) > NewFlightJumpNM)
+            {
+                track.History.Clear();
+                track.Recent.Clear();
+                track.LastLatitude = double.NaN;
+            }
             double now = HistoryClock.Elapsed.TotalSeconds;
             // Seen by the antenna of this view (each view has its own beam).
             bool inside = Radar.IsInsideBeam(aircraft, Runway, IsElevation);

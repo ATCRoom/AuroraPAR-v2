@@ -746,8 +746,9 @@ namespace AuroraPAR
         private void WindFromMetar()
         {
 #if TRAINER
-            // Without Aurora: the METAR from the internet (Trainer/InstructorWindow.Qnh.cs).
-            if (metar() == null && !auroraConnected())
+            // Without Aurora: the METAR from the internet (Trainer/InstructorWindow.Qnh.cs), also when an old one from
+            // Aurora (connected before) is still known.
+            if (!auroraConnected())
             {
                 WindFromInternet();
                 return;

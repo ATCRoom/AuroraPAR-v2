@@ -133,7 +133,8 @@ namespace AuroraPAR
                 simulation.Children.Add(Detach(windRow));
                 // The QNH under the wind (Trainer/InstructorWindow.Qnh.cs).
                 simulation.Children.Add(BuildQnhRow());
-                if (windRow.Children.OfType<Button>().FirstOrDefault() is Button fromMetar)
+                // From METAR: in the row, or (regrouped) in one of its pieces.
+                if ((windRow.Children.OfType<Button>().FirstOrDefault() ?? windRow.Children.OfType<Panel>().SelectMany(p => p.Children.OfType<Button>()).FirstOrDefault()) is Button fromMetar)
                 {
                     fromMetar.ToolTip = "The wind (and without Aurora the QNH) of the METAR of the airport: from Aurora, or without Aurora from the internet (aviationweather.gov). A METAR gives the direction in degrees true.";
                 }
