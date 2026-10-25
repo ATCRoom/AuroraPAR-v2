@@ -3,7 +3,7 @@
 **Rules for all of them**
 
 - Tool: ScreenToGif, "Recorder" mode. Frame rate 15 fps, record only the AuroraPAR window (or the part that matters).
-- Length 5–15 s, loop. Width at most 900 px. File size under 2 MB if possible (ScreenToGif: Save as → Gif, "Quality" lower).
+- Length 5–15 s, loop. Area 1280 x 720 (whole window), 800 x 600 (detail) or the size of a single window. File size under 4 MB (ScreenToGif: Save as → Gif, lower the quality).
 - No real callsigns of people, no real names, no Windows user name in a path or title bar. Use SIM / AZA / PONY callsigns.
 - Move the mouse slowly; stop one second at the end of each action.
 - Save in `docs/tutorials/gifs/` with the exact name below.
