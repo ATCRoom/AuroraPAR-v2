@@ -154,6 +154,15 @@ namespace ATCRoom.MapCreator
             controls.Children.Add(cutText);
             controls.Children.Add(new TextBlock { Text = "Source, author, licence (optional)", Margin = new Thickness(0, 8, 0, 0) });
             controls.Children.Add(sourceBox);
+            // The warning in evidence, just above the Save buttons.
+            controls.Children.Add(new TextBlock
+            {
+                Text = "⚠ Personal use only: do not distribute the maps you make (data of IVAO, VATSIM or an AIP belong to their owners). For simulation only, never for real-world navigation or air traffic control.",
+                Foreground = new SolidColorBrush(Color.FromRgb(0xC0, 0x50, 0x00)),
+                FontWeight = FontWeights.Bold,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 10, 0, 0)
+            });
             StackPanel buttons = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0) };
             buttons.Children.Add(saveButton);
             buttons.Children.Add(saveAsButton);
@@ -162,7 +171,7 @@ namespace ATCRoom.MapCreator
             controls.Children.Add(statusText);
             controls.Children.Add(new TextBlock
             {
-                Text = $"Saved into the maps of the Trainer: {TrainerMapsFolderText}. The maps you make are for your own use: data of IVAO, VATSIM or an AIP may not be passed on without their owner's permission.",
+                Text = $"Saved into the maps of the Trainer: {TrainerMapsFolderText}.",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,

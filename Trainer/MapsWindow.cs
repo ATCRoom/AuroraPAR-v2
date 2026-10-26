@@ -48,12 +48,23 @@ namespace AuroraPAR
             TextBlock intro = new()
             {
                 Text = "One map file per airport in the Maps folder of the Trainer, made with ATCRoom Map Creator. Choose what to show for each " +
-                       "category and its colour: the choice is kept for each airport, and changing airport loads its maps. The maps you make are for your own use.",
+                       "category and its colour: the choice is kept for each airport, and changing airport loads its maps.",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            // The warning in evidence, at the top.
+            TextBlock warning = new()
+            {
+                Text = "⚠ Personal use only: do not distribute the maps you make (data of IVAO, VATSIM or an AIP belong to their owners). For simulation only, never for real-world navigation or air traffic control.",
+                Foreground = new SolidColorBrush(Color.FromRgb(0xC0, 0x50, 0x00)),
+                FontWeight = FontWeights.Bold,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 10)
             };
+            DockPanel.SetDock(warning, Dock.Top);
+            root.Children.Add(warning);
             DockPanel.SetDock(intro, Dock.Top);
-            root.Children.Add(intro);
+            root.Children.Insert(0, intro);
             DockPanel.SetDock(airportText, Dock.Top);
             root.Children.Add(airportText);
 
