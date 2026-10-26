@@ -16,8 +16,10 @@ by itself; in **RDR → Maps...** you choose, for each category, whether its lin
 their colours (kept for each airport). **Reload** reads the folder again. Files of version 1 (no airport) are still read and
 shown for every airport, as before.
 
-The maps you make from data of IVAO, VATSIM or an AIP are for your own use: do not pass them on without the permission
-of the owner of the data.
+> **⚠ Personal use only — simulation only.** The Map Creator reads files of any kind (IVAO, VATSIM, AIP, KML…), but
+> the maps you make from them are **for your own use only**: **do not distribute them** (no sharing, no uploading)
+> without the permission of the owner of the data. They are for flight simulation and training on AuroraPAR only and
+> **must never be used for real-world navigation or air traffic control**.
 
 ## The file (version 2)
 
