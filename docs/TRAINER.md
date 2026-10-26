@@ -53,8 +53,8 @@ The instructor's radar fills the whole window. Over it float five panels:
 
 ## 3. The radar of the instructor
 
-> **⚠ Personal use only — simulation only.** The maps you make from them are **for your own use only**: **do not distribute them** (no sharing, no uploading)
-> without the permission of the owner of the data. They are for flight simulation and training on AuroraPAR only and
+> **⚠ Personal use only — simulation only.** The maps you make with ATCRoom Map Creator (from IVAO, VATSIM, AIP
+> or other files) are **for your own use only**: **do not distribute them** (no sharing, no uploading) without the permission of the owner of the data. They are for flight simulation and training on AuroraPAR only and
 > **must never be used for real-world navigation or air traffic control**.
 
 - **Wheel**: range. **CENTRE** (top right): **MOUSE** (the wheel zooms at the pointer, the right button drags the
