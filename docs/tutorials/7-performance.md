@@ -6,7 +6,7 @@ Every class (Light, Turboprop, Jet) has its own speeds and limits. You can chang
 
 **Aircraft performance…** in SIMULATION SETTINGS, or **…** beside a Class box.
 
-![Open Aircraft performance](gifs/t7-performance.gif)
+![The Aircraft performance table](gifs/t7-performance.png)
 
 ## Step 2 — Change a value
 
