@@ -17,7 +17,7 @@ Start **ATCRoom Map Creator**, or press **Open ATCRoom Map Creator** in the Maps
 Drag the files (or a whole folder) into the window: IVAO `.geo .fix .vor .ndb .ap .vfi .str .mva`, EuroScope
 `.ese .sct`, KML / KMZ, an AIP table (PDF). A list shows the **parts found**: choose the **category** of each.
 
-![Drop the files](gifs/t5-map-creator.gif)
+![ATCRoom Map Creator with the parts found and the preview](gifs/t5-map-creator.png)
 
 ## Step 3 — Airport and area
 
