@@ -23,9 +23,9 @@
 | 10 | `t4-label-commands.gif` | 4 | One aircraft on final, selected | Click the heading value and choose one; wheel over the altitude; right click menu opened and closed | 12 |
 | 11 | `t4-aircraft-control.gif` | 4 | One aircraft away from final, AIRCRAFT CONTROL open | HDG to intercept, Final CRS, Slow dwn to final, RATE Normal | 15 |
 | 12 | `t4-route-manual.gif` | 4 | Aircraft in ROUTE with 4 points | Next WPT; a heading → MANUAL; ROUTE again; → direct to a point + Go | 12 |
-| 14 | `t5-maps-window.gif` | 5 | RDR with no maps shown | RDR → Maps…; Show on FIX and MVA; change a colour; Reload; maps on the radar | 12 |
-| 15 | `t6-keys.gif` | 6 | Keys… window | Assign on a row, press a key; assign the knob (or a second key); close | 10 |
-| 16 | `t7-performance.gif` | 7 | Aircraft performance window | Wheel on Final speed; Duplicate Jet; rename; Save | 12 |
+| 13 | `t5-maps-window.gif` | 5 | RDR with no maps shown | RDR → Maps…; Show on FIX and MVA; change a colour; Reload; maps on the radar | 12 |
+| 14 | `t6-keys.gif` | 6 | Keys… window | Assign on a row, press a key; assign the knob (or a second key); close | 10 |
+| 15 | `t7-performance.gif` | 7 | Aircraft performance window | Wheel on Final speed; Duplicate Jet; rename; Save | 12 |
 
 **Still images** (PNG, same rules): `t5-map-creator.png` for tutorial 5 (the Map Creator after the files are dropped: parts found with their categories, ICAO, the preview; no animation); and for the site: the Instructor+ with the five panels over a radar with maps;
 the TRAINEE PAR with a grey "not seen" aircraft; the Map Creator window; the macro keyboard and the knob (a photo).
