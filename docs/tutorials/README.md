@@ -12,6 +12,7 @@ Short lessons, in the order to read them. Every step has a small animation (GIF)
 | 5 | [Maps for the RDR](5-maps.md) | ATCRoom Map Creator, the Maps window |
 | 6 | [Macro keyboard](6-macro-keyboard.md) | keys for the commands, F13–F21 |
 | 7 | [Tune the aircraft](7-performance.md) | Aircraft performance, Slow dwn to final |
+| 8 | [A lesson between two PCs](8-lesson-two-pcs.md) | the lesson code, instructor and student on two PCs |
 
 The GIF files go in the folder `gifs/` beside these pages; their list (names, what each one shows) is in
 [GIF-LIST.md](GIF-LIST.md).

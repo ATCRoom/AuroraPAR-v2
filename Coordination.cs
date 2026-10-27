@@ -236,9 +236,10 @@ namespace AuroraPAR
         /// <summary>
         /// Public relays and ways to reach them, tried in this order (always encrypted). Both panels use the first one
         /// that works, so normally the same relay. Some networks block the MQTT port 8883: then the same relay is
-        /// reached through a secure WebSocket (as the phone panel), before trying the other relay.
+        /// reached through a secure WebSocket (as the phone panel), before trying the other relay. (Also used by the
+        /// lesson link of the Trainer.)
         /// </summary>
-        private static readonly (string Host, int Port, string? WebSocket)[] Brokers =
+        internal static readonly (string Host, int Port, string? WebSocket)[] Brokers =
         [
             ("broker.emqx.io", 8883, null),
             ("broker.emqx.io", 8084, "wss://broker.emqx.io:8084/mqtt"),

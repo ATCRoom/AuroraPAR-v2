@@ -64,6 +64,7 @@ namespace AuroraPAR
             plusButton = new Button { Content = "Instructor+ (⇧I)", Focusable = false };
             plusButton.Click += (s, e) => OpenInstructor();
             if (BasicButton.Parent is Panel basicRow) basicRow.Children.Insert(basicRow.Children.IndexOf(BasicButton) + 1, plusButton);
+            BuildLessonButton();
             ApplyInstructorButtons();
             TrainerControlStyles(viewOptions.Analog);
             if (trainer.RadarSeparateWindow)
@@ -99,6 +100,8 @@ namespace AuroraPAR
                     if (shown == Visibility.Visible) ShowManualQnh();
                 }
             }
+            // Lesson between two PCs: what arrived is used, and this PC sends its message.
+            LessonTick(aircrafts);
         }
 
         partial void TrainerKey(KeyEventArgs e, ModifierKeys modifiers)
@@ -119,6 +122,10 @@ namespace AuroraPAR
 
         partial void TrainerClosing()
         {
+            lessonWindow?.Close();
+            LessonLink? link = lesson;
+            lesson = null;
+            link?.Dispose();
             mapsWindow?.Close();
             if (radarWindow != null)
             {
@@ -128,6 +135,7 @@ namespace AuroraPAR
 
         partial void TrainerControlStyles(bool analog)
         {
+            StyleLessonButton(analog);
             if (plusButton != null)
             {
                 plusButton.ToolTip = "Instructor+: the advanced instructor, with the plan view of the radar (key Shift+I).";
@@ -455,6 +463,8 @@ namespace AuroraPAR
         /// </summary>
         private void ForgetTracks(string? callsign)
         {
+            // Lesson: the student's PC forgets them too.
+            LessonForgetAircraft(callsign);
             instructor.Forget(callsign);
             if (callsign == null)
             {
@@ -500,23 +510,38 @@ namespace AuroraPAR
             }
             Profile profile = settings.Active;
             bool qfe = profile.PressureReference == PressureReference.QFE;
-            string pressure = qnh == 0 ? "----" : Pressure.Format(qfe ? Pressure.QfeFromQnh(qnh, runway.Elevation) : qnh, profile.PressureUnit);
-            instructorView.Runway = runway;
+            // Lesson between two PCs: the student's runway and PAR (from its messages); else the ones of this PC.
+            Runway shown = InstructorRunway;
+            List<(double Latitude, double Longitude)>? lessonBeam = null, lessonScan = null;
+            if (LessonInstructor)
+            {
+                lock (lessonLock)
+                {
+                    // Once the student's runway is known, its beam only (never this PC's, drawn on another runway).
+                    if (studentRunway != null)
+                    {
+                        lessonBeam = studentBeam;
+                        lessonScan = studentScan;
+                    }
+                }
+            }
+            string pressure = qnh == 0 ? "----" : Pressure.Format(qfe ? Pressure.QfeFromQnh(qnh, shown.Elevation) : qnh, profile.PressureUnit);
+            if (!ReferenceEquals(instructorView.Runway, shown)) instructorView.Runway = shown;
             if (instructorPar != null)
             {
                 // The student's PAR: the same runway and range.
-                instructorPar.Runway = runway;
-                instructorPar.RangeNM = runway.Distance;
+                if (!ReferenceEquals(instructorPar.Runway, shown)) instructorPar.Runway = shown;
+                instructorPar.RangeNM = shown.Distance;
             }
             instructorView.Runways = runways;
             instructorView.ShowLabels = viewOptions.ShowLabels;
-            instructorView.InfoText = $"RWY {runway.DisplayName}   {(qfe ? "QFE" : "QNH")} {pressure}";
-            instructorView.SignText = instructor.Count > 0 ? "SIM TRAFFIC" : "";
+            instructorView.InfoText = $"RWY {shown.DisplayName}   {(qfe ? "QFE" : "QNH")} {pressure}{LessonInfoText}";
+            instructorView.SignText = SimFlying ? "SIM TRAFFIC" : "";
             instructorView.Layers = radarPanel.View.Layers;
             instructorView.MapAirports = radarPanel.View.MapAirports;
             // BEAM: where the student's PAR sees the aircraft, from above (it follows the antenna's tilt).
-            instructorView.ScanSector = PlanSector(radar.ScanLeftEdge, radar.ScanRightEdge);
-            instructorView.BeamSector = PlanSector(radar.AzimuthLeftEdge, radar.AzimuthRightEdge);
+            instructorView.ScanSector = lessonScan ?? PlanSector(radar.ScanLeftEdge, radar.ScanRightEdge);
+            instructorView.BeamSector = lessonBeam ?? PlanSector(radar.AzimuthLeftEdge, radar.AzimuthRightEdge);
             instructorView.InvalidateVisual();
         }
 
@@ -585,8 +610,10 @@ namespace AuroraPAR
             view.InfoText = $"RWY {runway.DisplayName}   {(qfe ? "QFE" : "QNH")} {pressure}";
             // In the main window the sign of the main window is over the RDR too; its own window needs its own.
             bool test = testTraffic.Count > 0;
-            bool sim = instructor.Count > 0 && aurora.Connected;
-            view.SignText = radarWindow == null || !(test || sim) ? "" : test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC";
+            bool sim = SimFlying && aurora.Connected;
+            string? lessonSign = LessonSignText;
+            view.SignText = radarWindow == null || !(test || sim || lessonSign != null) ? ""
+                : lessonSign ?? (test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC");
             view.InvalidateVisual();
         }
 

@@ -28,6 +28,9 @@ namespace AuroraPAR
         /// <summary>CENTRE of the RDR and of the Instructor+ plan view: "Mouse", "Airport" (the default), "Traffic" or "Free".</summary>
         public string RadarCentre { get; set; } = "Airport";
         public string InstructorCentre { get; set; } = "Airport";
+        /// <summary>The last lesson between two PCs: the role of this PC ("Instructor" or "Student") and the code.</summary>
+        public string LessonRole { get; set; } = "Student";
+        public string? LessonCode { get; set; }
 
         /// <summary>A CENTRE mode from its saved name (unknown: AIRPORT).</summary>
         public static CentreMode ParseCentre(string? text) => Enum.TryParse(text, true, out CentreMode mode) && Enum.IsDefined(mode) ? mode : CentreMode.Airport;
@@ -60,6 +63,8 @@ namespace AuroraPAR
             }
             if (ManualQnh is int q && (q < 850 || q > 1090)) ManualQnh = null;
             if (InstructorButtons is not ("Plus" or "Basic" or "Both")) InstructorButtons = "Plus";
+            if (LessonRole is not ("Instructor" or "Student")) LessonRole = "Student";
+            LessonCode = CoordinationSettings.NormalizeCode(LessonCode);
         }
 
         /// <summary>The settings of a map (created when it is new: shown, with the colours of its file).</summary>

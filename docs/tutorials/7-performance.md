@@ -33,3 +33,5 @@ and the aircraft goes to the final speed of its class.
 
 The table is yours: the student's PC does not use it, only the Instructor+ computes the flight. A scenario keeps the
 names of the classes, so on another computer make sure the same classes exist.
+
+Next: [a lesson between two PCs](8-lesson-two-pcs.md).

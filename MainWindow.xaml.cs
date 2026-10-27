@@ -326,6 +326,15 @@ namespace AuroraPAR
         partial void TrainerInstructorOpened(InstructorWindow window);
         partial void TrainerInstructorClosed();
         partial void TrainerSettingsClosed();
+        /// <summary>Trainer: the aircraft of a lesson between two PCs added to the traffic (radar timer thread).</summary>
+        partial void TrainerTraffic(List<Aircraft> aircrafts);
+
+        /// <summary>Simulated aircraft flying: the Instructor's, and (Trainer) those received from the instructor's PC.</summary>
+#if TRAINER
+        private bool SimFlying => instructor.Count > 0 || LessonSimCount > 0;
+#else
+        private bool SimFlying => instructor.Count > 0;
+#endif
 
         /// <summary>Coordination light panel (one window, opened on demand).</summary>
         private CoordinationWindow? coordinationWindow;
@@ -387,6 +396,10 @@ namespace AuroraPAR
                 // The Instructor's wind first while its aircraft fly, then the test traffic's.
                 (double simFrom, double simKnots, _) = instructor.Engine.Wind;
                 if (instructor.Count > 0 && simKnots > 0) { from = simFrom; knots = simKnots; }
+#if TRAINER
+                // Lesson: the wind of the instructor's simulation.
+                else if (LessonWind is { } instructorWind && instructorWind.Knots > 0) { from = instructorWind.From; knots = instructorWind.Knots; }
+#endif
                 else if (testTraffic.Count > 0 && testTraffic.WindSpeed > 0) { from = testTraffic.WindFrom; knots = testTraffic.WindSpeed; }
                 else if (!RainClutter.TryWind(clutterMetarText, out from, out knots)) knots = 0;
             }
@@ -1189,6 +1202,8 @@ namespace AuroraPAR
         private void OpenTestTraffic()
         {
 #if TRAINER
+            // Student of a lesson between two PCs: the aircraft are flown on the instructor's PC.
+            if (LessonBlocksInstructor()) return;
             // Only Instructor+ is shown (Settings): its button, and the one of the Settings window, open it.
             if (!settings.Trainer.ShowBasicInstructor && settings.Trainer.ShowPlusInstructor)
             {
@@ -1292,8 +1307,13 @@ namespace AuroraPAR
             if (quickTestCallsign != null && !testTraffic.List().Any(p => p.Callsign == quickTestCallsign)) quickTestCallsign = null;
             if (viewOptions.Analog) TestButton.Tag = quickTestCallsign != null ? "Lit" : "Unlit";
             bool test = testTraffic.Count > 0;
-            bool sim = instructor.Count > 0 && aurora.Connected;
-            bool on = test || sim;
+            bool sim = SimFlying && aurora.Connected;
+            string? lessonSign = null;
+#if TRAINER
+            // Student of a lesson between two PCs: the link not working yet, or lost.
+            lessonSign = LessonSignText;
+#endif
+            bool on = test || sim || lessonSign != null;
             if (testTrafficSign == null)
             {
                 if (!on) return;
@@ -1317,7 +1337,7 @@ namespace AuroraPAR
                     root.Children.Add(testTrafficSign);
                 }
             }
-            if (testTrafficSignText != null) testTrafficSignText.Text = test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC";
+            if (testTrafficSignText != null) testTrafficSignText.Text = lessonSign ?? (test && sim ? "TEST + SIM TRAFFIC" : sim ? "SIM TRAFFIC" : "TEST TRAFFIC");
             testTrafficSign.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -1363,17 +1383,29 @@ namespace AuroraPAR
         {
 #if !TRAINER
             if (!settings.Instructor.Enabled) return;
+#else
+            // Student of a lesson between two PCs: the aircraft are flown on the instructor's PC.
+            if (LessonBlocksInstructor()) return;
 #endif
             if (instructorWindow == null)
             {
                 // Performance classes: performance.json in the Instructor folder beside the settings file.
                 string folder = Path.Combine(Path.GetDirectoryName(SettingsStore.FilePath) ?? AppContext.BaseDirectory, "Instructor");
                 string? notice = instructor.LoadPerformance(folder);
+                Func<Runway> referenceRunway = () => runway;
+                Func<IEnumerable<string>> otherCallsigns = () => lastAircrafts.Where(a => !a.IsSim).Select(a => a.Callsign).ToList();
+                Func<Aircraft, bool> isSeen = aircraft => radar.IsSeen(aircraft, runway);
+#if TRAINER
+                // Lesson between two PCs: the student's runway, its IVAO traffic and what its PAR sees.
+                referenceRunway = () => InstructorRunway;
+                otherCallsigns = () => lastAircrafts.Where(a => !a.IsSim).Select(a => a.Callsign).Concat(LessonStudentCallsigns()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                isSeen = aircraft => LessonIsSeen(aircraft) ?? radar.IsSeen(aircraft, runway);
+#endif
                 instructorWindow = new InstructorWindow(instructor, settings.Instructor, viewOptions.Qfe,
-                    () => runway,
+                    referenceRunway,
                     () => instructor.Reference?.MagneticVariation ?? settings.Active.MagneticVariation,
-                    () => lastAircrafts.Where(a => !a.IsSim).Select(a => a.Callsign).ToList(),
-                    aircraft => radar.IsSeen(aircraft, runway),
+                    otherCallsigns,
+                    isSeen,
                     () => SettingsStore.Save(settings),
                     OpenJoystick,
                     () => aurora.LastMetar is MetarReport report && string.Equals(report.Icao, (instructor.Reference ?? runway).ICAO, StringComparison.OrdinalIgnoreCase) ? report.Text : null,
@@ -1874,7 +1906,7 @@ namespace AuroraPAR
 
 #if TRAINER
         /// <summary>STS green: connected to Aurora, or (Trainer) simulated aircraft flying without Aurora.</summary>
-        private bool StatusGreen => aurora.Connected || instructor.Count > 0 || testTraffic.Count > 0;
+        private bool StatusGreen => aurora.Connected || SimFlying || testTraffic.Count > 0;
 #else
         /// <summary>STS green: connected to Aurora.</summary>
         private bool StatusGreen => aurora.Connected;
@@ -2743,6 +2775,7 @@ namespace AuroraPAR
                 }
                 // Instructor: simulated aircraft, also without Aurora (the simulation moves on even with none flying).
                 aircrafts.AddRange(instructor.Snapshot(DateTime.UtcNow));
+                TrainerTraffic(aircrafts);
                 if (!aurora.Connected && connectedCallsign != null)
                 {
                     connectedCallsign = null;

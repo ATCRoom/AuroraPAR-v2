@@ -24,6 +24,7 @@ TRAFFIC** at the top of the views.
 11. [Aircraft performance](#11-aircraft-performance)
 12. [Keys and macro keyboard](#12-keys-and-macro-keyboard)
 13. [A lesson on one PC](#13-a-lesson-on-one-pc)
+14. [A lesson between two PCs](#14-a-lesson-between-two-pcs)
 
 ---
 
@@ -224,5 +225,44 @@ Fixed keys: **N** next aircraft, **Shift+N** previous aircraft (not while typing
 
 With two monitors: the student's AuroraPAR on one (PAR or RDR, key **R**), the Instructor+ on the other. One mouse
 and one keyboard for two people: the instructor works with the mouse on the Instructor+, the student gives the
-instructions by voice. A lesson between two computers (instructor and student in different places) will come with the
-network link.
+instructions by voice. For instructor and student on two computers, also far away, see the next section.
+
+## 14. A lesson between two PCs
+
+The Instructor+ on the instructor's PC, the PAR and RDR on the student's PC, linked through the internet: the same
+public relays as the coordination panel (encrypted connection, nothing to install, no port to open). Both PCs run
+**AuroraPAR v2 Trainer**. Talk to each other as usual (Discord, TeamSpeak, phone…).
+
+1. **Instructor:** **Lesson…** (beside Coordination) → *Instructor* → **New code** → **Connect**. Tell the code to the
+   student.
+2. **Student:** **Lesson…** → *Student* → type the code → **Connect**.
+3. The Lesson key turns blue on both PCs when they are linked (orange while waiting). The plan view of the
+   Instructor+ shows `LESSON <code>: STUDENT LINKED`.
+
+What travels, about twice a second:
+
+- **To the student:** the simulated aircraft, the QNH of the instructor (used only when the student has no Aurora)
+  and the wind of the simulation; aircraft removed or started again also lose their tracks on the student's PC.
+- **To the instructor:** the student's runway and the beam of its PAR (**BEAM** and **TRAINEE PAR** show what the
+  student really sees), which aircraft its PAR sees, and its IVAO traffic.
+
+The Instructor+ follows the **student's runway**: change the runway on the student's PC while no simulated aircraft
+is flying (as on one PC). For the maps, choose the same airport on the instructor's PC too.
+
+The three kinds of lesson:
+
+| Traffic | Instructor's PC | Student's PC |
+| --- | --- | --- |
+| IVAO only | its Aurora (or the student's IVAO traffic, received) | its Aurora |
+| Mixed (IVAO + simulated) | Instructor+; IVAO from its Aurora or received from the student | Aurora connected to IVAO + the simulated aircraft received |
+| Simulated only | Instructor+, no Aurora needed | no Aurora needed (STS SIM) |
+
+A new simulated aircraft cannot take the callsign of an IVAO aircraft of either PC.
+
+On the student's PC the Instructor windows do not open while the lesson runs. If the link stops, the simulated
+aircraft disappear after 5 seconds, the student's screen shows **LESSON: LINK LOST** and the link comes back by itself;
+the simulation goes on on the instructor's PC. **Disconnect** ends the lesson. Whoever has the code can see the
+lesson: make a new one for each lesson.
+
+To try it on one PC: two copies of the Trainer in two folders, each with its own settings file beside the program
+(portable mode), one as instructor and one as student.
