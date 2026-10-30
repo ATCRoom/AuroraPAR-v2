@@ -11,7 +11,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>AuroraPARTrainer</AssemblyName>
     <RootNamespace>AuroraPAR</RootNamespace>
-    <ApplicationIcon>..\AuroraPAR.ico</ApplicationIcon>
+    <ApplicationIcon>AuroraPARTrainer.ico</ApplicationIcon>
     <DefineConstants>$(DefineConstants);TRAINER</DefineConstants>
     <!-- Version of the Trainer, shown in the title bar. Raise it at every release of the Trainer. -->
     <Version>1.0.0</Version>
@@ -34,7 +34,9 @@
     <Compile Include="..\*.cs" Link="%(Filename)%(Extension)" />
     <ApplicationDefinition Include="..\App.xaml" Link="App.xaml" />
     <Page Include="..\*.xaml" Exclude="..\App.xaml" Link="%(Filename)%(Extension)" />
-    <Resource Include="..\AuroraPAR.ico" Link="AuroraPAR.ico" />
+    <!-- Own icon (glide path with a simulated aircraft and TRAINER). Linked under the name the shared windows load
+         (AuroraPAR.ico), so all the windows of the Trainer show it. -->
+    <Resource Include="AuroraPARTrainer.ico" Link="AuroraPAR.ico" />
     <Resource Include="..\Fonts\B612-Bold.ttf" Link="Fonts\B612-Bold.ttf" />
     <Resource Include="..\Fonts\B612-Regular.ttf" Link="Fonts\B612-Regular.ttf" />
     <Resource Include="..\Fonts\BarlowCondensed-Bold.ttf" Link="Fonts\BarlowCondensed-Bold.ttf" />

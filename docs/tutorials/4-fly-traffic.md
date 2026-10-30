@@ -14,7 +14,7 @@ H243  →ALFA  -650
 ```
 
 - **Click a value** (heading, altitude, speed, point, rate): a list opens, click a value or type it and press **Go**.
-- **Wheel over a value**: one step (heading 5°, altitude 100 ft, speed 5 kt, rate 100 ft/min).
+- **Wheel over a value** of the label of the selected aircraft (HDG, ALT, SPD, VS on the radar; no click needed): one step (heading 5°, altitude 100 ft, speed 5 kt, rate 100 ft/min) from the value shown.
 - **Right click** on the aircraft: Pause, Reactivate, ROUTE / MANUAL, Edit route…, Rename…, Hide label, Remove.
 
 ![Commands on the label](gifs/t4-label-commands.gif)

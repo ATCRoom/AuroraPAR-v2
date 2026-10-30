@@ -107,7 +107,7 @@ namespace AuroraPAR
             {
                 metarSource.Text = "";
                 System.Media.SystemSounds.Beep.Play();
-                MessageBox.Show(this, $"No METAR for {icao} from the internet (no connection, or no report for this airport). Type the wind and the QNH by hand.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, $"No METAR for {icao} from the internet. It may be a temporary problem (no connection, or the service is busy): try again in a moment, or type the wind and the QNH by hand.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
             if (MetarWind.TryParse(metarText, out double from, out double speed, out double gust))

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AuroraPAR v2 Trainer: an instructor station for PAR lessons, with simulated traffic, a surveillance radar with maps and lessons between two PCs. With or without IVAO.">
+<link rel="icon" href="coord/icon-192.png">
+<title>AuroraPAR v2 Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: one dark scope-like column; hero with a drawn PAR display, then features, how it works, credits.
+   Palette: scope black, phosphor green (the one accent), amber for the glide path, cool grey text. */
+:root{
+  --bg:#070b09; --panel:#0d1411; --line:#1b2a22; --fg:#d7e0da; --muted:#8b9a91;
+  --phos:#5df08a; --phos-dim:#2a7a45; --amber:#e8b64a;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font:400 17px/1.6 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+.wrap{max-width:1040px;margin:0 auto}
+a{color:var(--phos);text-underline-offset:3px}
+a:focus-visible,.btn:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;line-height:1.05;margin:0;text-wrap:balance}
+.mono{font-family:var(--mono)}
+.eyebrow{font:500 13px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--phos-dim)}
+
+header.top{display:flex;gap:16px;align-items:center;justify-content:space-between;padding-block:22px;flex-wrap:wrap}
+.brand{font:700 22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--fg);text-decoration:none}
+.brand b{color:var(--phos);font-weight:700}
+nav{display:flex;gap:22px;flex-wrap:wrap}
+nav a{font:500 14px/1 var(--mono);color:var(--muted);text-decoration:none;letter-spacing:.04em}
+nav a:hover{color:var(--phos)}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr);gap:36px;padding-block:34px 56px}
+.hero h1{font-size:clamp(46px,8vw,92px);font-weight:700;text-transform:uppercase;letter-spacing:.015em}
+.hero h1 span{color:var(--phos)}
+.lead{font-size:clamp(18px,2.2vw,22px);color:var(--fg);max-width:34em;margin:20px 0 0}
+.cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:28px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:3px;font:600 17px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;border:1px solid var(--phos);color:#04120a;background:var(--phos)}
+.btn:hover{background:#86f6a8}
+.btn.ghost{background:transparent;color:var(--phos)}
+.btn.ghost:hover{background:rgba(93,240,138,.1)}
+.note{font:400 13px/1.5 var(--mono);color:var(--muted);margin-top:14px;max-width:46em}
+
+.scope{background:#050806;border:1px solid var(--line);border-radius:6px;padding:10px;position:relative;overflow:hidden}
+.scope img{display:block;width:100%;height:auto;border-radius:3px}
+.scope .cap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 12px/1.4 var(--mono);color:var(--muted);padding:8px 4px 2px}
+.sweep{transform-origin:40px 232px;animation:sweep 6s linear infinite}
+@keyframes sweep{0%{transform:rotate(-1.2deg)}50%{transform:rotate(4.6deg)}100%{transform:rotate(-1.2deg)}}
+@media (prefers-reduced-motion:reduce){.sweep{animation:none}}
+
+section{padding-block:56px;border-top:1px solid var(--line)}
+section h2{font-size:clamp(32px,5vw,50px);text-transform:uppercase;margin-top:12px}
+.sub{color:var(--muted);max-width:40em;margin:14px 0 0}
+
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;margin-top:34px}
+.f{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:22px 22px 24px;min-width:0}
+.f h3{font-size:25px;text-transform:uppercase;color:var(--fg);margin-top:14px}
+.f p{margin:10px 0 0;color:var(--muted);font-size:16px}
+.f svg{width:54px;height:54px;display:block}
+
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:22px;margin-top:30px;list-style:none;padding:0;counter-reset:s}
+.steps li{counter-increment:s;border-left:2px solid var(--phos-dim);padding-left:18px;min-width:0}
+.steps li::before{content:"STEP " counter(s);font:500 12px/1 var(--mono);letter-spacing:.14em;color:var(--phos)}
+.steps h3{font-size:24px;text-transform:uppercase;margin:8px 0 6px}
+.steps p{margin:0;color:var(--muted);font-size:16px}
+
+.credit{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;max-width:46em}
+.credit p{margin:0}
+.credit p.big{font:500 clamp(24px,3.4vw,34px)/1.2 var(--display);color:var(--fg)}
+footer{border-top:1px solid var(--line);padding-block:34px 56px;color:var(--muted);font:400 13px/1.7 var(--mono)}
+footer p{margin:0 0 8px;max-width:60em}
+@media (min-width:900px){.hero{grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center}}
+.shots{display:grid;gap:22px;margin-top:26px}.shots figure{margin:0}.shots img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px}.shots figcaption{margin-top:8px;font-size:14px;opacity:.8}@media (min-width:900px){.shots{grid-template-columns:1fr 1fr}.shots .wide{grid-column:1/-1}}
+.key{font:500 14px/1 var(--mono);border:1px solid var(--phos-dim);border-radius:3px;padding:2px 6px;color:var(--phos)}
+.gal{display:grid;gap:16px;margin-top:30px}
+.gal-main{margin:0;min-width:0}
+.gal-main img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px;background:#000}
+.gal-main figcaption{margin-top:10px;color:var(--muted);font-size:16px;min-height:3.2em}
+.gal-main figcaption b{color:var(--fg);font-family:var(--display);font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin-right:8px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,108px),1fr));gap:10px}
+.th{all:unset;cursor:pointer;display:grid;gap:6px;min-width:0}
+.th img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:left top;display:block;border:1px solid var(--line);border-radius:4px;opacity:.65;transition:opacity .2s,border-color .2s}
+.th span{font:500 12px/1.2 var(--mono);color:var(--muted);letter-spacing:.03em;overflow-wrap:anywhere}
+.th:hover img{opacity:1}
+.th[aria-pressed="true"] img{opacity:1;border-color:var(--phos)}
+.th[aria-pressed="true"] span{color:var(--phos)}
+.th:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+@media (min-width:900px){.gal{grid-template-columns:minmax(0,3fr) minmax(0,1fr);align-items:start}.thumbs{grid-template-columns:1fr 1fr}}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:22px;margin-top:30px;align-items:start}
+.tools figure,.phone{margin:0;min-width:0}
+.tools img,.phone img{width:100%;height:auto;display:block;border:1px solid #1f3a2a;border-radius:6px}
+.tools img{max-height:520px;object-fit:contain;object-position:left top;background:var(--panel)}
+.tools figcaption,.phone figcaption{margin-top:10px;color:var(--muted);font-size:15px}
+.tools figcaption b,.phone figcaption b{color:var(--fg)}
+.phone{margin-top:26px;max-width:760px}
+@media (prefers-reduced-motion:reduce){.th img{transition:none}}
+.form{display:grid;gap:18px;margin-top:30px;max-width:820px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:24px}
+.form [hidden]{display:none!important}
+.types{border:0;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;min-width:0}
+.types legend{font:500 13px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--phos-dim);margin-bottom:12px;padding:0}
+.type{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:4px;padding:14px;cursor:pointer;min-width:0}
+.type input{accent-color:var(--phos);margin-top:5px}
+.type span{color:var(--muted);font-size:15px;line-height:1.4}
+.type b{display:block;color:var(--fg);font:600 20px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+.type:has(input:checked){border-color:var(--phos)}
+.type:has(input:focus-visible){outline:2px solid var(--amber);outline-offset:2px}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px}
+.fld{display:grid;gap:6px;font-size:14px;color:var(--muted);min-width:0}
+.fld input,.fld select,.fld textarea{font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;width:100%;min-width:0}
+.fld textarea{resize:vertical}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--phos-dim);outline-offset:0;border-color:var(--phos-dim)}
+.files input{padding:8px;font-size:14px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.send{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.send .btn{border:0;cursor:pointer}
+.status{font:400 14px/1.4 var(--mono);color:var(--amber)}
+.faq{display:grid;gap:10px;margin-top:26px;max-width:860px}
+.qa{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.qa summary{cursor:pointer;list-style:none;padding:16px 48px 16px 18px;font:600 20px/1.25 var(--display);letter-spacing:.02em;color:var(--fg);position:relative}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);font:500 22px/1 var(--mono);color:var(--phos)}
+.qa[open] summary::after{content:"−"}
+.qa[open] summary{color:var(--phos)}
+.qa summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+.qa p{margin:0;padding:0 18px 18px;color:var(--muted);font-size:16px;max-width:62em}
+.types{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.kinds li::before{content:none}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <a class="brand" href="#top">Aurora<b>PAR</b> v2 Trainer</a>
+  <nav aria-label="Main">
+    <a href="#features">Features</a>
+    <a href="#lesson">Two PCs</a>
+    <a href="#start">Get started</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/tutorials/README.md">Tutorials</a>
+    <a href="https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/TRAINER.md">Guide</a>
+    <a href="index.html">AuroraPAR v2</a>
+  </nav>
+</header>
+
+<main id="top">
+<div class="hero">
+  <div>
+    <div class="eyebrow">Instructor station for PAR lessons</div>
+    <h1 style="margin-top:16px">Teach the<br><span>approach</span></h1>
+    <p class="lead">AuroraPAR v2 with an instructor's station. The <b>Instructor+</b> flies simulated aircraft on a radar of its own: flight plans clicked on the map, scenarios to repeat, commands on the label, a macro keyboard. The student works on the PAR and on the surveillance radar <b>RDR</b>, with maps made by <b>ATCRoom Map Creator</b>. Same PC, or two PCs far apart. With IVAO traffic, mixed, or simulated only.</p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/ATCRoom/AuroraPAR-v2/releases/tag/trainer-v1.0.0">Download for Windows</a>
+      <a class="btn ghost" href="https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/tutorials/README.md">Tutorials</a>
+    </div>
+    <p class="note">Version 1.0.0, for Windows 64-bit, with ATCRoom Map Creator. Free, open source (MIT). Works with or without IVAO's Aurora: a third-party add-on, not made, endorsed or supported by IVAO. For flight simulation only, never for real navigation or air traffic control.</p>
+  </div>
+  <figure class="scope" style="margin:0">
+    <img src="tutorials/gifs/t1-quick-start.gif" alt="Instructor+: an aircraft created on final appears on the instructor's radar and on the trainee PAR" loading="lazy">
+    <figcaption class="cap"><span>Instructor+: an aircraft on final, seen on the instructor's radar and on the TRAINEE PAR</span></figcaption>
+  </figure>
+</div>
+
+<section id="features">
+  <div class="eyebrow">What it does</div>
+  <h2>Everything the instructor needs</h2>
+  <div class="tools">
+    <figure><img src="tutorials/gifs/t2-new-fpl.gif" alt="A flight plan made by clicking points on the radar" loading="lazy"><figcaption><b>Flight plans by click.</b> Points on the radar, on a VRP or FIX of the maps, or by bearing and distance; altitude and speed at each point; drag a point while the aircraft flies.</figcaption></figure>
+    <figure><img src="tutorials/gifs/t3-beam.gif" alt="BEAM: the student's PAR beam drawn on the instructor's radar" loading="lazy"><figcaption><b>The student's beam.</b> BEAM draws where the student's PAR sees, and the TRAINEE PAR shows what the student sees, seen and not seen.</figcaption></figure>
+    <figure><img src="tutorials/gifs/t3-tfc-list.gif" alt="Plans sent to the traffic list and started" loading="lazy"><figcaption><b>Scenarios.</b> Several plans in the TRAFFIC LIST, started one by one or all together, saved to a file and loaded again for the next student.</figcaption></figure>
+    <figure><img src="tutorials/gifs/t4-label-commands.gif" alt="Commands given on the label of the aircraft" loading="lazy"><figcaption><b>Commands on the label.</b> Heading, altitude, speed and rate with a click or the mouse wheel, ROUTE or MANUAL, a pilot reaction time; a macro keyboard with a knob for the heading.</figcaption></figure>
+    <figure><img src="tutorials/gifs/t5-maps-window.gif" alt="Maps shown on the surveillance radar" loading="lazy"><figcaption><b>Surveillance radar RDR.</b> A plan view for the student and the instructor, with the maps of each airport: boundaries, MVA, FIX, VRP, navaids, CTR and ATZ.</figcaption></figure>
+    <figure><img src="tutorials/gifs/t5-map-creator.png" alt="ATCRoom Map Creator with the parts found in the files" loading="lazy"><figcaption><b>ATCRoom Map Creator.</b> Converts your own IVAO, EuroScope, KML or AIP files into maps for the RDR. The maps are for your own use only: do not distribute them.</figcaption></figure>
+  </div>
+</section>
+
+<section id="lesson">
+  <div class="eyebrow">Lessons</div>
+  <h2>On one PC, or on two PCs far apart</h2>
+  <p class="lead">On one PC with two monitors, the Instructor+ on one and the student's PAR on the other. On two PCs, also in two different cities: the instructor makes a lesson code, the student types it, and the simulated aircraft travel through the internet (the public relays of the coordination panel: nothing to install, no port to open). The Instructor+ follows the student's runway and shows what the student's PAR really sees. Talk as usual, on Discord, TeamSpeak or the phone.</p>
+  <ol class="steps kinds">
+    <li><h3>IVAO only</h3><p>Each PC with its own Aurora: the student controls real traffic, the instructor watches.</p></li>
+    <li><h3>Mixed</h3><p>The student on IVAO with Aurora, plus the simulated aircraft of the instructor.</p></li>
+    <li><h3>Simulated only</h3><p>No Aurora needed: the instructor gives the traffic, the QNH and the wind.</p></li>
+  </ol>
+</section>
+
+<section id="start">
+  <div class="eyebrow">Get started</div>
+  <h2>Up and running in minutes</h2>
+  <ol class="steps">
+    <li><h3>Download</h3><p>Get the zip of the Trainer from its release page, check the SHA-256 and unzip it anywhere. Nothing to install.</p></li>
+    <li><h3>Open the Instructor+</h3><p>Shift+I or the Instructor+ key. Quick: On final, Create &amp; start, and the first aircraft is on the student's PAR.</p></li>
+    <li><h3>Make your maps</h3><p>Optional: drop your own map files into ATCRoom Map Creator, then Maps… on the RDR.</p></li>
+    <li><h3>Teach</h3><p>Plans, scenarios, commands: the <a href="https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/tutorials/README.md">eight tutorials</a> show each step.</p></li>
+  </ol>
+  <div class="cta"><a class="btn" href="https://github.com/ATCRoom/AuroraPAR-v2/releases/tag/trainer-v1.0.0">Download</a><a class="btn ghost" href="https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/TRAINER.md">Instructor+ guide</a></div>
+</section>
+
+<section id="faq">
+  <div class="eyebrow">Questions</div>
+  <h2>FAQ</h2>
+  <div class="faq">
+    <details class="qa"><summary>Is it a different program from AuroraPAR v2?</summary><p>Yes: <span class="mono">AuroraPARTrainer.exe</span>, with its own settings, beside AuroraPAR v2 if you have it. It contains the whole PAR of AuroraPAR v2, plus the RDR, the Instructor+ and ATCRoom Map Creator.</p></details>
+    <details class="qa"><summary>Do I need IVAO or Aurora?</summary><p>No. Without Aurora the Trainer works with simulated aircraft only, and the QNH and wind are typed by hand or taken from the internet (From METAR). With Aurora connected, the real traffic and the simulated aircraft are shown together.</p></details>
+    <details class="qa"><summary>Are the simulated aircraft sent to IVAO?</summary><p>Never. They exist only in the Trainer (on the instructor's PC and, in a lesson between two PCs, on the student's).</p></details>
+    <details class="qa"><summary>What does the student need for a lesson between two PCs?</summary><p>The Trainer and the lesson code of the instructor. Whoever has the code can see the lesson: make a new code for each lesson. <a href="https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/TRAINER.md#14-a-lesson-between-two-pcs">Guide 14</a></p></details>
+    <details class="qa"><summary>Can I share the maps I make?</summary><p>No. The maps made with ATCRoom Map Creator come from data of IVAO, VATSIM or an AIP, which belong to their owners: they are for your own use only, for simulation only, never for real navigation or air traffic control.</p></details>
+    <details class="qa"><summary>Windows says "Windows protected your PC".</summary><p>The program is not signed with a paid certificate, so SmartScreen warns the first time. Click <b>More info → Run anyway</b>. Compare the SHA-256 of the zip with <span class="mono">SHA256SUMS-Trainer.txt</span> on the release page.</p></details>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>AuroraPAR v2 Trainer is a third-party add-on for IVAO's Aurora ATC software, made by IVAO members for their own use. It is not made, endorsed or supported by IVAO. For flight simulation only: not to be used for real navigation or air traffic control.</p>
+  <p>Based on <a href="https://github.com/bornac1/AuroraPAR">AuroraPAR</a> by bornac1: all credit for the original program goes to him.</p>
+  <p>MIT license · Source on <a href="https://github.com/ATCRoom/AuroraPAR-v2">GitHub</a> · <a href="index.html">AuroraPAR v2</a></p>
+</footer>
+</div>
+</body>
+</html>

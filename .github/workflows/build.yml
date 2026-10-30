@@ -47,8 +47,8 @@ jobs:
             publish/Profiles/
             publish/Profiles/*.json
 
-      # AuroraPAR v2 Trainer: a separate program built from the same files plus its own (Trainer folder). Only an
-      # artifact for now: its releases come with its first version.
+      # AuroraPAR v2 Trainer: a separate program built from the same files plus its own (Trainer folder); its own release
+      # on master (see below).
       - name: Build AuroraPAR v2 Trainer
         run: >
           dotnet publish Trainer/AuroraPARTrainer.csproj -c Release -r win-x64 --self-contained true
@@ -123,6 +123,28 @@ jobs:
         with:
           name: CRSCalculator-win-x64
           path: publish-crs/CRSCalculator.exe
+
+      # AuroraPAR v2 Trainer: its own release (tag trainer-v<Version of Trainer/AuroraPARTrainer.csproj>), replaced at every
+      # push to master while its version stays the same, never marked "latest" (that stays AuroraPAR v2). Made BEFORE
+      # the release of AuroraPAR v2 below, so the newest release is always the one of AuroraPAR v2: old versions of
+      # AuroraPAR v2 that do not skip the trainer-... tags are then not offered the Trainer as an update.
+      - name: Publish the release of the Trainer (Releases)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Compress-Archive -Path publish-trainer/AuroraPARTrainer.exe, publish-trainer/ATCRoomMapCreator.exe, publish-trainer/runways.par, publish-trainer/terrain.par, publish-trainer/MANUAL.md, publish-trainer/TRAINER.md, publish-trainer/Profiles -DestinationPath AuroraPARTrainer-win-x64.zip
+          '{0}  {1}' -f (Get-FileHash AuroraPARTrainer-win-x64.zip -Algorithm SHA256).Hash.ToLower(), 'AuroraPARTrainer-win-x64.zip' | Set-Content SHA256SUMS-Trainer.txt
+          $date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')
+          $short = '${{ github.sha }}'.Substring(0, 7)
+          $version = (Select-Xml -Path Trainer/AuroraPARTrainer.csproj -XPath '//Version').Node.InnerText
+          $tag = "trainer-v$version"
+          $pre = if ($version.Contains('-')) { '--prerelease' } else { '--latest=false' }
+          $notes = "AuroraPAR v2 Trainer $version, build of $date UTC (commit $short), with ATCRoom Map Creator. Website: https://atcroom.github.io/AuroraPAR-v2/trainer.html - Instructor+ with simulated traffic, surveillance radar RDR with maps, lessons on one PC or between two PCs. Works with or without IVAO's Aurora (third-party add-on, not made, endorsed or supported by IVAO). The maps you make are for your own use only (do not distribute them), for simulation only. Unzip and run; Windows may show a SmartScreen warning (More info -> Run anyway)."
+          gh release delete $tag --yes --cleanup-tag 2>$null
+          $global:LASTEXITCODE = 0
+          gh release create $tag AuroraPARTrainer-win-x64.zip SHA256SUMS-Trainer.txt $pre --target '${{ github.sha }}' --title "AuroraPAR v2 Trainer $version (build $date UTC)" --notes $notes
+          if ($LASTEXITCODE -ne 0) { throw 'Trainer release not created' }
 
       # Public download without a GitHub account: one release per version (tag v<Version of the csproj>, e.g. v2.0.0-beta),
       # replaced at every push to master while the version stays the same; a version with a suffix (-beta) is a
