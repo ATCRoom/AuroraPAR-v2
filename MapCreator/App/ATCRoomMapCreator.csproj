@@ -11,13 +11,14 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>ATCRoomMapCreator</AssemblyName>
     <RootNamespace>ATCRoom.MapCreator</RootNamespace>
-    <ApplicationIcon>..\..\AuroraPAR.ico</ApplicationIcon>
+    <ApplicationIcon>ATCRoomMapCreator.ico</ApplicationIcon>
     <!-- Version of the Map Creator, shown in the title bar. -->
     <Version>1.8.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="..\..\AuroraPAR.ico" Link="AuroraPAR.ico" />
+    <!-- Own icon (MAP, a coast, a FIX and a VRP), loaded by the window under the name AuroraPAR.ico. -->
+    <Resource Include="ATCRoomMapCreator.ico" Link="AuroraPAR.ico" />
   </ItemGroup>
 
   <ItemGroup>
