@@ -9,8 +9,12 @@ namespace AuroraPAR
     /// <summary>Help: the user manual (online) and the list of the keyboard and mouse shortcuts.</summary>
     internal static class Help
     {
-        /// <summary>User manual. Changes with the move to ATCRoom (see TODO.md, migration).</summary>
+        /// <summary>User manual (the Trainer: its own guide, which links the manual of the PAR and the tutorials).</summary>
+#if TRAINER
+        public const string ManualUrl = "https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/TRAINER.md";
+#else
         public const string ManualUrl = "https://github.com/ATCRoom/AuroraPAR-v2/blob/master/docs/MANUAL.md";
+#endif
 
         /// <summary>
         /// All the keyboard and mouse shortcuts, by group. The one list shown by the Keys window: when a key is added

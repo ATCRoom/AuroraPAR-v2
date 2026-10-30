@@ -166,7 +166,8 @@ const MAX_LABEL = 10;
 const ROLES = ["Radar", "Tower", "Monitor"];
 // Same relays as AuroraPAR / AuroraCoord, in the same order, through their secure WebSocket ports.
 const BROKERS = ["wss://broker.emqx.io:8084/mqtt", "wss://broker.hivemq.com:8884/mqtt"];
-const MQTT_SCRIPTS = ["https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js", "https://unpkg.com/mqtt@5/dist/mqtt.min.js"];
+// MQTT.js at a fixed version (not "the newest 5.x"): a new version published on the CDN cannot change the page by itself.
+const MQTT_SCRIPTS = ["https://cdn.jsdelivr.net/npm/mqtt@5.15.2/dist/mqtt.min.js", "https://unpkg.com/mqtt@5.15.2/dist/mqtt.min.js"];
 const STORE = "auroracoord.settings";
 
 const $ = id => document.getElementById(id);

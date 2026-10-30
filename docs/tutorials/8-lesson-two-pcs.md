@@ -33,6 +33,6 @@ simulated aircraft, the student's PAR shows **STS SIM** and takes the QNH of the
   by itself.
 - On the student's PC the Instructor windows do not open during the lesson.
 - Whoever has the code can see the lesson: make a new code for each lesson. **Disconnect** ends it.
-- To try it alone: two copies of the Trainer in two folders (portable mode), one instructor, one student.
+- To try it alone: two copies of the Trainer in two folders, each with an empty file `AuroraPARTrainer.settings.json` beside the program (portable mode), one instructor, one student.
 
 The full description is in the [Instructor+ guide](../TRAINER.md#14-a-lesson-between-two-pcs).

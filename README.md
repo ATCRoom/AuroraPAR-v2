@@ -2,7 +2,7 @@
 
 AuroraPAR v2 is a fork of [AuroraPAR](https://github.com/bornac1/AuroraPAR) by bornac1: a Precision Approach Radar (PAR) display, a third-party add-on for IVAO's Aurora ATC software.
 
-This is a test version, developed separately from the original project. All credit for the original program goes to bornac1; it is distributed under the same MIT license (see `LICENSE`).
+It is developed separately from the original project. All credit for the original program goes to bornac1; it is distributed under the same MIT license (see `LICENSE`).
 
 > **A third-party add-on for IVAO's Aurora software, made by IVAO members for their own use. It is not made, endorsed or supported by IVAO. For simulation only: never use it for real-world navigation or air traffic control.**
 
@@ -34,6 +34,12 @@ Display ranges 1, 2.5, 5, 10, 15, 20, 30 and 40 NM, each profile ticks the ones 
 **Coordination panel (voiceless coordination with the tower):** the *Coordination* button opens a small panel with five coloured lights and a reset button, the same for the radar and the tower controller. The first side that presses a light makes it **flash** on both panels and the other side hears an alert; when the other side presses the same light it becomes **steady** (acknowledged). The lights stay on until *reset*. They have no text: each unit gives them its own meaning (e.g. 12 NM, 8 NM, landing clearance requested / given / denied). The two panels of an airport are linked **automatically** from the callsigns connected in Aurora (`LIRF_TWR` is the tower, any other callsign of the airport the radar); as observer, type the airport and choose the role in *Options*. The link goes through a public MQTT relay over an encrypted connection: nothing to install and no port to open; only the state of the lights is sent. Square lit buttons on a black plate (as the light panel of the FIAR PAR console), the reset button set apart; an optional **panel code** shared by the group keeps strangers out (🔒); colours and an optional engraved text under each button (default: `RESET` only) are configurable. An instructor connected as observer can follow the coordination with the **Monitor** role (read-only: sees the lights and who is online). The tower controller, who does not need the PAR display, can use **AuroraCoord**: the same panel as a small standalone program (download *AuroraCoord-win-x64*); it works with the panel inside AuroraPAR. The panel also runs on a **phone or tablet**, in the browser, nothing to install: <https://atcroom.github.io/AuroraPAR-v2/coord/> — *Options → Open on phone / tablet...* shows a QR code that opens it already set (airport, role, colours, texts); the buttons fill the screen, with alert sound, vibration (Android) and screen kept on.
 
 **Traffic refresh check:** AuroraPAR measures how often the positions received from Aurora really change and shows it below the connection status (`DATA 0.5s` in green). If Aurora's traffic refresh rate is left at the normal 3 s, tracks move in jumps and a red warning appears (`DATA 3.0s - SET AURORA TRAFFIC REFRESH TO 0.5s`); it disappears by itself once the setting is changed. Only moving aircraft (above 50 kt) are measured, and about 10–20 seconds of traffic are needed.
+
+## AuroraPAR v2 Trainer
+
+A separate program for instructors, built from the same code: the whole PAR of AuroraPAR v2, plus the **Instructor+** (simulated aircraft flown by the instructor: flight plans clicked on the radar, scenarios, commands on the label, a macro keyboard), the surveillance radar **RDR** with maps, and **ATCRoom Map Creator** (converts your own IVAO, EuroScope, KML or AIP files into maps; the maps are for your own use only). Lessons on one PC, or between two PCs far apart (a lesson code, through the same public relays as the coordination panel). With IVAO traffic, mixed, or simulated only, also without Aurora.
+
+🌐 [Trainer page](https://atcroom.github.io/AuroraPAR-v2/trainer.html) · 📖 [Instructor+ guide](docs/TRAINER.md) · 🎓 [Tutorials](docs/tutorials/README.md) · download **AuroraPARTrainer-win-x64.zip** from its release (tag `trainer-v…`) on the Releases page.
 
 ## Download
 

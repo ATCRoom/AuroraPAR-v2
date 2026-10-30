@@ -12,19 +12,25 @@ namespace AuroraPAR
     /// </summary>
     internal static class UpdateCheck
     {
-        /// <summary>The most recent releases (versions and pre-releases), newest first; those of the Trainer (tag trainer-v...) are skipped.</summary>
-        private const string ReleaseApi = "https://api.github.com/repos/ATCRoom/AuroraPAR-v2/releases?per_page=10";
+        /// <summary>The most recent releases (versions and pre-releases), newest first; each program keeps only its own (see <see cref="IsTrainer"/>).</summary>
+        private const string ReleaseApi = "https://api.github.com/repos/ATCRoom/AuroraPAR-v2/releases?per_page=20";
 
         private sealed record Release(string Name, string Commit, DateTime Published, string Page);
 
+        /// <summary>
+        /// The program whose releases are looked at: AuroraPAR v2 (tags v...) or AuroraPAR v2 Trainer (tags trainer-v...);
+        /// each program sees only its own releases.
+        /// </summary>
+#if TRAINER
+        private const bool IsTrainer = true;
+        private const string ProgramName = "AuroraPAR v2 Trainer";
+#else
+        private const bool IsTrainer = false;
+        private const string ProgramName = "AuroraPAR v2";
+#endif
+
         public static async Task RunAsync(Window owner, AppSettings settings)
         {
-#if TRAINER
-            // The Trainer has no releases yet: its own check comes with its first release, which will have its own tag
-            // (trainer-v<Version>), so that the two programs never see each other's releases.
-            await Task.CompletedTask;
-            return;
-#else
             if (!settings.CheckForUpdates) return;
             string commit = AppInfo.FullCommit;
             if (commit.Length == 0 || AppInfo.BuildTime == null) return; // not a GitHub build: nothing to compare
@@ -39,13 +45,13 @@ namespace AuroraPAR
                 && release.Published > AppInfo.BuildTime.Value.AddMinutes(1);
             if (!newer || string.Equals(settings.SkippedRelease, release.Commit, StringComparison.OrdinalIgnoreCase)) return;
             MessageBoxResult answer = MessageBox.Show(owner,
-                $"A new version of AuroraPAR v2 is available:\n{release.Name}\n\n" +
+                $"A new version of {ProgramName} is available:\n{release.Name}\n\n" +
                 $"You have {AppInfo.FullVersion}.\n\n" +
                 "Open the download page now?\n\n" +
                 "Yes: open the page (download the zip and replace the files; your settings and profiles are kept).\n" +
                 "No: remind me tomorrow.\n" +
                 "Cancel: do not tell me again about this version.",
-                "AuroraPAR v2 - new version", MessageBoxButton.YesNoCancel, MessageBoxImage.Information, MessageBoxResult.Yes);
+                $"{ProgramName} - new version", MessageBoxButton.YesNoCancel, MessageBoxImage.Information, MessageBoxResult.Yes);
             if (answer == MessageBoxResult.Yes)
             {
                 try { Process.Start(new ProcessStartInfo(release.Page) { UseShellExecute = true }); } catch (Exception) { }
@@ -55,7 +61,6 @@ namespace AuroraPAR
                 settings.SkippedRelease = release.Commit;
                 SettingsStore.Save(settings);
             }
-#endif
         }
 
         private static async Task<Release?> FetchAsync()
@@ -70,9 +75,9 @@ namespace AuroraPAR
                 JsonElement? found = null;
                 foreach (JsonElement item in json.RootElement.EnumerateArray())
                 {
-                    // The releases of AuroraPAR v2 Trainer have their own tags (trainer-v1.0.0): not offered to this program.
+                    // The releases of AuroraPAR v2 Trainer have their own tags (trainer-v1.0.0): each program only its own.
                     string tag = item.TryGetProperty("tag_name", out JsonElement t) ? t.GetString() ?? "" : "";
-                    if (tag.StartsWith("trainer-", StringComparison.OrdinalIgnoreCase) || (item.TryGetProperty("draft", out JsonElement d) && d.GetBoolean())) continue;
+                    if (tag.StartsWith("trainer-", StringComparison.OrdinalIgnoreCase) != IsTrainer || (item.TryGetProperty("draft", out JsonElement d) && d.GetBoolean())) continue;
                     found = item;
                     break;
                 }

@@ -3,7 +3,8 @@
 The Trainer is AuroraPAR v2 with three additions for lessons: the surveillance radar **RDR** (a plan view with
 maps), the **Instructor+** (an instructor's station that flies simulated aircraft for the student) and **ATCRoom Map
 Creator** (it converts map files for the RDR). Everything about the PAR itself (views, labels, settings, profiles,
-runways) is in the AuroraPAR v2 manual, `MANUAL.md`, beside the program.
+runways) is in the [AuroraPAR v2 manual](MANUAL.md) (`MANUAL.md`, also beside the program). Step by step: the
+[tutorials](tutorials/README.md). Website: <https://atcroom.github.io/AuroraPAR-v2/trainer.html>.
 
 The simulated aircraft are never sent to IVAO: they exist only in the Trainer. The flight is computed by the
 Instructor+ with its own performance table; the student's PAR shows the aircraft as normal traffic, with **SIM
@@ -264,5 +265,5 @@ aircraft disappear after 5 seconds, the student's screen shows **LESSON: LINK LO
 the simulation goes on on the instructor's PC. **Disconnect** ends the lesson. Whoever has the code can see the
 lesson: make a new one for each lesson.
 
-To try it on one PC: two copies of the Trainer in two folders, each with its own settings file beside the program
-(portable mode), one as instructor and one as student.
+To try it on one PC: two copies of the Trainer in two folders, each with an empty file `AuroraPARTrainer.settings.json`
+beside the program (portable mode: each copy keeps its own settings), one as instructor and one as student.
