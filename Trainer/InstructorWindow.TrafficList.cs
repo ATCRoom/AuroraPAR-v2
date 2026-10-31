@@ -75,6 +75,12 @@ namespace AuroraPAR
             if (flying + waiting == 0) return;
             string what = flying > 0 && waiting > 0 ? $"{flying} flying and {waiting} waiting aircraft" : flying > 0 ? $"{flying} flying aircraft" : $"{waiting} waiting aircraft";
             if (MessageBox.Show(this, $"Remove {what}? Their flight plans wait again in Traffic generation.", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            ClearAllAircraft();
+        }
+
+        /// <summary>Removes all the aircraft, flying and waiting, without asking (Remove all aircraft, or following a new runway).</summary>
+        private void ClearAllAircraft()
+        {
             // Their tracks and history dots go from every view (the plans may start again under the same callsigns).
             forgetTracks?.Invoke(null);
             // Also those that left a moment ago (their dots stay a while on the plan views) under the callsigns of the plans.

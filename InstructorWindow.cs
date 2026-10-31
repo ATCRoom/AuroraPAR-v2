@@ -780,15 +780,26 @@ namespace AuroraPAR
         /// </summary>
         private void FollowRadarRunway()
         {
-            if (bridge.Count > 0) return;
             Runway radar = radarRunway();
             Runway? reference = bridge.Reference;
             if (reference != null && reference.RunwayKey == radar.RunwayKey && reference.GlideSlope == radar.GlideSlope
                 && reference.Latitude == radar.Latitude && reference.Longitude == radar.Longitude && reference.Heading == radar.DefaultHeading
                 && reference.Elevation == radar.Elevation && reference.TCH == radar.TCH && reference.TouchdownM == radar.TouchdownM
                 && reference.LengthM == radar.LengthM) return;
+            if (bridge.Count > 0)
+            {
+#if TRAINER
+                // Trainer: the instructor is asked whether to remove the aircraft and follow (Trainer/InstructorWindow.Follow.cs).
+                OfferToFollow(reference, radar);
+#endif
+                return;
+            }
+            string? oldAirport = reference?.ICAO;
             bridge.SetReference(radar);
             fillFields = true;
+#if TRAINER
+            ReferenceChanged(oldAirport, radar);
+#endif
         }
 
         /// <summary>Altitude for the wheel of the new aircraft box when it is empty: the glide path at the distance.</summary>

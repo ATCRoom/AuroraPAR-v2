@@ -19,11 +19,16 @@ namespace AuroraPAR
     {
         private static readonly Brush GivenBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x4F, 0xD1, 0xFF)));
         private static readonly Brush DimBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x80)));
+        /// <summary>Labels of the simulated aircraft on the instructor's views (<see cref="MarkSimulated"/>): orange, as SIM TRAFFIC.</summary>
+        internal static readonly Brush SimLabelBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0x9C, 0x30)));
         private static readonly Brush LabelBack = Freeze(new SolidColorBrush(Color.FromArgb(0xB0, 0x14, 0x18, 0x10)));
         private static readonly Pen LabelBorder = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xD0, 0x00))), 1));
 
         /// <summary>Instructor+: labels give commands (fields, menu), not hidden by a right click.</summary>
         public bool LabelCommands { get; set; }
+        /// <summary>Instructor+ only: the labels of the simulated aircraft in another colour, not to mix them up with real
+        /// (IVAO) traffic with a similar callsign. Never on the student's RDR.</summary>
+        public bool MarkSimulated { get; set; }
         /// <summary>Instructor+: the lines of the larger label of an aircraft (null: the usual label).</summary>
         public Func<string, IReadOnlyList<IReadOnlyList<LabelPart>>?>? ExtendedLabel { get; set; }
         /// <summary>A field of a label was clicked: callsign, field, where (in the view).</summary>
@@ -85,7 +90,8 @@ namespace AuroraPAR
                 double lineHeight = 0;
                 foreach (LabelPart part in line)
                 {
-                    Brush brush = part.Given ? (part.Dim ? DimBrush : GivenBrush) : part.Dim ? DimBrush : LabelBrush;
+                    Brush normal = MarkSimulated && aircraft.IsSim ? SimLabelBrush : LabelBrush;
+                    Brush brush = part.Given ? (part.Dim ? DimBrush : GivenBrush) : part.Dim ? DimBrush : normal;
                     FormattedText text = Text(part.Text, size, brush, pixelsPerDip);
                     row.Add((text, part));
                     lineWidth += text.WidthIncludingTrailingWhitespace;

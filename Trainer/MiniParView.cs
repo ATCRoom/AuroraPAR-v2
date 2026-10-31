@@ -163,7 +163,8 @@ namespace AuroraPAR
                 bool seen = IsSeen?.Invoke(aircraft) ?? true;
                 Pen trackPen = seen ? TrackPen : UnseenPen;
                 Brush dotBrush = seen ? DotBrush : UnseenBrush;
-                Brush labelBrush = seen ? LabelBrush : UnseenBrush;
+                // Simulated aircraft in orange (the instructor's view: not to mix them up with real traffic).
+                Brush labelBrush = !seen ? UnseenBrush : aircraft.IsSim ? PlanView.SimLabelBrush : LabelBrush;
                 if (histories.TryGetValue(aircraft.Callsign, out var history))
                 {
                     foreach ((double latitude, double longitude, double altitude) in history.Points)

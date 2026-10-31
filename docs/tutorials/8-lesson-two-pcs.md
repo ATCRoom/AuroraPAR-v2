@@ -19,8 +19,10 @@ The **Lesson** key turns blue on both PCs (orange: still waiting). On the Instru
 
 ## Step 4 — Choose the runway on the student's PC
 
-The Instructor+ follows the student's runway (while no aircraft flies): BEAM and TRAINEE PAR show what the student
-really sees. Choose the same airport on the instructor's PC too, for the maps.
+The Instructor+ follows the student's runway: BEAM and TRAINEE PAR show what the student really sees. If aircraft are
+flying it asks first whether to remove them; at a new airport it asks its METAR by itself. Choose the same airport on
+the instructor's PC too, for the maps and the QNH. On the instructor's screens the simulated aircraft have orange
+labels, the IVAO ones white.
 
 ## Step 5 — Fly
 

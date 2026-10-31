@@ -180,7 +180,9 @@ Normal gives), **VS**, **TURN**, **HDG**, **DRIFT**. Then a row for each command
 ## 10. TRAINEE PAR
 
 The student's PAR in small: the same runway, glide path and range, linear scales, the tracks with a few dots, the
-selected aircraft with a yellow square; a click on a track selects it. Aircraft that the student's PAR **does not see**
+selected aircraft with a yellow square; a click on a track selects it. The labels of the simulated aircraft are
+**orange** (here and on the radar of the Instructor+, never on the student's screens), the real IVAO traffic white.
+Aircraft that the student's PAR **does not see**
 (outside its beams) are **grey** with "not seen"; when they come into the beam they become green, at the same moment
 they appear to the student.
 
@@ -247,8 +249,11 @@ What travels, about twice a second:
 - **To the instructor:** the student's runway and the beam of its PAR (**BEAM** and **TRAINEE PAR** show what the
   student really sees), which aircraft its PAR sees, and its IVAO traffic.
 
-The Instructor+ follows the **student's runway**: change the runway on the student's PC while no simulated aircraft
-is flying (as on one PC). For the maps, choose the same airport on the instructor's PC too.
+The Instructor+ follows the **student's runway**. With no simulated aircraft flying it does it by itself; while aircraft
+fly it asks whether to remove them and follow (No: they stay, and new aircraft are still made on the old runway; the
+question is not repeated for that runway). At a new airport it asks its METAR by itself (from Aurora, or from the
+internet). This works the same on one PC. Choose the same airport on the instructor's PC too: for the maps, and because
+with Aurora connected the instructor's QNH (sent to a student without Aurora) is the one of the instructor's airport.
 
 The three kinds of lesson:
 

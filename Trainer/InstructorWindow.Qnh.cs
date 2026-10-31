@@ -87,8 +87,11 @@ namespace AuroraPAR
 
         private static readonly Brush WrongBack = new SolidColorBrush(Color.FromRgb(255, 215, 215));
 
-        /// <summary>From METAR without Aurora: the METAR of the airport from the internet; its wind and its QNH.</summary>
-        private async void WindFromInternet()
+        /// <summary>
+        /// From METAR without Aurora: the METAR of the airport from the internet; its wind and its QNH. Quiet (a new airport,
+        /// asked by itself): no message when there is none, only a note beside the button.
+        /// </summary>
+        private async void WindFromInternet(bool quiet = false)
         {
             if (fetchingMetar) return;
             string icao = (bridge.Reference ?? radarRunway()).ICAO.Trim().ToUpperInvariant();
@@ -105,6 +108,11 @@ namespace AuroraPAR
             }
             if (metarText == null)
             {
+                if (quiet)
+                {
+                    metarSource.Text = $"no METAR for {icao} (From METAR to try again)";
+                    return;
+                }
                 metarSource.Text = "";
                 System.Media.SystemSounds.Beep.Play();
                 MessageBox.Show(this, $"No METAR for {icao} from the internet. It may be a temporary problem (no connection, or the service is busy): try again in a moment, or type the wind and the QNH by hand.", Title, MessageBoxButton.OK, MessageBoxImage.Information);

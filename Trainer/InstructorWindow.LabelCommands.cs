@@ -22,6 +22,8 @@ namespace AuroraPAR
         private void AttachLabelCommands(PlanView view)
         {
             view.LabelCommands = true;
+            // The simulated aircraft in orange, apart from real (IVAO) traffic.
+            view.MarkSimulated = true;
             view.ExtendedLabel = LabelLines;
             view.LabelFieldClicked += OpenFieldList;
             view.LabelFieldWheel += FieldWheel;
