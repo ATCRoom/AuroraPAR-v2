@@ -13,14 +13,14 @@ Switch **BEAM** on (beside CENTRE). It draws where the student's PAR sees the ai
 dashed for the scan limits. Put the first point of each plan **just outside** the beam, so the student sees the
 aircraft come in.
 
-![BEAM](gifs/t3-beam.gif)
+[![BEAM](gifs/t3-beam.gif)](gifs/t3-beam.gif)
 
 ## Step 3 — Send the plans to the TFC LIST
 
 Press **TFC LIST** beside a plan, or **ALL TO TFC LIST** for all of them. They appear in **TRAFFIC LIST → WAITING**
 and on your radar as grey dashed squares with their names. The student does not see them yet.
 
-![TFC LIST](gifs/t3-tfc-list.gif)
+[![TFC LIST](gifs/t3-tfc-list.gif)](gifs/t3-tfc-list.gif)
 
 ## Step 4 — Start
 
@@ -34,7 +34,7 @@ and on your radar as grey dashed squares with their names. The student does not 
 for the TFC LIST. A scenario keeps the **name** of each class: if a class does not exist on another computer, the
 Jet is used.
 
-![Save and load](gifs/t3-save-load.gif)
+[![Save and load](gifs/t3-save-load.gif)](gifs/t3-save-load.gif)
 
 ## Step 6 — Run again
 

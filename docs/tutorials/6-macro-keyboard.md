@@ -18,7 +18,7 @@ On the bar of **AIRCRAFT CONTROL**: **Keys…**. Every command has a row.
 Click **Assign** on a row, then press the key (or turn the knob). Choose also the **steps** of the heading and rate
 keys (for example 1° or 5°).
 
-![The Keys window](gifs/t6-keys.png)
+[![The Keys window](gifs/t6-keys.png)](gifs/t6-keys.png)
 
 ## Things to know
 

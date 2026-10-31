@@ -17,7 +17,7 @@ Start **ATCRoom Map Creator**, or press **Open ATCRoom Map Creator** in the Maps
 Drag the files (or a whole folder) into the window: IVAO `.geo .fix .vor .ndb .ap .vfi .str .mva`, EuroScope
 `.ese .sct`, KML / KMZ, an AIP table (PDF). A list shows the **parts found**: choose the **category** of each.
 
-![ATCRoom Map Creator with the parts found and the preview](gifs/t5-map-creator.png)
+[![ATCRoom Map Creator with the parts found and the preview](gifs/t5-map-creator.png)](gifs/t5-map-creator.png)
 
 ## Step 3 — Airport and area
 
@@ -36,7 +36,7 @@ Maps of the same airport are added to its file, replacing only the category you 
 On the RDR: **Maps…**. For each category choose **Show**, **Labels** and the colours (kept for each airport).
 **Reload** reads the folder again after a change.
 
-![The Maps window](gifs/t5-maps-window.gif)
+[![The Maps window](gifs/t5-maps-window.gif)](gifs/t5-maps-window.gif)
 
 The same maps are the ones that offer VRP / FIX / VOR points when you click near them while making a route
 ([tutorial 2](2-flight-plan.md)).

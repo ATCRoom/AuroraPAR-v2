@@ -11,7 +11,7 @@ Goal: an aircraft on final, flown by you, seen by the student on the PAR. About 
 
 Press **Shift+I**, or the button **Instructor+ (⇧I)** in the main window.
 
-![Open the Instructor+](gifs/t1-open-instructor.gif)
+[![Open the Instructor+](gifs/t1-open-instructor.gif)](gifs/t1-open-instructor.gif)
 
 The radar of the instructor fills the window. Five panels float over it: **SIMULATION SETTINGS**,
 **TRAFFIC GENERATION**, **TRAFFIC LIST**, **AIRCRAFT CONTROL**, **TRAINEE PAR**.
@@ -34,7 +34,7 @@ In **TRAFFIC GENERATION → Quick (starts)**:
 3. Leave the altitude empty (on the glide path) and the class on **Jet**.
 4. Press **Create & start**.
 
-![Quick start on final](gifs/t1-quick-start.gif)
+[![Quick start on final](gifs/t1-quick-start.gif)](gifs/t1-quick-start.gif)
 
 The aircraft appears on your radar and, as normal traffic, on the student's PAR (with **SIM TRAFFIC** at the top).
 **Move to TFC list** would keep it waiting instead (see tutorial 3).

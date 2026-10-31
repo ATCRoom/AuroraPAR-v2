@@ -133,6 +133,10 @@ footer p{margin:0 0 8px;max-width:60em}
 .qa p{margin:0;padding:0 18px 18px;color:var(--muted);font-size:16px;max-width:62em}
 .types{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 .kinds li::before{content:none}
+figure img{cursor:zoom-in}
+.zoom{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:3vmin;cursor:zoom-out}
+.zoom img{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:6px;box-shadow:0 0 0 1px #1f3a2a;cursor:zoom-out}
+.zoom button{position:absolute;top:10px;right:14px;font:600 28px/1 sans-serif;color:#fff;background:none;border:0;cursor:pointer;padding:6px 10px}
 </style>
 </head>
 <body>
@@ -225,5 +229,22 @@ footer p{margin:0 0 8px;max-width:60em}
   <p>MIT license · Source on <a href="https://github.com/ATCRoom/AuroraPAR-v2">GitHub</a> · <a href="index.html">AuroraPAR v2</a></p>
 </footer>
 </div>
+<script>
+(function(){
+  function close(o){if(o&&o.parentNode)o.parentNode.removeChild(o);document.removeEventListener('keydown',esc);}
+  var cur=null;
+  function esc(e){if(e.key==='Escape'){close(cur);cur=null;}}
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(!t||t.tagName!=='IMG'||!t.closest('figure')||t.closest('.zoom'))return;
+    var o=document.createElement('div');o.className='zoom';o.setAttribute('role','dialog');o.setAttribute('aria-label','Enlarged image, click to close');
+    var i=document.createElement('img');i.src=t.currentSrc||t.src;i.alt=t.alt||'';
+    var b=document.createElement('button');b.type='button';b.setAttribute('aria-label','Close');b.textContent='\u00d7';
+    o.appendChild(i);o.appendChild(b);
+    o.addEventListener('click',function(){close(o);cur=null;});
+    document.body.appendChild(o);cur=o;document.addEventListener('keydown',esc);
+  });
+})();
+</script>
 </body>
 </html>

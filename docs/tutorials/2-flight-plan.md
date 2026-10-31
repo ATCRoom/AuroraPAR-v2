@@ -8,7 +8,7 @@ the route.
 **TRAFFIC GENERATION → Advanced → New FPL**. Give a callsign (for example `AZA101`) and a class (the Jet is
 proposed). The route editor opens below.
 
-![New FPL](gifs/t2-new-fpl.gif)
+[![New FPL](gifs/t2-new-fpl.gif)](gifs/t2-new-fpl.gif)
 
 ## Step 2 — Add points with the mouse
 
@@ -25,7 +25,7 @@ When your click is near a point of the maps, a menu asks:
 
 Far from every map point, the GPS point is added at once.
 
-![Snap to a VRP](gifs/t2-snap-vrp.gif)
+[![Snap to a VRP](gifs/t2-snap-vrp.gif)](gifs/t2-snap-vrp.gif)
 
 Points can also be written in the editor: the name of a map point, or bearing and distance from the threshold.
 
@@ -35,14 +35,14 @@ With the plan selected, drag a point with the left button (the cursor becomes �
 a map point. This works **also while the aircraft is flying**: if it is going to that point, it turns to the new
 place at once.
 
-![Drag a point](gifs/t2-drag-point.gif)
+[![Drag a point](gifs/t2-drag-point.gif)](gifs/t2-drag-point.gif)
 
 ## Step 5 — Remove a point
 
 Right click on a point → **Remove WPT**. For an aircraft in flight you also have **Direct to this point** and
 **Edit route…**.
 
-![Remove a point](gifs/t2-remove-wpt.gif)
+[![Remove a point](gifs/t2-remove-wpt.gif)](gifs/t2-remove-wpt.gif)
 
 ## Step 6 — Duplicate
 

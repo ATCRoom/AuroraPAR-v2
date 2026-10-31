@@ -17,7 +17,7 @@ H243  →ALFA  -650
 - **Wheel over a value** of the label of the selected aircraft (HDG, ALT, SPD, VS on the radar; no click needed): one step (heading 5°, altitude 100 ft, speed 5 kt, rate 100 ft/min) from the value shown.
 - **Right click** on the aircraft: Pause, Reactivate, ROUTE / MANUAL, Edit route…, Rename…, Hide label, Remove.
 
-![Commands on the label](gifs/t4-label-commands.gif)
+[![Commands on the label](gifs/t4-label-commands.gif)](gifs/t4-label-commands.gif)
 
 ## Step 2 — AIRCRAFT CONTROL
 
@@ -32,7 +32,7 @@ For more control use the panel (choose the aircraft with a click, or **N** / **S
 
 Typical approach: a heading to intercept, **Final CRS**, speed to the final speed, rate **Normal**.
 
-![AIRCRAFT CONTROL](gifs/t4-aircraft-control.gif)
+[![AIRCRAFT CONTROL](gifs/t4-aircraft-control.gif)](gifs/t4-aircraft-control.gif)
 
 ## Step 3 — MANUAL or ROUTE
 
@@ -40,7 +40,7 @@ Typical approach: a heading to intercept, **Final CRS**, speed to the final spee
 - **ROUTE**: it flies the points of its route. A heading puts it back in MANUAL at once.
 - **Next WPT** skips to the next point; **→** + **Go** goes direct to a point of the route or of the maps.
 
-![ROUTE and MANUAL](gifs/t4-route-manual.gif)
+[![ROUTE and MANUAL](gifs/t4-route-manual.gif)](gifs/t4-route-manual.gif)
 
 ## Step 4 — Pause one aircraft
 
