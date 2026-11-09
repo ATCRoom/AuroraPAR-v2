@@ -15,6 +15,8 @@ beside `AuroraPARTrainer.exe` to open it from the Maps window.
 Start **ATCRoom Map Creator**, or press **Open ATCRoom Map Creator** in the Maps window of the RDR (when it is not
 beside the Trainer the key reads **Download ATCRoom Map Creator** and opens its download page).
 
+[![The Maps window with Download ATCRoom Map Creator](gifs/t5-maps-download.png)](gifs/t5-maps-download.png)
+
 ## Step 2 — Drop the files
 
 Drag the files (or a whole folder) into the window: IVAO `.geo .fix .vor .ndb .ap .vfi .str .mva`, EuroScope

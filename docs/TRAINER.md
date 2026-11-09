@@ -38,6 +38,9 @@ Button **Instructor+ (⇧I)** in the main window, or **Shift+I**. Closing its wi
 
 The instructor's radar fills the whole window. Over it float five panels:
 
+[![The Instructor+ with its panels](images/trainer-instructor.png)](images/trainer-instructor.png)
+
+
 | Panel | What it is for |
 | --- | --- |
 | **SIMULATION SETTINGS** | runway, wind, QNH / QFE, pilot reaction, callsign prefix, Aircraft performance… |
@@ -52,6 +55,10 @@ The instructor's radar fills the whole window. Over it float five panels:
 - **Panels: LIGHT / DARK** (in SIMULATION SETTINGS): the look of the inside of the panels and of the Aircraft
   performance window. LIGHT (the default) is Windows' own; DARK makes the boxes, lists, buttons and tables dark, easier
   on the eyes in a dim room. It changes at the next start of the program.
+
+  [![Panels DARK](images/trainer-panels-dark.png)](images/trainer-panels-dark.png)
+  [![Panels LIGHT](images/trainer-panels-light.png)](images/trainer-panels-light.png)
+
 - **Double-click on the bar**: back to its first place.
 - A panel always stays inside the window; when its content is taller than the room under it, it scrolls.
 - The TRAINEE PAR is **resized** from its bottom right corner.
