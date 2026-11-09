@@ -29,8 +29,18 @@ namespace AuroraPAR
         private Point? dragStart;
         private bool followsCanvas;
         private Point dragFrom;
+        // (Closed: parked in the top right corner of the view as a small box with its symbol, the user 9 Nov.)
+        private readonly string title;
+        private readonly double fixedWidth;
+        private readonly FrameworkElement? barExtra;
+        private readonly DockPanel layout = new();
+        private readonly Border pill;
+        private readonly Brush openBack;
+        private static readonly Dictionary<Canvas, List<FloatingPanel>> Parked = [];
+        private const double PillWidth = 52, PillGap = 4, PillMargin = 8;
 
         /// <param name="title">The name on the bar (capitals).</param>
+        /// <param name="symbol">Its symbol when it is closed (parked in the top right corner as a small box).</param>
         /// <param name="content">What the panel shows.</param>
         /// <param name="barExtra">Something on the right of the bar (a summary, a button), or null.</param>
         /// <param name="width">The width of the panel (a resizable one: its first width).</param>
@@ -38,13 +48,16 @@ namespace AuroraPAR
         /// <param name="firstPlace">Its first place, from the size of the view and of the panel.</param>
         /// <param name="resizable">With a grip to change its size: then <paramref name="content"/> gets the size.</param>
         /// <param name="height">The first height of the content of a resizable panel.</param>
-        public FloatingPanel(string title, FrameworkElement content, FrameworkElement? barExtra, double width, PanelPlacement placement,
+        public FloatingPanel(string title, string symbol, FrameworkElement content, FrameworkElement? barExtra, double width, PanelPlacement placement,
             Func<Size, Size, Point> firstPlace, Action changed, bool resizable = false, double height = 250)
         {
+            this.title = title;
+            this.barExtra = barExtra;
+            fixedWidth = width;
             this.placement = placement;
             this.firstPlace = firstPlace;
             this.changed = changed;
-            Background = Freeze(new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2)));
+            Background = openBack = Freeze(new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2)));
             BorderBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x5D, 0x7A, 0x99)));
             // A clear border instead of a shadow (a shadow is drawn again at each refresh and blurs the text).
             BorderThickness = new Thickness(1.5);
@@ -148,11 +161,50 @@ namespace AuroraPAR
                 VerticalScrollBarVisibility = resizable ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             };
-            DockPanel layout = new();
             DockPanel.SetDock(bar, Dock.Top);
             layout.Children.Add(bar);
             layout.Children.Add(contentHost);
             Child = layout;
+
+            // Parked: its symbol and ▾ (open again where it was); a double click opens it too.
+            StackPanel pillInside = new() { Orientation = Orientation.Horizontal };
+            pillInside.Children.Add(new TextBlock
+            {
+                Text = symbol,
+                FontFamily = new FontFamily("Segoe UI Symbol"),
+                FontSize = 15,
+                Foreground = Brushes.White,
+                Width = 18,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            Button reopen = new()
+            {
+                Content = "▾",
+                FontSize = 9,
+                Width = 18,
+                Height = 16,
+                Padding = new Thickness(0),
+                Margin = new Thickness(2, 0, 0, 0),
+                Focusable = false,
+                Foreground = Brushes.White,
+                Background = BarBrush,
+                BorderBrush = BarText,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "Open it again where it was."
+            };
+            reopen.Click += (s, e) => SetOpen(true);
+            pillInside.Children.Add(reopen);
+            pill = new Border { Padding = new Thickness(3, 2, 3, 2), Child = pillInside, Cursor = Cursors.Hand };
+            pill.MouseLeftButtonDown += (s, e) =>
+            {
+                if (e.ClickCount < 2) return;
+                SetOpen(true);
+                e.Handled = true;
+            };
+            // Its name and what its bar says, under the mouse.
+            pill.ToolTip = title;
+            pill.ToolTipOpening += (s, e) => pill.ToolTip = barExtra is TextBlock { Text.Length: > 0 } said ? $"{title} · {said.Text}" : title;
 
             PreviewMouseDown += (s, e) => BringToFront();
             SizeChanged += (s, e) => Fit();
@@ -187,7 +239,24 @@ namespace AuroraPAR
         {
             contentHost.Visibility = placement.Open ? Visibility.Visible : Visibility.Collapsed;
             toggle.Content = placement.Open ? "▴" : "▾";
-            toggle.ToolTip = placement.Open ? "Close to the bar." : "Open.";
+            toggle.ToolTip = placement.Open ? "Park it in the top right corner." : "Open.";
+            // (Closed: parked as a small box, the user 9 Nov; open: where it was.)
+            Child = placement.Open ? layout : pill;
+            Background = placement.Open ? openBack : BarBrush;
+            if (!placement.Open) Width = PillWidth;
+            else if (sized == null) Width = fixedWidth;
+            if (Parent is Canvas canvas) Repark(canvas);
+            if (placement.Open) BringToFront();
+            Fit();
+        }
+
+        /// <summary>The parked ones of this view in the order they were closed, from the right.</summary>
+        private void Repark(Canvas canvas)
+        {
+            if (!Parked.TryGetValue(canvas, out List<FloatingPanel>? row)) Parked[canvas] = row = [];
+            if (!placement.Open && !row.Contains(this)) row.Add(this);
+            if (placement.Open) row.Remove(this);
+            foreach (FloatingPanel other in row) if (other != this) other.Fit();
         }
 
         private void BringToFront() => Panel.SetZIndex(this, ++topZ);
@@ -234,6 +303,17 @@ namespace AuroraPAR
         public void Fit()
         {
             if (Parent is not Canvas canvas || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            if (!placement.Open)
+            {
+                // Parked: in the top right corner, after the ones parked before it.
+                if (!Parked.TryGetValue(canvas, out List<FloatingPanel>? row)) Parked[canvas] = row = [];
+                if (!row.Contains(this)) row.Add(this);
+                int index = row.IndexOf(this);
+                Canvas.SetLeft(this, Math.Max(0, canvas.ActualWidth - PillMargin - (index + 1) * PillWidth - index * PillGap));
+                Canvas.SetTop(this, PillMargin);
+                Panel.SetZIndex(this, 100000);
+                return;
+            }
             double width = canvas.ActualWidth;
             double height = canvas.ActualHeight;
             double barHeight = Math.Max(24, bar.ActualHeight);

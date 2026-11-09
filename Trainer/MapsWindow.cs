@@ -73,16 +73,16 @@ namespace AuroraPAR
             reloadButton.Click += (s, e) => ShowMaps(this.reload());
             Button folderButton = new() { Content = "Open folder", Padding = new Thickness(10, 3, 10, 3), Margin = new Thickness(0, 0, 6, 0) };
             folderButton.Click += (s, e) => OpenFolder();
+            // (ATCRoom Map Creator is a separate download, the user 9 Nov: opened when it is beside the program, else its download page.)
+            bool beside = File.Exists(MapLibrary.MapCreatorPath);
             Button creatorButton = new()
             {
-                Content = "Open ATCRoom Map Creator",
+                Content = beside ? "Open ATCRoom Map Creator" : "Download ATCRoom Map Creator",
                 Padding = new Thickness(10, 3, 10, 3),
                 Margin = new Thickness(0, 0, 6, 0),
-                IsEnabled = File.Exists(MapLibrary.MapCreatorPath),
-                ToolTip = File.Exists(MapLibrary.MapCreatorPath) ? "Make the map of an airport from the files of IVAO, EuroScope or an AIP."
-                    : "ATCRoomMapCreator.exe is not beside AuroraPARTrainer.exe."
+                ToolTip = beside ? "Make the map of an airport from the files of IVAO, EuroScope or an AIP."
+                    : "ATCRoom Map Creator is a separate download: its page opens in the browser. Put ATCRoomMapCreator.exe beside AuroraPARTrainer.exe to open it from here."
             };
-            ToolTipService.SetShowOnDisabled(creatorButton, true);
             creatorButton.Click += (s, e) => OpenMapCreator();
             Button closeButton = new() { Content = "Close", Padding = new Thickness(16, 3, 16, 3), IsCancel = true };
             closeButton.Click += (s, e) => Close();
@@ -264,7 +264,8 @@ namespace AuroraPAR
         {
             try
             {
-                Process.Start(new ProcessStartInfo(MapLibrary.MapCreatorPath) { UseShellExecute = true });
+                string what = File.Exists(MapLibrary.MapCreatorPath) ? MapLibrary.MapCreatorPath : MapLibrary.MapCreatorDownload;
+                Process.Start(new ProcessStartInfo(what) { UseShellExecute = true });
             }
             catch (Exception) { }
         }

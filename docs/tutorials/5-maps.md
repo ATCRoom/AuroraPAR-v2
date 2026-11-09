@@ -1,7 +1,9 @@
 # 5. Maps for the RDR
 
 The surveillance radar (**RDR**) and the Instructor+ draw maps: boundaries, MVA, FIX, VRP, navaids. They are
-converted from your own files by **ATCRoom Map Creator** (installed with the Trainer).
+converted from your own files by **ATCRoom Map Creator**, a separate download
+([github.com/ATCRoom/MapCreator/releases](https://github.com/ATCRoom/MapCreator/releases)): put `ATCRoomMapCreator.exe`
+beside `AuroraPARTrainer.exe` to open it from the Maps window.
 
 > **⚠ Personal use only — simulation only.** The Map Creator reads files of any kind (IVAO, VATSIM, AIP, KML…), but
 > the maps you make from them are **for your own use only**: **do not distribute them** (no sharing, no uploading)
@@ -10,7 +12,8 @@ converted from your own files by **ATCRoom Map Creator** (installed with the Tra
 
 ## Step 1 — Open the Map Creator
 
-Start **ATCRoom Map Creator**, or press **Open ATCRoom Map Creator** in the Maps window of the RDR.
+Start **ATCRoom Map Creator**, or press **Open ATCRoom Map Creator** in the Maps window of the RDR (when it is not
+beside the Trainer the key reads **Download ATCRoom Map Creator** and opens its download page).
 
 ## Step 2 — Drop the files
 

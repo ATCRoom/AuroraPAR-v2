@@ -17,6 +17,9 @@ namespace AuroraPAR
         /// <summary>ATCRoom Map Creator, when it is beside the Trainer.</summary>
         public static string MapCreatorPath => System.IO.Path.Combine(AppContext.BaseDirectory, "ATCRoomMapCreator.exe");
 
+        /// <summary>The download page of ATCRoom Map Creator (a separate download, the user 9 Nov).</summary>
+        public const string MapCreatorDownload = "https://github.com/ATCRoom/MapCreator/releases/latest";
+
         /// <summary>Reads all the maps; a file that is not a map is listed in the errors (by name) and skipped.</summary>
         public static (List<LoadedMap> Maps, List<string> Errors) Load()
         {

@@ -37,7 +37,7 @@ Display ranges 1, 2.5, 5, 10, 15, 20, 30 and 40 NM, each profile ticks the ones 
 
 ## AuroraPAR v2 Trainer
 
-A separate program for instructors, built from the same code: the whole PAR of AuroraPAR v2, plus the **Instructor+** (simulated aircraft flown by the instructor: flight plans clicked on the radar, scenarios, commands on the label, a macro keyboard), the surveillance radar **RDR** with maps, and **ATCRoom Map Creator** (converts your own IVAO, EuroScope, KML or AIP files into maps; the maps are for your own use only). Lessons on one PC, or between two PCs far apart (a lesson code, through the same public relays as the coordination panel). With IVAO traffic, mixed, or simulated only, also without Aurora.
+A separate program for instructors, built from the same code: the whole PAR of AuroraPAR v2, plus the **Instructor+** (simulated aircraft flown by the instructor: flight plans clicked on the radar, scenarios, commands on the label, a macro keyboard), the surveillance radar **RDR** with maps, and the maps of **ATCRoom Map Creator** (a separate download, [ATCRoom/MapCreator](https://github.com/ATCRoom/MapCreator/releases): converts your own IVAO, EuroScope, KML or AIP files into maps; the maps are for your own use only). Lessons on one PC, or between two PCs far apart (a lesson code, through the same public relays as the coordination panel). With IVAO traffic, mixed, or simulated only, also without Aurora.
 
 🌐 [Trainer page](https://atcroom.github.io/AuroraPAR-v2/trainer.html) · 📖 [Instructor+ guide](docs/TRAINER.md) · 🎓 [Tutorials](docs/tutorials/README.md) · download **AuroraPARTrainer-win-x64.zip** from its release (tag `trainer-v…`) on the Releases page.
 

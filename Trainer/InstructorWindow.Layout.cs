@@ -156,7 +156,7 @@ namespace AuroraPAR
             Button performance = new() { Content = "Aircraft performance…", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "The performance classes (speeds, initial and final speed, climb, descent, turns): a table to change them." };
             performance.Click += (s, e) => OpenPerformanceWindow();
             simulation.Children.Add(performance);
-            overlay.Children.Add(new FloatingPanel("SIMULATION SETTINGS", simulation, simulationSummary, 440, Placement("Simulation", false),
+            overlay.Children.Add(new FloatingPanel("SIMULATION SETTINGS", "⚙", simulation, simulationSummary, 440, Placement("Simulation", false),
                 (area, size) => new Point(left, first), save));
 
             // ----- Traffic generation ----------------------------------------------------------------------------------
@@ -174,22 +174,22 @@ namespace AuroraPAR
             routeEditorHost.Child = routeEditor;
             advanced.Children.Add(routeEditorHost);
             tabs.Items.Add(new TabItem { Header = "Advanced (flight plans, scenarios)", Content = new Border { Padding = new Thickness(4), Child = advanced } });
-            overlay.Children.Add(new FloatingPanel("TRAFFIC GENERATION", tabs, null, 460, Placement("Traffic", false),
+            overlay.Children.Add(new FloatingPanel("TRAFFIC GENERATION", "✎", tabs, null, 460, Placement("Traffic", false),
                 (area, size) => new Point(left, first + step), save));
 
             // ----- Aircraft control ------------------------------------------------------------------------------------
             StackPanel aircraftBar = new() { Orientation = Orientation.Horizontal };
             aircraftBar.Children.Add(aircraftTitle);
             aircraftBar.Children.Add(KeysButton());
-            overlay.Children.Add(new FloatingPanel("AIRCRAFT CONTROL", BuildAircraftControl(), aircraftBar, 376, Placement("Aircraft", true),
+            overlay.Children.Add(new FloatingPanel("AIRCRAFT CONTROL", "✈", BuildAircraftControl(), aircraftBar, 376, Placement("Aircraft", true),
                 (area, size) => new Point(left, first + 2 * step), save));
 
             // ----- Traffic list ------------------------------------------------------------------------------------------
-            overlay.Children.Add(new FloatingPanel("TRAFFIC LIST", BuildTrafficList(), trafficSummary, 400, Placement("TrafficList", true),
+            overlay.Children.Add(new FloatingPanel("TRAFFIC LIST", "☰", BuildTrafficList(), trafficSummary, 400, Placement("TrafficList", true),
                 (area, size) => new Point(area.Width - size.Width - 12, 84), save));
 
             // ----- Trainee PAR (the mini-PAR) ---------------------------------------------------------------------------
-            overlay.Children.Add(new FloatingPanel("TRAINEE PAR", par, null, 640, Placement("MiniPar", true),
+            overlay.Children.Add(new FloatingPanel("TRAINEE PAR", "⊿", par, null, 640, Placement("MiniPar", true),
                 (area, size) => new Point(area.Width - size.Width - 12, area.Height - size.Height - 12), save, resizable: true, height: 260));
             return root;
         }

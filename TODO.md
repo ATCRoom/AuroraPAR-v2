@@ -1,5 +1,17 @@
 # AuroraPAR v2 — To do
 
+
+## AuroraPAR v2 Trainer, 9 Nov (the user) — WRITTEN, branch `trainer` (test build)
+- **Parked panels** (as in TWR Trainer): a floating panel closed (▾) becomes a small box in the top right corner of the
+  view with its symbol and ▾ (open again where it was; double click too); name and summary in the tooltip. Symbols:
+  ⚙ Simulation settings, ✎ Traffic generation, ✈ Aircraft control, ☰ Traffic list, ⊿ Trainee PAR.
+- **ATCRoom Map Creator a separate download**: not in the Trainer zip any more (still its own artifact); the Maps window
+  key opens it when `ATCRoomMapCreator.exe` is beside the program, else "Download ATCRoom Map Creator" opens
+  https://github.com/ATCRoom/MapCreator/releases/latest. Docs: README, trainer.html, tutorial 5. **To do:** the
+  repository ATCRoom/MapCreator (decided by the user 9 Nov) with its source, workflow and releases; until it has a
+  release the link shows an empty page. Before the next Trainer release: <Version> of the Trainer, and MapCreator/
+  copied back from ATCRoom/TWR-Trainer.
+
 ## Next update
 
 - **From the tests of the lesson (31 Oct, the user) — WRITTEN 31 Oct, to test:** (1) the student changed airport while simulated aircraft were flying: the Instructor+ kept the old runway (rule "follow only with no aircraft"), so Quick made aircraft at the old airport and From METAR asked the old airport. Now (`Trainer/InstructorWindow.Follow.cs`, root `FollowRadarRunway` under `#if TRAINER`): with aircraft flying the instructor is asked "remove the N aircraft and follow?" (Yes: Remove all aircraft without the second question, then follow; No: they stay, not asked again for that runway), for a new airport and for another runway of the same airport, also on one PC; at a new airport the old METAR text goes and the new METAR is asked by itself (Aurora if it has that airport, else the internet, quiet: only a note if none). Known limit (in the guide): with Aurora connected the instructor's QNH is the one of his own airport. (2) Mixed traffic: on the instructor's views (Instructor+ radar `PlanView.MarkSimulated`, TRAINEE PAR) the labels of the simulated aircraft are orange, the IVAO ones white; **nothing changes for the student** (decided by the user).
