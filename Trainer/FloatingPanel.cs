@@ -35,6 +35,18 @@ namespace AuroraPAR
         private readonly Border pill;
         private readonly Brush openBack;
         private static readonly Dictionary<Canvas, List<FloatingPanel>> Parked = [];
+        // (Beside the CENTRE bar, on its row, to its left: not over its keys nor the line under it, the user 9 Nov.)
+        private static readonly Dictionary<Canvas, FrameworkElement> ParkBeside = [];
+
+        /// <summary>The parked boxes of this view go in a row on the left of <paramref name="beside"/>, at its height.</summary>
+        public static void ParkNextTo(Canvas canvas, FrameworkElement beside)
+        {
+            ParkBeside[canvas] = beside;
+            beside.SizeChanged += (s, e) =>
+            {
+                if (Parked.TryGetValue(canvas, out List<FloatingPanel>? row)) foreach (FloatingPanel parked in row.ToList()) parked.Fit();
+            };
+        }
         private const double PillWidth = 52, PillGap = 4, PillMargin = 8, PillTop = 48;
 
         /// <param name="title">The name on the bar (capitals).</param>
@@ -316,9 +328,15 @@ namespace AuroraPAR
                 if (!Parked.TryGetValue(canvas, out List<FloatingPanel>? row)) Parked[canvas] = row = [];
                 if (!row.Contains(this)) row.Add(this);
                 int index = row.IndexOf(this);
-                Canvas.SetLeft(this, Math.Max(0, canvas.ActualWidth - PillMargin - (index + 1) * PillWidth - index * PillGap));
-                // (Under the CENTRE bar of the view, top right, not over its keys: the review of 9 Nov.)
-                Canvas.SetTop(this, PillTop);
+                double right = canvas.ActualWidth - PillMargin, top = PillTop;
+                if (ParkBeside.TryGetValue(canvas, out FrameworkElement? beside) && beside.IsVisible && beside.ActualWidth > 0)
+                {
+                    Point at = beside.TranslatePoint(new Point(0, 0), canvas);
+                    right = at.X - 2 * PillGap;
+                    top = Math.Max(0, at.Y);
+                }
+                Canvas.SetLeft(this, Math.Max(0, right - (index + 1) * PillWidth - index * PillGap));
+                Canvas.SetTop(this, top);
                 Panel.SetZIndex(this, 100000);
                 return;
             }

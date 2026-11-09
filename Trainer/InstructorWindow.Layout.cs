@@ -115,6 +115,8 @@ namespace AuroraPAR
             // The panels: on a canvas over the view (no background: a click beside the panels reaches the view).
             Canvas overlay = new() { ClipToBounds = true };
             root.Children.Add(overlay);
+            // (The closed panels parked on the left of the CENTRE bar, the user 9 Nov.)
+            FloatingPanel.ParkNextTo(overlay, centre);
             const double left = 10;
             const double first = 52;
             const double step = 30;

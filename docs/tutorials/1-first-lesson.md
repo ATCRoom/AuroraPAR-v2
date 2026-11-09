@@ -16,7 +16,7 @@ Press **Shift+I**, or the button **Instructor+ (⇧I)** in the main window.
 The radar of the instructor fills the window. Five panels float over it: **SIMULATION SETTINGS**,
 **TRAFFIC GENERATION**, **TRAFFIC LIST**, **AIRCRAFT CONTROL**, **TRAINEE PAR**.
 
-- Drag a panel by its blue bar; **▴** parks it in the top right corner as a small box with its symbol; **▾** there opens it again.
+- Drag a panel by its blue bar; **▴** parks it as a small box with its symbol, on the left of the CENTRE bar; **▾** there opens it again.
 - Double-click on a bar: the panel goes back to its first place.
 - Put the panels over the "dead" parts of the map: they are remembered.
 

@@ -48,6 +48,10 @@ The instructor's radar fills the whole window. Over it float five panels:
 
 - **Move** a panel by dragging its blue bar; **▴** closes it: it is parked in the top right corner as a small box with
   its symbol (⚙ ✎ ✈ ☰ ⊿; its name under the mouse), **▾** there (or a double click) opens it again where it was.
+  The boxes stand in a row on the left of the CENTRE bar.
+- **Panels: LIGHT / DARK** (in SIMULATION SETTINGS): the look of the inside of the panels and of the Aircraft
+  performance window. LIGHT (the default) is Windows' own; DARK makes the boxes, lists, buttons and tables dark, easier
+  on the eyes in a dim room. It changes at the next start of the program.
 - **Double-click on the bar**: back to its first place.
 - A panel always stays inside the window; when its content is taller than the room under it, it scrolls.
 - The TRAINEE PAR is **resized** from its bottom right corner.
