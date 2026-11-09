@@ -10,7 +10,7 @@ namespace AuroraPAR
 {
     /// <summary>
     /// AuroraPAR v2 Trainer, Instructor+: the plan view over the whole window and, floating over it, four panels that
-    /// are moved by their bar, closed to the bar alone and opened again (<see cref="FloatingPanel"/>; places saved):
+    /// are moved by their bar, closed (parked in the top right corner as a small box with a symbol) and opened again (<see cref="FloatingPanel"/>; places saved):
     /// SIMULATION (Pause and a summary always on its bar): runway, wind, QNH / QFE, Aurora-like data, pilot reaction,
     ///   callsign prefix, Remove all.
     /// TRAFFIC GENERATION: "Quick" (an aircraft at once: on final, 30° / 45° / 90° from left or right, downwind left

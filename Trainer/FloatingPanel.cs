@@ -8,7 +8,7 @@ namespace AuroraPAR
 {
     /// <summary>
     /// AuroraPAR v2 Trainer, Instructor+: a panel floating over the plan view (on a <see cref="Canvas"/>). Moved by
-    /// dragging its bar, closed to the bar alone and opened again (▾ / ▴), back to its first place with a double-click on
+    /// dragging its bar, closed (▴: parked in the top right corner as a small box with its symbol) and opened again (▾), back to its first place with a double-click on
     /// the bar; a resizable one (the mini-PAR) has a grip in its bottom right corner. It always stays inside the view:
     /// when the window becomes smaller it comes back in, and a content taller than the room left under it scrolls. A
     /// click on a panel brings it to the front. Place, open / closed and size are kept in a <see cref="PanelPlacement"/>.
@@ -30,14 +30,12 @@ namespace AuroraPAR
         private bool followsCanvas;
         private Point dragFrom;
         // (Closed: parked in the top right corner of the view as a small box with its symbol, the user 9 Nov.)
-        private readonly string title;
         private readonly double fixedWidth;
-        private readonly FrameworkElement? barExtra;
         private readonly DockPanel layout = new();
         private readonly Border pill;
         private readonly Brush openBack;
         private static readonly Dictionary<Canvas, List<FloatingPanel>> Parked = [];
-        private const double PillWidth = 52, PillGap = 4, PillMargin = 8;
+        private const double PillWidth = 52, PillGap = 4, PillMargin = 8, PillTop = 48;
 
         /// <param name="title">The name on the bar (capitals).</param>
         /// <param name="symbol">Its symbol when it is closed (parked in the top right corner as a small box).</param>
@@ -51,8 +49,6 @@ namespace AuroraPAR
         public FloatingPanel(string title, string symbol, FrameworkElement content, FrameworkElement? barExtra, double width, PanelPlacement placement,
             Func<Size, Size, Point> firstPlace, Action changed, bool resizable = false, double height = 250)
         {
-            this.title = title;
-            this.barExtra = barExtra;
             fixedWidth = width;
             this.placement = placement;
             this.firstPlace = firstPlace;
@@ -104,7 +100,7 @@ namespace AuroraPAR
                 MinHeight = 24,
                 Cursor = Cursors.SizeAll,
                 Child = barRow,
-                ToolTip = "Drag to move; ▴ / ▾ closes it to this bar or opens it; double-click: back to its first place."
+                ToolTip = "Drag to move; ▴ parks it in the top right corner (▾ there opens it again); double-click: back to its first place."
             };
             bar.MouseLeftButtonDown += BarDown;
             bar.MouseMove += BarMove;
@@ -207,6 +203,11 @@ namespace AuroraPAR
             pill.ToolTipOpening += (s, e) => pill.ToolTip = barExtra is TextBlock { Text.Length: > 0 } said ? $"{title} · {said.Text}" : title;
 
             PreviewMouseDown += (s, e) => BringToFront();
+            // (A window closed: its parked boxes forgotten, the review of 9 Nov.)
+            Unloaded += (s, e) =>
+            {
+                if (Parent is Canvas canvas && Parked.TryGetValue(canvas, out List<FloatingPanel>? row)) row.Remove(this);
+            };
             SizeChanged += (s, e) => Fit();
             Loaded += (s, e) =>
             {
@@ -259,7 +260,11 @@ namespace AuroraPAR
             foreach (FloatingPanel other in row) if (other != this) other.Fit();
         }
 
-        private void BringToFront() => Panel.SetZIndex(this, ++topZ);
+        // (Parked: it stays over the open ones, the review of 9 Nov.)
+        private void BringToFront()
+        {
+            if (placement.Open) Panel.SetZIndex(this, ++topZ);
+        }
 
         private void BarDown(object sender, MouseButtonEventArgs e)
         {
@@ -310,7 +315,8 @@ namespace AuroraPAR
                 if (!row.Contains(this)) row.Add(this);
                 int index = row.IndexOf(this);
                 Canvas.SetLeft(this, Math.Max(0, canvas.ActualWidth - PillMargin - (index + 1) * PillWidth - index * PillGap));
-                Canvas.SetTop(this, PillMargin);
+                // (Under the CENTRE bar of the view, top right, not over its keys: the review of 9 Nov.)
+                Canvas.SetTop(this, PillTop);
                 Panel.SetZIndex(this, 100000);
                 return;
             }

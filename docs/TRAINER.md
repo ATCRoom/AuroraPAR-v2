@@ -1,8 +1,8 @@
 # AuroraPAR v2 Trainer — Instructor+ guide
 
-The Trainer is AuroraPAR v2 with three additions for lessons: the surveillance radar **RDR** (a plan view with
-maps), the **Instructor+** (an instructor's station that flies simulated aircraft for the student) and **ATCRoom Map
-Creator** (it converts map files for the RDR). Everything about the PAR itself (views, labels, settings, profiles,
+The Trainer is AuroraPAR v2 with two additions for lessons: the surveillance radar **RDR** (a plan view with
+maps) and the **Instructor+** (an instructor's station that flies simulated aircraft for the student). The maps are
+made by **ATCRoom Map Creator**, a separate download ([ATCRoom/MapCreator](https://github.com/ATCRoom/MapCreator/releases)). Everything about the PAR itself (views, labels, settings, profiles,
 runways) is in the [AuroraPAR v2 manual](MANUAL.md) (`MANUAL.md`, also beside the program). Step by step: the
 [tutorials](tutorials/README.md). Website: <https://atcroom.github.io/AuroraPAR-v2/trainer.html>.
 
@@ -46,7 +46,8 @@ The instructor's radar fills the whole window. Over it float five panels:
 | **AIRCRAFT CONTROL** | the commands of the selected aircraft |
 | **TRAINEE PAR** | the student's PAR in small, to follow the approach |
 
-- **Move** a panel by dragging its blue bar; **▴ / ▾** closes it to the bar alone or opens it again.
+- **Move** a panel by dragging its blue bar; **▴** closes it: it is parked in the top right corner as a small box with
+  its symbol (⚙ ✎ ✈ ☰ ⊿; its name under the mouse), **▾** there (or a double click) opens it again where it was.
 - **Double-click on the bar**: back to its first place.
 - A panel always stays inside the window; when its content is taller than the room under it, it scrolls.
 - The TRAINEE PAR is **resized** from its bottom right corner.
