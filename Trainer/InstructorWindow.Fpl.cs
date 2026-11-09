@@ -587,7 +587,7 @@ namespace AuroraPAR
                         {
                             if (child is TextBlock text && text.Text != rows[i]) text.Text = rows[i];
                             if (child is Button toList) toList.Visibility = shown[i].Active == null && !shown[i].Queued ? Visibility.Visible : Visibility.Hidden;
-                            if (child is TextBlock dim) dim.Foreground = shown[i].Active == null && !shown[i].Queued ? Brushes.Black : Brushes.Gray;
+                            if (child is TextBlock dim) dim.Foreground = shown[i].Active == null && !shown[i].Queued ? PanelTheme.Text : Brushes.Gray;
                         }
                     }
                 }
@@ -608,7 +608,7 @@ namespace AuroraPAR
                     toList.Click += (s, e) => Queue(plan);
                     DockPanel.SetDock(toList, Dock.Right);
                     line.Children.Add(toList);
-                    line.Children.Add(new TextBlock { Text = rows[i], FontFamily = new FontFamily("Consolas"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Foreground = waiting ? Brushes.Black : Brushes.Gray, TextTrimming = TextTrimming.CharacterEllipsis });
+                    line.Children.Add(new TextBlock { Text = rows[i], FontFamily = new FontFamily("Consolas"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Foreground = waiting ? PanelTheme.Text : Brushes.Gray, TextTrimming = TextTrimming.CharacterEllipsis });
                     ListBoxItem item = new() { Content = line, Tag = plan };
                     fplList.Items.Add(item);
                     if (ReferenceEquals(plan, keep)) fplList.SelectedItem = item;

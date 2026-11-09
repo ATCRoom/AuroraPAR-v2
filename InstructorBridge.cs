@@ -21,6 +21,10 @@ namespace AuroraPAR
         public bool StickShown { get; set; } = true;
         /// <summary>Instructor+: the student's PAR beam drawn on the plan view (BEAM).</summary>
         public bool BeamShown { get; set; }
+#if TRAINER
+        /// <summary>AuroraPAR v2 Trainer: the Instructor+ panels dark (from the next start; the user, 9 Nov).</summary>
+        public bool DarkPanels { get; set; }
+#endif
         /// <summary>Instructor+: the mini-PAR under the plan view shown, and its height (pixels).</summary>
         public bool MiniParShown { get; set; } = true;
         public double MiniParHeight { get; set; } = 320;

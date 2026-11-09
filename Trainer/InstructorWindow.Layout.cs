@@ -99,6 +99,8 @@ namespace AuroraPAR
         /// <summary>The plan view (with its CENTRE selector) and, over it, the floating panels.</summary>
         private UIElement BuildTrainerView(PlanView view, MiniParView par)
         {
+            // (Panels LIGHT / DARK, the user 9 Nov: taken at the first Instructor+ of the program, so from the next start.)
+            PanelTheme.Start(settings.DarkPanels);
             Grid root = new();
             Grid planHost = new();
             planHost.Children.Add(view);
@@ -156,6 +158,18 @@ namespace AuroraPAR
             Button performance = new() { Content = "Aircraft performance…", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "The performance classes (speeds, initial and final speed, climb, descent, turns): a table to change them." };
             performance.Click += (s, e) => OpenPerformanceWindow();
             simulation.Children.Add(performance);
+            // Panels: LIGHT / DARK (the user, 9 Nov), from the next start.
+            StackPanel themeRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+            themeRow.Children.Add(new TextBlock { Text = "Panels:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            RadioButton lightPanels = new() { Content = "LIGHT", GroupName = "PanelTheme", IsChecked = !settings.DarkPanels, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+            RadioButton darkPanels = new() { Content = "DARK", GroupName = "PanelTheme", IsChecked = settings.DarkPanels, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+            lightPanels.Checked += (s, e) => { settings.DarkPanels = false; save(); };
+            darkPanels.Checked += (s, e) => { settings.DarkPanels = true; save(); };
+            themeRow.Children.Add(lightPanels);
+            themeRow.Children.Add(darkPanels);
+            themeRow.Children.Add(new TextBlock { Text = "(from the next start)", Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center });
+            themeRow.ToolTip = "The look of the panels of the Instructor+: LIGHT (Windows' own) or DARK (dark controls inside). It changes at the next start of the program.";
+            simulation.Children.Add(themeRow);
             overlay.Children.Add(new FloatingPanel("SIMULATION SETTINGS", "⚙", simulation, simulationSummary, 440, Placement("Simulation", false),
                 (area, size) => new Point(left, first), save));
 

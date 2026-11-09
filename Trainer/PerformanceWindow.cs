@@ -224,6 +224,8 @@ namespace AuroraPAR
             end.Children.Add(cancel);
             panel.Children.Add(end);
             Content = panel;
+            // (Panels DARK, the user 9 Nov.)
+            PanelTheme.Apply(this);
         }
 
         private static Button Small(string text) => new() { Content = text, Padding = new Thickness(12, 3, 12, 3), Margin = new Thickness(0, 0, 6, 0) };

@@ -2,6 +2,10 @@
 
 
 ## AuroraPAR v2 Trainer, 9 Nov (the user) — WRITTEN, branch `trainer` (test build)
+- **Panels LIGHT / DARK** (the user, 9 Nov: "ok", the colours of TWR Trainer's dark panels): Simulation settings, Panels:
+  LIGHT / DARK (LIGHT by default), from the next start. DARK: the inside of the Instructor+ panels and the Aircraft
+  performance window dark (#1A2128), text #D6E2EC; text boxes, buttons, combo boxes and their list, check and radio
+  boxes, tabs, lists, the table styled in `Trainer/DarkPanels.xaml` (`Trainer/PanelTheme.cs`); the bars of the panels as before.
 - **Parked panels** (as in TWR Trainer): a floating panel closed (▾) becomes a small box in the top right corner of the
   view with its symbol and ▾ (open again where it was; double click too); name and summary in the tooltip. Symbols:
   ⚙ Simulation settings, ✎ Traffic generation, ✈ Aircraft control, ☰ Traffic list, ⊿ Trainee PAR.

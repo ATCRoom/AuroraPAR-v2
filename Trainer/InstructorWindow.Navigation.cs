@@ -190,7 +190,7 @@ namespace AuroraPAR
                     navigationList.Items.Clear();
                     for (int i = 0; i < rows.Count; i++)
                     {
-                        ListBoxItem item = new() { Content = rows[i], Tag = i, Foreground = i < next ? Brushes.Gray : Brushes.Black };
+                        ListBoxItem item = new() { Content = rows[i], Tag = i, Foreground = i < next ? Brushes.Gray : PanelTheme.Text };
                         navigationList.Items.Add(item);
                         if (state.Navigation == NavigationMode.Route && i == next) navigationList.SelectedItem = item;
                     }

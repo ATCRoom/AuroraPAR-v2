@@ -53,7 +53,7 @@ namespace AuroraPAR
             this.placement = placement;
             this.firstPlace = firstPlace;
             this.changed = changed;
-            Background = openBack = Freeze(new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2)));
+            Background = openBack = PanelTheme.Dark ? PanelTheme.DarkBack : Freeze(new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2)));
             BorderBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x5D, 0x7A, 0x99)));
             // A clear border instead of a shadow (a shadow is drawn again at each refresh and blurs the text).
             BorderThickness = new Thickness(1.5);
@@ -157,6 +157,8 @@ namespace AuroraPAR
                 VerticalScrollBarVisibility = resizable ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             };
+            // (Panels DARK, the user 9 Nov: its inside in the dark colours.)
+            PanelTheme.Apply(contentHost);
             DockPanel.SetDock(bar, Dock.Top);
             layout.Children.Add(bar);
             layout.Children.Add(contentHost);

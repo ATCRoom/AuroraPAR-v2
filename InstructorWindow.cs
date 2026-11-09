@@ -1154,7 +1154,12 @@ namespace AuroraPAR
 #else
                     item.Content = row;
 #endif
+#if TRAINER
+                    // (Panels DARK: light text, the user 9 Nov.)
+                    item.Foreground = state.Contact == GroundContact.OnGround ? Brushes.Red : PanelTheme.Text;
+#else
                     item.Foreground = state.Contact == GroundContact.OnGround ? Brushes.Red : Brushes.Black;
+#endif
                 }
                 if (list.SelectedItem == null && list.Items.Count > 0 && selected == null) list.SelectedIndex = 0;
             }
