@@ -16,6 +16,10 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Log of the lesson and recording, as TWR Trainer (the user, 9 Nov: to make the two programs alike)** — to design: a CSV
+  log per session (Logs folder) as TWR Trainer's; the recording in the common format of **ATCRoom Replay** (an app of its own,
+  home in ATCRoom/TWR-Trainer, as the Map Creator; step 2: AuroraPAR v2 Trainer records, its RDR seen in the top view; step 3:
+  the PAR view in Replay).
 
 - **From the tests of the lesson (31 Oct, the user) — WRITTEN 31 Oct, to test:** (1) the student changed airport while simulated aircraft were flying: the Instructor+ kept the old runway (rule "follow only with no aircraft"), so Quick made aircraft at the old airport and From METAR asked the old airport. Now (`Trainer/InstructorWindow.Follow.cs`, root `FollowRadarRunway` under `#if TRAINER`): with aircraft flying the instructor is asked "remove the N aircraft and follow?" (Yes: Remove all aircraft without the second question, then follow; No: they stay, not asked again for that runway), for a new airport and for another runway of the same airport, also on one PC; at a new airport the old METAR text goes and the new METAR is asked by itself (Aurora if it has that airport, else the internet, quiet: only a note if none). Known limit (in the guide): with Aurora connected the instructor's QNH is the one of his own airport. (2) Mixed traffic: on the instructor's views (Instructor+ radar `PlanView.MarkSimulated`, TRAINEE PAR) the labels of the simulated aircraft are orange, the IVAO ones white; **nothing changes for the student** (decided by the user).
 - **Before the release, 30 Oct (asked by the user, "fai tutto"):** the Trainer's new-version notice is on (`UpdateCheck.cs`: each program looks only at its own releases, the Trainer at the tags `trainer-v…`); the Manual key of the Trainer opens `docs/TRAINER.md` (which links the PAR manual, the tutorials and the site); README without "test version" and with a Trainer section; the portable settings file of the Trainer named in TRAINER.md 14 and tutorial 8; phone panel: MQTT.js pinned to 5.15.2.
