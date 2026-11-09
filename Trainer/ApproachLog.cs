@@ -31,6 +31,8 @@ namespace AuroraPAR
             public string LastMinimums = "";
             // The approach going on.
             public bool OnApproach, OnGlidePath, PastMinimums;
+            /// <summary>An approach ended: a new one only after the aircraft has left the sector or turned away (the review of 9 Nov).</summary>
+            public bool Rearm;
             public int Climbing;
             public double LastDistance = double.NaN, LastDeviation = double.NaN;
             public string MinimumsText = "";
@@ -44,6 +46,8 @@ namespace AuroraPAR
         private string fileName = "", folderName = "";
         private int traceCount;
         private bool paused;
+        /// <summary>The runway and the limits of the last second (to close the approaches going on at the end of the session).</summary>
+        private (Runway Runway, Radar Radar, double LimitsTo, bool AzimuthLimits)? last;
         private readonly Dictionary<string, Seen> seen = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Seen> flights = new(StringComparer.OrdinalIgnoreCase);
 
@@ -57,7 +61,7 @@ namespace AuroraPAR
         public string? Error { get; private set; }
 
         public string Airport { get; set; } = "";
-        public string Runway { get; set; } = "";
+        public string RunwayName { get; set; } = "";
         public bool Network { get; set; }
         public string InstructorCallsign { get; set; } = "";
         public string InstructorVid { get; set; } = "";
@@ -88,7 +92,7 @@ namespace AuroraPAR
                     writer.WriteLine("sep=;");
                     writer.WriteLine("AuroraPAR v2 Trainer;log of the approaches");
                     writer.WriteLine($"Aerodrome;{Field(Airport)}");
-                    writer.WriteLine($"Runway;{Field(Runway)}");
+                    writer.WriteLine($"Runway;{Field(RunwayName)}");
                     writer.WriteLine($"Session started (UTC);{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
                     writer.WriteLine($"Network;{(Network ? "IVAO" : "")}");
                     writer.WriteLine($"Instructor callsign;{Field(InstructorCallsign)}");
@@ -112,7 +116,7 @@ namespace AuroraPAR
         public void Event(double time, string what, string callsign = "", string detail = "", string source = "SIM")
         {
             string type = callsign.Length > 0 && flights.TryGetValue(callsign, out Seen? known) ? known.Class : "";
-            Line(Clock(time), DateTime.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture), source, callsign, type, "", callsign.Length > 0 ? Runway : "",
+            Line(Clock(time), DateTime.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture), source, callsign, type, "", callsign.Length > 0 ? RunwayName : "",
                 callsign.Length > 0 ? "PAR" : "", what, detail);
         }
 
@@ -137,6 +141,10 @@ namespace AuroraPAR
         public void EndSession(double time, string why = "")
         {
             if (!inSession) return;
+            // (The approaches going on: their rows and traces, the review of 9 Nov.)
+            if (last is { } context)
+                foreach ((string callsign, Seen was) in seen.Where(p => p.Value.OnApproach).ToList())
+                    EndApproach(time, callsign, was, "SESSION ENDED during the approach", context.Runway, context.Radar, context.LimitsTo, context.AzimuthLimits);
             Event(time, "SESSION END", detail: why, source: "INSTRUCTOR");
             Close(time);
         }
@@ -176,6 +184,7 @@ namespace AuroraPAR
             double variation, Func<double, double, (double Latitude, double Longitude)?> toGeo)
         {
             if (!inSession) return;
+            last = (runway, radar, limitsTo, azimuthLimits);
             if (enginePaused != paused)
             {
                 paused = enginePaused;
@@ -211,7 +220,7 @@ namespace AuroraPAR
             string cs = s.Callsign;
             void Say(string what) => Event(time, what, cs, source: "INSTRUCTOR");
             if (s.Frozen != was.Frozen) Say(s.Frozen ? "PAUSE" : "UNPAUSE");
-            if (s.Navigation != was.Navigation) Say(s.Navigation == NavigationMode.Route ? "NAVIGATION ROUTE" : "NAVIGATION MANUAL");
+            if (s.Navigation != was.Navigation) Say(s.Navigation == NavigationMode.Manual ? "NAVIGATION MANUAL" : "NAVIGATION ROUTE");
             if (s.StickActive && !was.StickActive) Say("STICK");
             if (s.Navigation == NavigationMode.Manual && !s.StickActive && Math.Abs(Angle(s.TargetHeading - was.TargetHeading)) >= 0.5)
             {
@@ -251,7 +260,12 @@ namespace AuroraPAR
             {
                 bool inRange = s.Contact == GroundContact.Airborne && distance > 0.3 && distance <= runway.Distance && towards
                     && Math.Abs(lateral) <= distance * Math.Tan(20 * Math.PI / 180) + 0.3;
-                if (!inRange) return;
+                if (!inRange)
+                {
+                    was.Rearm = false;
+                    return;
+                }
+                if (was.Rearm) return;
                 was.OnApproach = true;
                 was.OnGlidePath = was.PastMinimums = false;
                 was.Climbing = 0;
@@ -311,6 +325,7 @@ namespace AuroraPAR
         private void EndApproach(double time, string callsign, Seen was, string what, Runway runway, Radar radar, double limitsTo, bool azimuthLimits)
         {
             was.OnApproach = false;
+            was.Rearm = true;
             was.LastDistance = double.NaN;
             was.LastDeviation = double.NaN;
             string picture = "";
@@ -359,7 +374,7 @@ namespace AuroraPAR
             List<TracePoint> trace = was.Trace.Where(p => p.Distance >= 0 && p.Distance <= range + 0.5).ToList();
             if (trace.Count < 2) return;
             double X(double d) => left + (width - left - right) * Math.Clamp(d, 0, range) / range;
-            double maxHeight = Math.Max(runway.GlidePathHeight(range, radar.UpperApproachLimit ? radar.ApproachAbove : 0), trace.Max(p => p.Height)) * 1.1;
+            double maxHeight = Math.Max(100, Math.Max(runway.GlidePathHeight(range, radar.UpperApproachLimit ? radar.ApproachAbove : 0), trace.Max(p => p.Height)) * 1.1);
             double elevTop = 60, elevBottom = 280, azTop = 330, azBottom = 560;
             double YE(double h) => elevBottom - (elevBottom - elevTop) * Math.Clamp(h, 0, maxHeight) / maxHeight;
             double maxLateral = Math.Max(Math.Max(radar.ApproachHalfWidth(range, true), radar.ApproachHalfWidth(range, false)), trace.Max(p => Math.Abs(p.Lateral))) * 1.2;

@@ -47,6 +47,7 @@ namespace AuroraPAR
         // The maps of the student's airport (the user, 9 Nov). Instructor: packed, the next piece, what the student has.
         private (string Icao, object Source, string Id, List<string> Pieces)? lessonMapsPack;
         private int lessonMapsNext;
+        private bool lessonPacking;
         private string studentMapsId = "";
         /// <summary>The student's callsign and VID (for the log), as he sends them.</summary>
         private string studentCallsign = "", studentVid = "";
@@ -222,7 +223,8 @@ namespace AuroraPAR
                         lessonWind = message.WindFrom is double windFrom && message.WindKnots is double windKnots
                             && double.IsFinite(windFrom) && double.IsFinite(windKnots) && windKnots >= 0 && windKnots < 200
                             ? (windFrom, windKnots) : null;
-                        lessonMapsWanted = message.MapsId ?? "";
+                        // (null: the instructor is packing its maps; nothing changes meanwhile.)
+                        if (message.MapsId != null) lessonMapsWanted = message.MapsId;
                         TakeMapPiece(message.MapPiece);
                         foreach (LessonForget forget in (message.Forget ?? []).Take(50))
                         {
@@ -375,7 +377,12 @@ namespace AuroraPAR
             _ = Task.Run(() =>
             {
                 List<LoadedMap>? read = LessonMaps.Unpack(all);
-                if (read == null) return;
+                if (read == null)
+                {
+                    // (Not readable: the instructor told to stop sending them; the review of 9 Nov.)
+                    Dispatcher.BeginInvoke(() => { if (LessonStudent) lessonMapsId = id + "!"; });
+                    return;
+                }
                 Dispatcher.BeginInvoke(() =>
                 {
                     if (!LessonStudent) return;
@@ -515,21 +522,41 @@ namespace AuroraPAR
                 };
                 // The maps of the student's airport, a piece at a time until he has them (the user, 9 Nov).
                 string icao = InstructorRunway.ICAO.Trim().ToUpperInvariant();
-                if (lessonMapsPack is not { } pack || pack.Icao != icao || !ReferenceEquals(pack.Source, maps.Maps))
+                if ((lessonMapsPack is not { } pack || pack.Icao != icao || !ReferenceEquals(pack.Source, maps.Maps)) && !lessonPacking)
                 {
+                    // (Packed on another thread: many maps would stop the screen; the review of 9 Nov.)
+                    lessonPacking = true;
                     List<LoadedMap> ofAirport = maps.Maps.Where(m => string.Equals(m.Map.Airport, icao, StringComparison.OrdinalIgnoreCase)).ToList();
-                    (string id, List<string> pieces) = ofAirport.Count > 0 ? LessonMaps.Pack(ofAirport) : ("", new List<string>());
-                    pack = (icao, maps.Maps, id, pieces);
-                    lessonMapsPack = pack;
-                    lessonMapsNext = 0;
+                    object source = maps.Maps;
+                    _ = Task.Run(() =>
+                    {
+                        (string Id, List<string> Pieces) packed = ("", new List<string>());
+                        try
+                        {
+                            if (ofAirport.Count > 0) packed = LessonMaps.Pack(ofAirport);
+                        }
+                        catch (Exception)
+                        {
+                            // (Not packed: no maps sent.)
+                        }
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            lessonMapsPack = (icao, source, packed.Id, packed.Pieces);
+                            lessonMapsNext = 0;
+                            lessonPacking = false;
+                        });
+                    });
                 }
-                message.MapsId = pack.Id;
-                string has;
-                lock (lessonLock) has = studentMapsId;
-                if (pack.Id.Length > 0 && has != pack.Id && pack.Pieces.Count > 0)
+                if (!lessonPacking && lessonMapsPack is { } ready && ready.Icao == icao)
                 {
-                    int index = lessonMapsNext++ % pack.Pieces.Count;
-                    message.MapPiece = new LessonMapPiece { Id = pack.Id, Index = index, Count = pack.Pieces.Count, Data = pack.Pieces[index] };
+                    message.MapsId = ready.Id;
+                    string has;
+                    lock (lessonLock) has = studentMapsId;
+                    if (ready.Id.Length > 0 && has != ready.Id && has != ready.Id + "!" && ready.Pieces.Count > 0)
+                    {
+                        int index = lessonMapsNext++ % ready.Pieces.Count;
+                        message.MapPiece = new LessonMapPiece { Id = ready.Id, Index = index, Count = ready.Pieces.Count, Data = ready.Pieces[index] };
+                    }
                 }
                 link.Send(JsonSerializer.Serialize(message, LessonJson));
             }

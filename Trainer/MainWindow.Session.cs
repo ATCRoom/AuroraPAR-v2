@@ -30,6 +30,8 @@ namespace AuroraPAR
         private string ivaoCallsign = "", ivaoVid = "", ivaoVidFor = "";
         private DateTime ivaoAskedAt = DateTime.MinValue;
         private bool ivaoAsking;
+        /// <summary>IVAO's list did not give the VID: asked again after this (its list is refreshed every 15 s).</summary>
+        private DateTime ivaoVidRetryAt = DateTime.MinValue;
         private string loggedStudent = "";
 
         private static string PhotosFolder => Path.Combine(Path.GetDirectoryName(SettingsStore.FilePath) ?? AppContext.BaseDirectory, "Photos");
@@ -95,7 +97,7 @@ namespace AuroraPAR
                 photoCount = 0;
                 Runway reference = InstructorRunway;
                 approachLog.Airport = reference.ICAO;
-                approachLog.Runway = reference.Designator;
+                approachLog.RunwayName = reference.Designator;
                 approachLog.Network = aurora.Connected && ivaoCallsign.Length > 0;
                 approachLog.InstructorCallsign = MyCallsign;
                 approachLog.InstructorVid = MyVid;
@@ -152,6 +154,8 @@ namespace AuroraPAR
                     approachLog.Event(time, "STUDENT", detail: $"{studentCallsign}{(studentVid.Length > 0 ? $" VID {studentVid}" : "")}", source: "STUDENT");
             }
             approachLog.Network = aurora.Connected && ivaoCallsign.Length > 0;
+            // (The runway of the rows follows the one in use: the student may change it; the review of 9 Nov.)
+            approachLog.RunwayName = InstructorRunway.Designator;
             double variation = instructor.Reference?.MagneticVariation ?? settings.Active.MagneticVariation;
             approachLog.Step(time, instructor.Engine.Paused, instructor.Engine.Snapshot(), InstructorRunway, radar, viewOptions.ApproachLimitsTo,
                 viewOptions.AzimuthApproachLimits, variation, instructor.ToGeo);
@@ -172,10 +176,16 @@ namespace AuroraPAR
                     ivaoVid = ivaoVidFor = "";
                     return;
                 }
-                if (callsign != ivaoVidFor)
+                if (callsign != ivaoVidFor && DateTime.UtcNow >= ivaoVidRetryAt)
                 {
                     ivaoVidFor = callsign;
                     ivaoVid = await IvaoDirectory.FindVidAsync(callsign, AppInfo.Version) ?? "";
+                    // (Not in IVAO's list yet, just connected: asked again in 2 minutes; the review of 9 Nov.)
+                    if (ivaoVid.Length == 0)
+                    {
+                        ivaoVidFor = "";
+                        ivaoVidRetryAt = DateTime.UtcNow.AddMinutes(2);
+                    }
                 }
             }
             catch (Exception)

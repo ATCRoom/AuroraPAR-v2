@@ -486,8 +486,14 @@ namespace AuroraPAR
 
         partial void TrainerInstructorClosed()
         {
-            // (Its aircraft go with it: the session ends.)
-            approachLog.EndSession(instructor.Engine.Time, "the Instructor+ closed");
+            // (Its aircraft go with it: the session ends, and the user is told; the review of 9 Nov.)
+            if (approachLog.InSession)
+            {
+                string file = System.IO.Path.GetFileName(approachLog.FileName);
+                approachLog.EndSession(instructor.Engine.Time, "the Instructor+ closed");
+                Dispatcher.BeginInvoke(() => MessageBox.Show(this, $"The Instructor+ was closed: the session ended, its log is {file} (Logs folder).", AppInfo.ProductName,
+                    MessageBoxButton.OK, MessageBoxImage.Information));
+            }
             ShowSession();
             instructorView = null;
             instructorPar = null;
