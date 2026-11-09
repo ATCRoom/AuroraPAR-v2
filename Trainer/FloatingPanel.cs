@@ -112,7 +112,7 @@ namespace AuroraPAR
                 MinHeight = 24,
                 Cursor = Cursors.SizeAll,
                 Child = barRow,
-                ToolTip = "Drag to move; ▴ parks it in the top right corner (▾ there opens it again); double-click: back to its first place."
+                ToolTip = "Drag to move; ▴ parks it as a small box beside the CENTRE bar (▾ there opens it again); double-click: back to its first place."
             };
             bar.MouseLeftButtonDown += BarDown;
             bar.MouseMove += BarMove;
@@ -254,7 +254,7 @@ namespace AuroraPAR
         {
             contentHost.Visibility = placement.Open ? Visibility.Visible : Visibility.Collapsed;
             toggle.Content = placement.Open ? "▴" : "▾";
-            toggle.ToolTip = placement.Open ? "Park it in the top right corner." : "Open.";
+            toggle.ToolTip = placement.Open ? "Park it as a small box beside the CENTRE bar." : "Open.";
             // (Closed: parked as a small box, the user 9 Nov; open: where it was.)
             Child = placement.Open ? layout : pill;
             Background = placement.Open ? openBack : BarBrush;

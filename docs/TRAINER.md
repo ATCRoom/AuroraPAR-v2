@@ -46,7 +46,7 @@ The instructor's radar fills the whole window. Over it float five panels:
 | **AIRCRAFT CONTROL** | the commands of the selected aircraft |
 | **TRAINEE PAR** | the student's PAR in small, to follow the approach |
 
-- **Move** a panel by dragging its blue bar; **▴** closes it: it is parked in the top right corner as a small box with
+- **Move** a panel by dragging its blue bar; **▴** closes it: it is parked at the top, as a small box with
   its symbol (⚙ ✎ ✈ ☰ ⊿; its name under the mouse), **▾** there (or a double click) opens it again where it was.
   The boxes stand in a row on the left of the CENTRE bar.
 - **Panels: LIGHT / DARK** (in SIMULATION SETTINGS): the look of the inside of the panels and of the Aircraft
