@@ -8,7 +8,7 @@ namespace AuroraPAR
 {
     /// <summary>
     /// AuroraPAR v2 Trainer, Instructor+: a panel floating over the plan view (on a <see cref="Canvas"/>). Moved by
-    /// dragging its bar, closed (▴: parked in the top right corner as a small box with its symbol) and opened again (▾), back to its first place with a double-click on
+    /// dragging its bar, closed (▴: parked as a small box with its symbol, on the left of the CENTRE bar) and opened again (▾), back to its first place with a double-click on
     /// the bar; a resizable one (the mini-PAR) has a grip in its bottom right corner. It always stays inside the view:
     /// when the window becomes smaller it comes back in, and a content taller than the room left under it scrolls. A
     /// click on a panel brings it to the front. Place, open / closed and size are kept in a <see cref="PanelPlacement"/>.
@@ -29,7 +29,7 @@ namespace AuroraPAR
         private Point? dragStart;
         private bool followsCanvas;
         private Point dragFrom;
-        // (Closed: parked in the top right corner of the view as a small box with its symbol, the user 9 Nov.)
+        // (Closed: parked as a small box with its symbol, on the left of the CENTRE bar, the user 9 Nov.)
         private readonly double fixedWidth;
         private readonly DockPanel layout = new();
         private readonly Border pill;
@@ -50,7 +50,7 @@ namespace AuroraPAR
         private const double PillWidth = 52, PillGap = 4, PillMargin = 8, PillTop = 48;
 
         /// <param name="title">The name on the bar (capitals).</param>
-        /// <param name="symbol">Its symbol when it is closed (parked in the top right corner as a small box).</param>
+        /// <param name="symbol">Its symbol when it is closed (parked as a small box on the left of the CENTRE bar).</param>
         /// <param name="content">What the panel shows.</param>
         /// <param name="barExtra">Something on the right of the bar (a summary, a button), or null.</param>
         /// <param name="width">The width of the panel (a resizable one: its first width).</param>
@@ -324,19 +324,19 @@ namespace AuroraPAR
             if (Parent is not Canvas canvas || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
             if (!placement.Open)
             {
-                // Parked: in the top right corner, after the ones parked before it.
+                // Parked: on the left of the CENTRE bar (else the top right corner), after the ones parked before it.
                 if (!Parked.TryGetValue(canvas, out List<FloatingPanel>? row)) Parked[canvas] = row = [];
                 if (!row.Contains(this)) row.Add(this);
                 int index = row.IndexOf(this);
-                double right = canvas.ActualWidth - PillMargin, top = PillTop;
+                double right = canvas.ActualWidth - PillMargin, pillTop = PillTop;
                 if (ParkBeside.TryGetValue(canvas, out FrameworkElement? beside) && beside.IsVisible && beside.ActualWidth > 0)
                 {
                     Point at = beside.TranslatePoint(new Point(0, 0), canvas);
                     right = at.X - 2 * PillGap;
-                    top = Math.Max(0, at.Y);
+                    pillTop = Math.Max(0, at.Y);
                 }
                 Canvas.SetLeft(this, Math.Max(0, right - (index + 1) * PillWidth - index * PillGap));
-                Canvas.SetTop(this, top);
+                Canvas.SetTop(this, pillTop);
                 Panel.SetZIndex(this, 100000);
                 return;
             }
