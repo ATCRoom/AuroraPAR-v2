@@ -85,7 +85,8 @@ namespace AuroraPAR
             qnhBox.Text = hpa.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static readonly Brush WrongBack = new SolidColorBrush(Color.FromRgb(255, 215, 215));
+        // (Panels DARK: dark red, so its light text stays readable; the review of 9 Nov.)
+        private static Brush WrongBack => PanelTheme.Wrong;
 
         /// <summary>
         /// From METAR without Aurora: the METAR of the airport from the internet; its wind and its QNH. Quiet (a new airport,

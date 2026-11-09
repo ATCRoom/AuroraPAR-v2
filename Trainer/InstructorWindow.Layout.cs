@@ -71,7 +71,7 @@ namespace AuroraPAR
         private static DockPanel Line(string name, params UIElement[] children)
         {
             DockPanel line = new() { Margin = new Thickness(0, 2, 0, 2), LastChildFill = true };
-            TextBlock caption = new() { Text = name, Width = 40, FontWeight = FontWeights.SemiBold, Foreground = Brushes.DimGray, VerticalAlignment = VerticalAlignment.Center };
+            TextBlock caption = new() { Text = name, Width = 40, FontWeight = FontWeights.SemiBold, Foreground = PanelTheme.Dim, VerticalAlignment = VerticalAlignment.Center };
             DockPanel.SetDock(caption, Dock.Left);
             line.Children.Add(caption);
             WrapPanel row = new() { VerticalAlignment = VerticalAlignment.Center };
@@ -101,6 +101,7 @@ namespace AuroraPAR
         {
             // (Panels LIGHT / DARK, the user 9 Nov: taken at the first Instructor+ of the program, so from the next start.)
             PanelTheme.Start(settings.DarkPanels);
+            waitingCaption.Foreground = PanelTheme.Dim;
             Grid root = new();
             Grid planHost = new();
             planHost.Children.Add(view);

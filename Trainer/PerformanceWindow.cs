@@ -113,9 +113,7 @@ namespace AuroraPAR
             HeadersVisibility = DataGridHeadersVisibility.Column,
             RowHeight = 24,
             FontSize = 12,
-            GridLinesVisibility = DataGridGridLinesVisibility.All,
-            HorizontalGridLinesBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD)),
-            VerticalGridLinesBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD))
+            GridLinesVisibility = DataGridGridLinesVisibility.All
         };
         private readonly TextBlock message = new() { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
 
@@ -207,7 +205,7 @@ namespace AuroraPAR
             {
                 Text = "Initial speed: put in the Speed box when the class is chosen (Quick, the first point of a new flight plan). Final speed: the speed of \"Slow dwn to final\". "
                     + "Type in a cell, or turn the mouse wheel over it. Saved in performance.json beside the program: the new values are for the aircraft created from now on; those flying keep theirs.",
-                Foreground = Brushes.DimGray,
+                Foreground = PanelTheme.Dim,
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 10, 0, 0)
@@ -224,8 +222,9 @@ namespace AuroraPAR
             end.Children.Add(cancel);
             panel.Children.Add(end);
             Content = panel;
-            // (Panels DARK, the user 9 Nov.)
+            // (Panels DARK, the user 9 Nov; the light grid lines only on the light window.)
             PanelTheme.Apply(this);
+            if (!PanelTheme.Dark) grid.HorizontalGridLinesBrush = grid.VerticalGridLinesBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD));
         }
 
         private static Button Small(string text) => new() { Content = text, Padding = new Thickness(12, 3, 12, 3), Margin = new Thickness(0, 0, 6, 0) };
@@ -237,7 +236,7 @@ namespace AuroraPAR
             if (unit.Length > 0)
             {
                 header.Inlines.Add(new System.Windows.Documents.LineBreak());
-                header.Inlines.Add(new System.Windows.Documents.Run(unit) { FontSize = 10, Foreground = Brushes.DimGray });
+                header.Inlines.Add(new System.Windows.Documents.Run(unit) { FontSize = 10, Foreground = PanelTheme.Dim });
             }
             return header;
         }

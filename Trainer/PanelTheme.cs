@@ -30,6 +30,16 @@ namespace AuroraPAR
         /// <summary>The text of the rows of the lists (black on the light panels).</summary>
         public static Brush Text => Dark ? DarkText : Brushes.Black;
 
+        private static readonly Brush DarkDim = Frozen(Color.FromRgb(0xA9, 0xB6, 0xC0));
+        private static readonly Brush DarkWrong = Frozen(Color.FromRgb(0x6B, 0x2A, 0x2A));
+        private static readonly Brush LightWrong = Frozen(Color.FromRgb(255, 215, 215));
+
+        /// <summary>The dimmed texts (dim grey on the light panels).</summary>
+        public static Brush Dim => Dark ? DarkDim : Brushes.DimGray;
+
+        /// <summary>The background of a wrong value in a box (pink on the light panels, dark red on the dark ones).</summary>
+        public static Brush Wrong => Dark ? DarkWrong : LightWrong;
+
         /// <summary>The styles of the controls inside a dark panel.</summary>
         public static ResourceDictionary Styles =>
             styles ??= (ResourceDictionary)Application.LoadComponent(new Uri("/AuroraPARTrainer;component/DarkPanels.xaml", UriKind.Relative));

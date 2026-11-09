@@ -162,7 +162,7 @@ namespace AuroraPAR
                     DockPanel.SetDock(button, Dock.Right);
                     row.Children.Add(button);
                 }
-                row.Children.Add(new TextBlock { Text = Row(plan), FontFamily = new FontFamily("Consolas"), Foreground = Brushes.DimGray, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                row.Children.Add(new TextBlock { Text = Row(plan), FontFamily = new FontFamily("Consolas"), Foreground = PanelTheme.Dim, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
                 ListBoxItem item = new() { Content = row, Tag = plan, HorizontalContentAlignment = HorizontalAlignment.Stretch };
                 waitingList.Items.Add(item);
                 if (ReferenceEquals(plan, keep)) item.IsSelected = true;

@@ -50,7 +50,7 @@ namespace AuroraPAR
             navigationStatus.TextWrapping = TextWrapping.NoWrap;
             navigationStatus.HorizontalAlignment = HorizontalAlignment.Left;
             navigationStatus.TextAlignment = TextAlignment.Left;
-            navigationStatus.Foreground = Brushes.DimGray;
+            navigationStatus.Foreground = PanelTheme.Dim;
             navigationStatus.FontSize = 11;
             navigationStatus.Margin = new Thickness(42, 1, 0, 1);
             panel.Children.Add(navigationStatus);

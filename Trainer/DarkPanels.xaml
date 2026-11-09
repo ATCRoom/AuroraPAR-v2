@@ -23,13 +23,13 @@
         <Setter Property="SelectionBrush" Value="{StaticResource DarkSelect}" />
     </Style>
 
-    <Style TargetType="Button">
+    <Style x:Key="DarkButtonBase" TargetType="ButtonBase">
         <Setter Property="Background" Value="{StaticResource DarkAction}" />
         <Setter Property="BorderBrush" Value="{StaticResource DarkAction}" />
         <Setter Property="Foreground" Value="{StaticResource DarkActionText}" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="Button">
+                <ControlTemplate TargetType="ButtonBase">
                     <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
                         <ContentPresenter Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" Focusable="False"
@@ -47,6 +47,37 @@
                             <Setter TargetName="Frame" Property="Opacity" Value="0.45" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Button" BasedOn="{StaticResource DarkButtonBase}" />
+    <Style TargetType="RepeatButton" BasedOn="{StaticResource DarkButtonBase}" />
+    <!-- A toggle (MANUAL / ROUTE, Start): off in the colour of the fields, on in the blue of the actions with a yellow edge. -->
+    <Style TargetType="ToggleButton" BasedOn="{StaticResource DarkButtonBase}">
+        <Setter Property="Background" Value="{StaticResource DarkField}" />
+        <Setter Property="BorderBrush" Value="{StaticResource DarkEdge}" />
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{StaticResource DarkAction}" />
+                <Setter Property="BorderBrush" Value="{StaticResource DarkChosen}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="GroupBox">
+        <Setter Property="Foreground" Value="{StaticResource DarkText}" />
+        <Setter Property="BorderBrush" Value="{StaticResource DarkLine}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GroupBox">
+                    <DockPanel>
+                        <ContentPresenter DockPanel.Dock="Top" ContentSource="Header" Margin="2,0,0,3" RecognizesAccessKey="True" />
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                    </DockPanel>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
