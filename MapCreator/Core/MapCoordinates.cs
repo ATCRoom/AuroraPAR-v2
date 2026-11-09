@@ -11,9 +11,14 @@ namespace ATCRoom.Maps
 
         /// <summary>
         /// One coordinate as in the Aurora and EuroScope files: a hemisphere letter and degrees.minutes.seconds.decimals
-        /// ("N047.10.47.653", "E013.06.38.300") or decimal degrees ("N013.32861"). False when it is not one.
+        /// ("N047.10.47.653", "E013.06.38.300"), the same without dots ("N0434857348"), or decimal degrees ("N013.32861").
+        /// False when it is not one. <paramref name="ivao"/>: the rules of the IVAO / Aurora files, where the short forms
+        /// are degrees, minutes and seconds with the missing parts at zero: "S040" = 40°, "N038.10" = 38°10′,
+        /// "E024.33.34" = 24°33′34″, "N03810" = 38°10′, "E0243334" = 24°33′34″ (without dots the digits say which parts
+        /// there are: 3 degrees, 2 minutes, 2 seconds, then the decimals of the seconds). Without it (EuroScope) a letter
+        /// and one dot is decimal degrees, as in "N013.32861".
         /// </summary>
-        public static bool TryParseHemisphere(string? text, out double value)
+        public static bool TryParseHemisphere(string? text, out double value, bool ivao = false)
         {
             value = double.NaN;
             string t = (text ?? "").Trim();
@@ -39,6 +44,10 @@ namespace ATCRoom.Maps
                 if (!double.TryParse(secondsText, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double s) || s >= 60) return false;
                 degrees = d + m / 60.0 + s / 3600.0;
             }
+            else if (ivao)
+            {
+                if (!TryParseIvaoShort(parts, out degrees)) return false;
+            }
             else
             {
                 if (!double.TryParse(t[1..], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out degrees)) return false;
@@ -50,10 +59,66 @@ namespace ATCRoom.Maps
             return true;
         }
 
-        /// <summary>A coordinate as written in the sector files: with a hemisphere letter (any of the forms above) or plain decimal degrees ("41.00850773", negative south / west).</summary>
-        public static bool TryParseAny(string? text, out double value)
+        /// <summary>
+        /// The short forms of the IVAO files (after the letter, one or two pieces): "040" degrees; "038.10" degrees and
+        /// minutes (more than two digits after the dot: decimal degrees, "041.00850773"); "03810" / "0243334" / "024333490" digits only (3 of degrees, then 2 of minutes, 2 of seconds, then the
+        /// decimals of the seconds); "0243334.9" the same with the decimals after a dot.
+        /// </summary>
+        private static bool TryParseIvaoShort(string[] parts, out double degrees)
         {
-            if (TryParseHemisphere(text, out value)) return true;
+            degrees = double.NaN;
+            if (parts.Length == 0 || parts.Length > 2 || parts.Any(p => p.Length == 0 || !p.All(char.IsAsciiDigit))) return false;
+            string whole = parts[0];
+            if (parts.Length == 2 && whole.Length <= 3)
+            {
+                // More than two digits after the dot cannot be minutes: decimal degrees, as the files have always been read (N041.00850773).
+                if (parts[1].Length > 2)
+                {
+                    degrees = double.Parse(whole + "." + parts[1], CultureInfo.InvariantCulture);
+                    return true;
+                }
+                // Degrees and minutes: N038.10.
+                int m = int.Parse(parts[1], CultureInfo.InvariantCulture);
+                if (m >= 60) return false;
+                degrees = int.Parse(whole, CultureInfo.InvariantCulture) + m / 60.0;
+                return true;
+            }
+            string decimals = parts.Length == 2 ? parts[1] : "";
+            if (whole.Length <= 3)
+            {
+                degrees = int.Parse(whole, CultureInfo.InvariantCulture);
+                return decimals.Length == 0;
+            }
+            if (whole.Length == 5)
+            {
+                if (decimals.Length > 0) return false;
+                int m = int.Parse(whole[3..5], CultureInfo.InvariantCulture);
+                if (m >= 60) return false;
+                degrees = int.Parse(whole[..3], CultureInfo.InvariantCulture) + m / 60.0;
+                return true;
+            }
+            if (whole.Length < 7) return false;
+            if (whole.Length > 7)
+            {
+                if (decimals.Length > 0) return false;
+                decimals = whole[7..];
+                whole = whole[..7];
+            }
+            int minutes = int.Parse(whole[3..5], CultureInfo.InvariantCulture);
+            double seconds = int.Parse(whole[5..7], CultureInfo.InvariantCulture)
+                + (decimals.Length > 0 ? double.Parse("0." + decimals, CultureInfo.InvariantCulture) : 0);
+            if (minutes >= 60 || seconds >= 60) return false;
+            degrees = int.Parse(whole[..3], CultureInfo.InvariantCulture) + minutes / 60.0 + seconds / 3600.0;
+            return true;
+        }
+
+        /// <summary>
+        /// A coordinate as written in the sector files: with a hemisphere letter (any of the forms above, with the IVAO rules
+        /// when <paramref name="ivao"/>) or plain decimal degrees ("41.00850773", negative south / west).
+        /// </summary>
+        public static bool TryParseAny(string? text, out double value, bool ivao = false)
+        {
+            if (TryParseHemisphere(text, out value, ivao)) return true;
             string t = (text ?? "").Trim();
             if (t.Length > 0 && (char.IsAsciiDigit(t[0]) || t[0] == '-') && t.Contains('.')
                 && double.TryParse(t, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value)

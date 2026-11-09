@@ -7,12 +7,19 @@ namespace ATCRoom.Maps
     /// <summary>
     /// A radar map in the open ATCRoom format (JSON, see docs/MAP-FORMAT.md): lines, labels and points, each with its
     /// category (version 2: one file per airport, see <see cref="MapCategory"/>), or a whole map with the colours of its
-    /// lines and labels (version 1). Written by ATCRoom Map Creator, read by AuroraPAR v2 Trainer. Coordinates are
-    /// latitude and longitude in degrees (WGS 84, north and east positive).
+    /// lines and labels (version 1). Version 3 adds the block "Ground" (the ground layout of the aerodrome: areas, lines,
+    /// labels): in memory its items are in <see cref="Lines"/> and <see cref="Labels"/> with their ground categories like
+    /// all the others; only the file keeps them apart, so the programs made before version 3 do not see them and cannot
+    /// spoil them. Written by ATCRoom Map Creator, read by AuroraPAR v2 Trainer and TWR Trainer. Coordinates are latitude
+    /// and longitude in degrees (WGS 84, north and east positive). Nothing a program does not know is lost: unknown
+    /// fields and categories are kept as they are.
     /// </summary>
     public sealed class MapFile
     {
+        /// <summary>The version of a file without the ground layout (unchanged since version 2).</summary>
         public const int CurrentFormatVersion = 2;
+        /// <summary>The version of a file with the block "Ground".</summary>
+        public const int GroundFormatVersion = 3;
         public const string DefaultColour = "#2F6F86";
 
         public static readonly JsonSerializerOptions JsonOptions = new()
@@ -42,9 +49,19 @@ namespace ATCRoom.Maps
         public List<MapLabel> Labels { get; set; } = [];
         public List<MapPoint> Points { get; set; } = [];
 
+        /// <summary>
+        /// Only in the file (version 3): the ground layout. When a file is read its items are moved into <see cref="Lines"/>
+        /// and <see cref="Labels"/> (with their categories); when it is written they are taken out of them again.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public MapGround? Ground { get; set; }
+
         /// <summary>Fields of a newer version of the format, kept as they are.</summary>
         [JsonExtensionData]
         public Dictionary<string, JsonElement>? Extra { get; set; }
+
+        /// <summary>The fields of the block "Ground" that this version does not know, written back as they were.</summary>
+        private Dictionary<string, JsonElement>? groundExtra;
 
         /// <summary>Reads a map file. Throws (with a readable message) when it is not a map.</summary>
         public static MapFile Load(string path)
@@ -67,17 +84,87 @@ namespace ATCRoom.Maps
                 throw new InvalidDataException($"Not a map file ({ex.Message}).", ex);
             }
             if (map == null) throw new InvalidDataException("Empty map file.");
+            map.TakeGround();
             map.Normalize();
             return map;
         }
 
+        /// <summary>Moves the items of the block "Ground" into the lines and labels, marked so they go back there when saved.</summary>
+        private void TakeGround()
+        {
+            if (Ground == null) return;
+            Lines ??= [];
+            Labels ??= [];
+            foreach (MapLine area in Ground.Areas ?? [])
+            {
+                if (area == null) continue;
+                area.GroundList = MapGround.AreasList;
+                Lines.Add(area);
+            }
+            foreach (MapLine line in Ground.Lines ?? [])
+            {
+                if (line == null) continue;
+                line.GroundList = MapGround.LinesList;
+                Lines.Add(line);
+            }
+            foreach (MapLabel label in Ground.Labels ?? [])
+            {
+                if (label == null) continue;
+                label.InGround = true;
+                Labels.Add(label);
+            }
+            groundExtra = Ground.Extra;
+            Ground = null;
+        }
+
         public void Save(string path)
         {
-            Normalize();
+            string json = ToJson();
             string? folder = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
-            File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
+            File.WriteAllText(path, json);
         }
+
+        private bool IsGroundLine(MapLine line) => line.GroundList != null || MapCategory.IsGround(line.Category);
+
+        private bool IsGroundLabel(MapLabel label) => label.InGround || MapCategory.IsGround(label.Category);
+
+        /// <summary>
+        /// The text of the file: the ground items (ground categories, or read from the block "Ground") in the block "Ground"
+        /// (version 3: the areas in the drawing order of their categories), everything else as in version 2.
+        /// </summary>
+        public string ToJson()
+        {
+            Normalize();
+            MapGround ground = new()
+            {
+                Areas = Lines.Where(l => IsGroundLine(l) && (l.GroundList == MapGround.AreasList || (l.GroundList == null && MapCategory.IsArea(l.Category))))
+                    .OrderBy(l => MapCategory.OrderOf(l.Category)).ToList(),
+                Lines = Lines.Where(l => IsGroundLine(l) && !(l.GroundList == MapGround.AreasList || (l.GroundList == null && MapCategory.IsArea(l.Category)))).ToList(),
+                Labels = Labels.Where(IsGroundLabel).ToList(),
+                Extra = groundExtra
+            };
+            bool hasGround = ground.Areas.Count + ground.Lines.Count + ground.Labels.Count > 0 || (groundExtra?.Count ?? 0) > 0;
+            MapFile file = new()
+            {
+                FormatVersion = hasGround ? Math.Max(FormatVersion, GroundFormatVersion) : FormatVersion,
+                Name = Name,
+                Airport = Airport,
+                Source = Source,
+                Sources = Sources,
+                LineColour = LineColour,
+                LabelColour = LabelColour,
+                Lines = Lines.Where(l => !IsGroundLine(l)).ToList(),
+                Labels = Labels.Where(l => !IsGroundLabel(l)).ToList(),
+                Points = Points,
+                Ground = hasGround ? ground : null,
+                Extra = Extra
+            };
+            return JsonSerializer.Serialize(file, JsonOptions);
+        }
+
+        /// <summary>The category as written in <see cref="MapCategory.All"/>; one that is not known is kept as it is (a newer program may know it).</summary>
+        private static string NormalCategory(string? category) => MapCategory.Normal(category) ?? (category ?? "").Trim();
 
         /// <summary>Repairs what a hand edit may have left: no invalid coordinates, no line with fewer than two points.</summary>
         public void Normalize()
@@ -98,7 +185,7 @@ namespace ATCRoom.Maps
             foreach (MapLine line in Lines)
             {
                 line.Name = (line.Name ?? "").Trim();
-                line.Category = MapCategory.Normal(line.Category) ?? "";
+                line.Category = NormalCategory(line.Category);
                 line.Points = (line.Points ?? [])
                     .Where(p => p != null && p.Length >= 2 && MapCoordinates.IsValid(p[0], p[1]))
                     .Select(p => new[] { Math.Round(p[0], 6), Math.Round(p[1], 6) })
@@ -109,7 +196,7 @@ namespace ATCRoom.Maps
             foreach (MapLabel label in Labels)
             {
                 label.Text = label.Text.Trim();
-                label.Category = MapCategory.Normal(label.Category) ?? "";
+                label.Category = NormalCategory(label.Category);
                 label.Latitude = Math.Round(label.Latitude, 6);
                 label.Longitude = Math.Round(label.Longitude, 6);
                 if (!double.IsFinite(label.Size) || label.Size <= 0) label.Size = MapLabel.DefaultSize;
@@ -120,7 +207,7 @@ namespace ATCRoom.Maps
             {
                 point.Name = (point.Name ?? "").Trim();
                 point.Description = (point.Description ?? "").Trim();
-                point.Category = MapCategory.Normal(point.Category) ?? "";
+                point.Category = NormalCategory(point.Category);
                 point.Latitude = Math.Round(point.Latitude, 6);
                 point.Longitude = Math.Round(point.Longitude, 6);
             }
@@ -151,12 +238,35 @@ namespace ATCRoom.Maps
             Points = Points.Where(p => p.Category == category).ToList()
         };
 
-        /// <summary>Adds the items of another map (read from a file, without categories) as one category.</summary>
+        /// <summary>
+        /// Adds the items of another map (read from a file, without categories) as one category. Into a ground category:
+        /// the labels and the points become ground labels (<see cref="MapCategory.GroundLabels"/>; a point gives its
+        /// <see cref="MapPoint.LabelText"/>), the labels made by the importer at the centre of the areas are left out, and
+        /// the "ground labels" category takes no lines.
+        /// </summary>
         public void AddAs(MapFile source, string category)
         {
-            foreach (MapLine l in source.Lines) Lines.Add(new MapLine { Name = l.Name, Category = category, Points = l.Points.Select(p => new[] { p[0], p[1] }).ToList() });
-            foreach (MapLabel l in source.Labels) Labels.Add(new MapLabel { Text = l.Text, Latitude = l.Latitude, Longitude = l.Longitude, Size = l.Size, Category = category });
-            foreach (MapPoint p in source.Points) Points.Add(new MapPoint { Name = p.Name, Description = p.Description, Latitude = p.Latitude, Longitude = p.Longitude, Symbol = p.Symbol, Category = category });
+            bool ground = MapCategory.IsGround(category);
+            foreach (MapLine l in source.Lines)
+            {
+                if (ground && string.Equals(category, MapCategory.GroundLabels, StringComparison.OrdinalIgnoreCase)) continue;
+                Lines.Add(new MapLine { Name = l.Name, Category = category, Points = l.Points.Select(p => new[] { p[0], p[1] }).ToList(), Extra = l.Extra });
+            }
+            foreach (MapLabel l in source.Labels)
+            {
+                if (ground && l.Auto) continue;
+                Labels.Add(new MapLabel { Text = l.Text, Latitude = l.Latitude, Longitude = l.Longitude, Size = l.Size, Category = ground ? MapCategory.GroundLabels : category, Extra = l.Extra });
+            }
+            foreach (MapPoint p in source.Points)
+            {
+                if (ground)
+                {
+                    string text = (p.LabelText ?? p.Name).Trim();
+                    if (text.Length > 0) Labels.Add(new MapLabel { Text = text, Latitude = p.Latitude, Longitude = p.Longitude, Category = MapCategory.GroundLabels });
+                    continue;
+                }
+                Points.Add(new MapPoint { Name = p.Name, Description = p.Description, Latitude = p.Latitude, Longitude = p.Longitude, Symbol = p.Symbol, Category = category, Extra = p.Extra });
+            }
         }
 
         /// <summary>Adds everything of another map of version 2 (items with their categories, and the sources).</summary>
@@ -235,6 +345,14 @@ namespace ATCRoom.Maps
         public string Category { get; set; } = "";
         /// <summary>The points, each [latitude, longitude].</summary>
         public List<double[]> Points { get; set; } = [];
+
+        /// <summary>Fields of a newer version of the format, kept as they are.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? Extra { get; set; }
+
+        /// <summary>Never saved: the list of the block "Ground" the line was read from (<see cref="MapGround.AreasList"/> or <see cref="MapGround.LinesList"/>), null: not read from it.</summary>
+        [JsonIgnore]
+        public string? GroundList { get; set; }
     }
 
     /// <summary>A text on the map.</summary>
@@ -248,6 +366,18 @@ namespace ATCRoom.Maps
         public string Category { get; set; } = "";
         /// <summary>Size of the text (as in the Aurora map files: 8 is the usual size).</summary>
         public double Size { get; set; } = DefaultSize;
+
+        /// <summary>Fields of a newer version of the format, kept as they are.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? Extra { get; set; }
+
+        /// <summary>Never saved: made by the importer (the name of an area at its centre), not a text of the file; left out in the ground.</summary>
+        [JsonIgnore]
+        public bool Auto { get; set; }
+
+        /// <summary>Never saved: read from the block "Ground" (it goes back there).</summary>
+        [JsonIgnore]
+        public bool InGround { get; set; }
     }
 
     public enum MapSymbol
@@ -283,5 +413,35 @@ namespace ATCRoom.Maps
         /// <summary>Only while importing (never saved): the block of the source file the point is in (an airport), to choose points by group.</summary>
         [JsonIgnore]
         public string Group { get; set; } = "";
+
+        /// <summary>
+        /// Only while importing (never saved): the text when the point goes into the ground labels, when it differs from the
+        /// name (KML: "A_C" gives "A", what follows an underscore is not part of the name). Null: the name.
+        /// </summary>
+        [JsonIgnore]
+        public string? LabelText { get; set; }
+
+        /// <summary>Fields of a newer version of the format, kept as they are.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? Extra { get; set; }
+    }
+
+    /// <summary>
+    /// The block "Ground" of a file (version 3): the ground layout of the aerodrome. <see cref="Areas"/>: filled areas
+    /// (grass, taxiways, aprons, concrete, buildings, runways), drawn in this order; <see cref="Lines"/>: runway outlines,
+    /// taxiway centrelines, stop bars; <see cref="Labels"/>: the names of taxiways and aprons. Each item has its category.
+    /// </summary>
+    public sealed class MapGround
+    {
+        internal const string AreasList = "Areas";
+        internal const string LinesList = "Lines";
+
+        public List<MapLine> Areas { get; set; } = [];
+        public List<MapLine> Lines { get; set; } = [];
+        public List<MapLabel> Labels { get; set; } = [];
+
+        /// <summary>Fields of a newer version of the format, kept as they are.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? Extra { get; set; }
     }
 }

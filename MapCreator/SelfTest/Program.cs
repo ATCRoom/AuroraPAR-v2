@@ -559,6 +559,187 @@ string[] ese =
     try { Directory.Delete(folder, true); } catch (Exception) { }
 }
 
+// --- Coordinates of the IVAO files: the short forms (version 2.0.0 of the Map Creator) -----------------------------
+
+{
+    bool Ivao(string text, double expected) => MapCoordinates.TryParseAny(text, out double v, ivao: true) && Near(v, expected, 1e-7);
+    Check(Ivao("N038.10.04.627", 38 + 10 / 60.0 + 4.627 / 3600), "IVAO: DMS with dots (14 characters)");
+    Check(Ivao("N0381004627", 38 + 10 / 60.0 + 4.627 / 3600), "IVAO: DMS without dots (11 characters)");
+    Check(Ivao("38.02235785", 38.02235785) && Ivao("-24.12223578", -24.12223578), "IVAO: decimal degrees, minus for south / west");
+    Check(Ivao("S040", -40), "IVAO short: S040 = 40 degrees south");
+    Check(Ivao("N038.10", 38 + 10 / 60.0), "IVAO short: N038.10 = 38 degrees 10 minutes");
+    Check(Ivao("E024.33.34", 24 + 33 / 60.0 + 34 / 3600.0), "IVAO short: E024.33.34 = 24 33 34");
+    Check(Ivao("N03810", 38 + 10 / 60.0), "IVAO short: N03810 = 38 degrees 10 minutes");
+    Check(Ivao("E0243334", 24 + 33 / 60.0 + 34 / 3600.0), "IVAO short: E0243334 = 24 33 34");
+    Check(Ivao("E024333490", 24 + 33 / 60.0 + 34.9 / 3600), "IVAO short: seconds with decimals without dots");
+    Check(Ivao("n040.14.44.230", 40 + 14 / 60.0 + 44.23 / 3600), "IVAO: lowercase letter");
+    Check(!MapCoordinates.TryParseAny("N038.75", out _, ivao: true), "IVAO short: minutes above 59 refused");
+    Check(!MapCoordinates.TryParseAny("N0381", out _, ivao: true), "IVAO short: a length that is no form refused");
+    Check(Ivao("N041.00850773", 41.00850773), "IVAO: a letter and more than two digits after the dot cannot be minutes: decimal degrees (as before)");
+    Check(MapCoordinates.TryParseHemisphere("N013.32861", out double es) && Near(es, 13.32861, 1e-9), "EuroScope: a letter and one dot stays decimal degrees");
+    Check(!MapCoordinates.TryParseAny("95.5", out double lat95) || !MapCoordinates.IsValid(lat95, 10), "A latitude above 90 is not a valid point");
+}
+
+// --- Ground layout: .pol, .txi, .geo tags, KML folders -----------------------------------------------------------
+
+{
+    FileImport pol = MapImport.Read("libn.pol",
+    [
+        "//***Converted Items***",
+        "//ad_boundary_Polygon",
+        "STATIC;GRASS;1;GRASS;",
+        "N040.14.44.230;E018.07.30.104;",
+        "N040.14.46.084;E018.07.30.035;",
+        "N040.14.47.154;E018.07.32.363;",
+        "",
+        "//DFAB",
+        "STATIC;TAXIWAY;1;TAXIWAY;",
+        "N0401446856;E0180814939;",
+        "N0401445854;E0180816118;",
+        "N0401445243;E0180816719;",
+        "N0401443320;E0180818497;",
+        "//apron_mike",
+        "STATIC;APRON;1;APRON;",
+        "N040.14.45.600;E018.08.02.881;",
+        "N040.14.43.178;E018.08.02.753;",
+        "N040.14.35.876;E018.08.09.141;",
+        "garbage row"
+    ], null);
+    ImportEntry? grass = pol.Entries.FirstOrDefault(e => e.Title == "GRASS");
+    ImportEntry? twy = pol.Entries.FirstOrDefault(e => e.Title == "TAXIWAY");
+    ImportEntry? apron = pol.Entries.FirstOrDefault(e => e.Title == "APRON");
+    Check(pol.Entries.Count == 3 && grass?.Suggested == MapCategory.GroundGrass && twy?.Suggested == MapCategory.GroundTaxiway && apron?.Suggested == MapCategory.GroundApron,
+        ".pol: one part per type, ground category suggested", string.Join(", ", pol.Entries.Select(e => e.Title + "=" + e.Suggested)));
+    Check(twy != null && twy.Content.Lines.Count == 1 && twy.Content.Lines[0].Points.Count == 5 && Closed(twy.Content.Lines[0]) && twy.Content.Lines[0].Name == "DFAB",
+        ".pol: a block is a closed polygon named by the comment before it");
+    Check(pol.Airport == "LIBN" && pol.Notes.Any(n => n.Contains("1 row")), ".pol: airport from the file name, a bad row named in the notes");
+
+    FileImport txi = MapImport.Read("libn.txi",
+    [
+        "A;LIBN;N0401404403;E0180819854;",
+        "E;LIBN;N040.14.31.724;E018.08.15.490;",
+        "M west;LIBN;N0401438369;E0180806749;",
+        "M east;LINB;N040.14.42.951;E018.08.07.339;",
+        "RUNUP;LIBN;N0401358603;E0180823280;"
+    ], null);
+    ImportEntry? labels = txi.Entries.FirstOrDefault();
+    Check(labels != null && labels.Suggested == MapCategory.GroundLabels && labels.Content.Labels.Count == 5 && labels.Content.Labels.Any(l => l.Text == "M west"),
+        ".txi: labels of taxiways and aprons, the text exactly as written");
+    Check(labels != null && Near(labels.Content.Labels[0].Latitude, 40 + 14 / 60.0 + 4.403 / 3600, 1e-6) && Near(labels.Content.Labels[0].Longitude, 18 + 8 / 60.0 + 19.854 / 3600, 1e-6),
+        ".txi: compact and dotted coordinates in the same file");
+    Check(txi.Airport == "LIBN" && txi.Notes.Any(n => n.Contains("M east (LINB)")), ".txi: airport from the file name, a row with another ICAO kept and named");
+
+    FileImport geoGround = MapImport.Read("libn.geo",
+    [
+        "//DFA",
+        "N040.14.43.482;E018.07.40.176;N040.14.44.337;E018.07.40.461;TAXI_CENTER;",
+        "N040.14.44.337;E018.07.40.461;N040.14.45.676;E018.07.40.904;TAXI_CENTER;",
+        "//C",
+        "N040.14.45.513;E018.07.40.554;N040.14.45.394;E018.07.41.092;STOPLINE;",
+        "//apron_mike_east",
+        "N040.14.38.822;E018.08.09.523;N040.14.40.151;E018.08.12.018;APRON;",
+        "N040.14.40.151;E018.08.12.018;N040.14.46.088;E018.08.06.593;APRON;",
+        "N040.14.46.088;E018.08.06.593;N040.14.38.822;E018.08.09.523;APRON;"
+    ], null);
+    string? Sug(FileImport f, string title) => f.Entries.FirstOrDefault(e => e.Title == title)?.Suggested;
+    Check(Sug(geoGround, "TAXI_CENTER") == MapCategory.GroundCentreline && Sug(geoGround, "STOPLINE") == MapCategory.GroundStopBar && Sug(geoGround, "APRON") == MapCategory.GroundApron,
+        ".geo: the tags of a ground layout suggest its parts");
+    Check(geoGround.Entries.First(e => e.Title == "APRON").Content.Lines.Count == 1 && Closed(geoGround.Entries.First(e => e.Title == "APRON").Content.Lines[0]),
+        ".geo: an apron made of segments is joined into a closed line");
+
+    string kml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <kml xmlns="http://www.opengis.net/kml/2.2"><Document><Folder><name>LIBN</name>
+          <Folder><name>Twys</name>
+            <Placemark><name>DFAB</name><Polygon><outerBoundaryIs><LinearRing><coordinates>18.130,40.230,0 18.131,40.230,0 18.131,40.231,0 18.130,40.230,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+          </Folder>
+          <Folder><name>Ad_Concrete_Areas</name>
+            <Placemark><name>apron_mike</name><Polygon><outerBoundaryIs><LinearRing><coordinates>18.132,40.232,0 18.133,40.232,0 18.133,40.233,0 18.132,40.232,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+            <Placemark><name>RunupN</name><Polygon><outerBoundaryIs><LinearRing><coordinates>18.134,40.234,0 18.135,40.234,0 18.135,40.235,0 18.134,40.234,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+          </Folder>
+          <Folder><name>Rwys</name>
+            <Placemark><name>14-32</name><Polygon><outerBoundaryIs><LinearRing><coordinates>18.1400,40.2306,0 18.1406,40.2310,0 18.1264,40.2469,0 18.1258,40.2466,0 18.1400,40.2306,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+          </Folder>
+          <Folder><name>Rwy_Boundaries</name>
+            <Placemark><name>14-32</name><LineString><coordinates>18.1266,40.2457,0 18.1272,40.2460,0 18.1393,40.2324,0 18.1388,40.2321,0 18.1266,40.2457,0</coordinates></LineString></Placemark>
+          </Folder>
+          <Folder><name>TwyCtrls</name>
+            <Placemark><name>DFA</name><LineString><coordinates>18.130,40.230,0 18.131,40.231,0</coordinates></LineString></Placemark>
+            <Placemark><name>A_C</name><Point><coordinates>18.1388,40.2345,0</coordinates></Point></Placemark>
+            <Placemark><name>RUNUP_W</name><Point><coordinates>18.1277,40.2472,0</coordinates></Point></Placemark>
+          </Folder>
+          <Folder><name>Stopbars</name>
+            <Placemark><name>C</name><LineString><coordinates>18.1279,40.2460,0 18.1281,40.2461,0</coordinates></LineString></Placemark>
+          </Folder>
+        </Folder></Document></kml>
+        """;
+    FileImport k = MapImport.Read("LIBN.kml", kml.Split('\n'), null);
+    Check(Sug(k, "Twys") == MapCategory.GroundTaxiway && Sug(k, "Rwys") == MapCategory.GroundRunway && Sug(k, "Rwy_Boundaries") == MapCategory.GroundRunwayOutline
+        && Sug(k, "TwyCtrls") == MapCategory.GroundCentreline && Sug(k, "Stopbars") == MapCategory.GroundStopBar && Sug(k, "Ad_Concrete_Areas") == MapCategory.GroundConcrete,
+        "KML: the folders of a ground layout suggest its parts", string.Join(", ", k.Entries.Select(e => e.Title + "=" + e.Suggested)));
+    Check(Sug(k, "Ad_Concrete_Areas (aprons)") == MapCategory.GroundApron && k.Entries.First(e => e.Title == "Ad_Concrete_Areas").Content.Lines.Count == 1,
+        "KML: an apron in the folder of the concrete areas is a part of its own");
+
+    // Everything into the ground, as the user would choose it.
+    MapFile ground = new() { Airport = "LIBN", Name = "LIBN" };
+    foreach (ImportEntry e in k.Entries.Concat(txi.Entries).Concat(pol.Entries)) if (e.Suggested != null) ground.AddAs(e.Selected(), e.Suggested);
+    ground.AddAs(new MapFile { Lines = [new MapLine { Points = [[40, 18], [40.1, 18]] }] }, MapCategory.Vrp);
+    Check(!ground.Labels.Any(l => l.Text == "DFAB" || l.Text == "apron_mike"), "Ground: the names of the areas are not labels");
+    Check(ground.Labels.Any(l => l.Text == "A" && l.Category == MapCategory.GroundLabels) && ground.Labels.Any(l => l.Text == "RUNUP") && !ground.Labels.Any(l => l.Text.Contains('_')),
+        "Ground: a KML point gives a label without what follows the underscore (A_C -> A)");
+    Check(ground.Points.Count == 0, "Ground: no symbol points in the ground");
+    MapFile justLabels = new();
+    justLabels.AddAs(new MapFile { Lines = [new MapLine { Points = [[40, 18], [40.1, 18]] }], Labels = [new MapLabel { Text = "B", Latitude = 40, Longitude = 18 }] }, MapCategory.GroundLabels);
+    Check(justLabels.Lines.Count == 0 && justLabels.Labels.Count == 1, "Ground: the category of the labels takes no lines");
+
+    // The file: the ground in its own block, version 3; the programs before it see only the rest.
+    string json = ground.ToJson();
+    using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
+    var rootJson = doc.RootElement;
+    bool topHasGround = rootJson.GetProperty("Lines").EnumerateArray().Any(l => MapCategory.IsGround(l.GetProperty("Category").GetString()))
+        || rootJson.GetProperty("Labels").EnumerateArray().Any(l => MapCategory.IsGround(l.GetProperty("Category").GetString()));
+    Check(rootJson.GetProperty("FormatVersion").GetInt32() == 3 && rootJson.TryGetProperty("Ground", out var g) && !topHasGround,
+        "File v3: the ground in the block Ground, nothing of it in the lines and labels the old programs read");
+    var areas = rootJson.GetProperty("Ground").GetProperty("Areas").EnumerateArray().Select(a => a.GetProperty("Category").GetString()).ToList();
+    Check(areas.Count >= 5 && areas.Select(c => MapCategory.OrderOf(c)).SequenceEqual(areas.Select(c => MapCategory.OrderOf(c)).Order()) && areas[0] == MapCategory.GroundGrass && areas[^1] == MapCategory.GroundRunway,
+        "File v3: the areas in the drawing order (grass first, runways last)", string.Join(", ", areas));
+    MapFile again = MapFile.Parse(json);
+    Check(again.Lines.Count(l => MapCategory.IsGround(l.Category)) == ground.Lines.Count(l => MapCategory.IsGround(l.Category))
+        && again.Labels.Count(l => l.Category == MapCategory.GroundLabels) == ground.Labels.Count(l => l.Category == MapCategory.GroundLabels)
+        && again.UsedCategories().Contains(MapCategory.GroundTaxiway) && again.OfCategory(MapCategory.GroundLabels).Labels.Any(l => l.Text == "M west"),
+        "File v3: read back, the ground items are in their categories again");
+    Check(new MapFile { Airport = "LIPX", Lines = [new MapLine { Category = MapCategory.Mva, Points = [[45, 12], [45.1, 12]] }] }.ToJson().Contains("\"FormatVersion\": 2")
+        && !new MapFile().ToJson().Contains("\"Ground\""), "File without ground: still version 2, no block Ground");
+
+    // Cut: an area of the ground is kept whole when a corner is inside.
+    MapFile cutGround = MapCut.CutCircle(ground, 40.2306, 18.1400, 0.3);
+    MapLine? runway = cutGround.Lines.FirstOrDefault(l => l.Category == MapCategory.GroundRunway);
+    Check(runway != null && runway.Points.Count == 5, "Cut: a runway area crossing the circle is kept whole");
+
+    // Nothing is lost: unknown fields, categories and blocks are written back.
+    string future = """
+        { "FormatVersion": 4, "Airport": "LIBN", "Future": { "a": 1 },
+          "Lines": [ { "Name": "s", "Category": "Sectors", "Points": [[40, 18], [40.1, 18]], "Width": 2 } ],
+          "Labels": [ { "Text": "x", "Category": "Mva", "Latitude": 40, "Longitude": 18, "Angle": 30 } ],
+          "Ground": { "Areas": [ { "Category": "GroundWater", "Points": [[40, 18], [40.01, 18], [40.01, 18.01]] } ],
+                      "Lines": [ { "Category": "GroundCentreline", "Points": [[40, 18], [40.01, 18]], "Dash": true } ],
+                      "Labels": [ { "Text": "A", "Category": "GroundLabels", "Latitude": 40, "Longitude": 18 } ],
+                      "Stands": [ 1, 2 ] } }
+        """;
+    MapFile kept = MapFile.Parse(future);
+    Check(kept.Lines.Any(l => l.Category == "Sectors") && kept.Lines.Any(l => l.Category == "GroundWater"), "Unknown categories kept as they are (not emptied)");
+    string written = kept.ToJson();
+    using System.Text.Json.JsonDocument w = System.Text.Json.JsonDocument.Parse(written);
+    var wr = w.RootElement;
+    Check(wr.GetProperty("FormatVersion").GetInt32() == 4 && wr.TryGetProperty("Future", out _)
+        && wr.GetProperty("Lines")[0].GetProperty("Width").GetInt32() == 2 && wr.GetProperty("Labels")[0].GetProperty("Angle").GetInt32() == 30,
+        "Unknown fields of the file, of a line and of a label written back");
+    Check(wr.GetProperty("Ground").GetProperty("Areas")[0].GetProperty("Category").GetString() == "GroundWater"
+        && wr.GetProperty("Ground").GetProperty("Lines")[0].GetProperty("Dash").GetBoolean()
+        && wr.GetProperty("Ground").TryGetProperty("Stands", out _) && wr.GetProperty("Lines").GetArrayLength() == 1,
+        "An unknown kind of the ground goes back into the block Ground, with the unknown fields of the block", written.Length.ToString());
+}
+
 // --- File ----------------------------------------------------------------------------------------------------------
 
 {

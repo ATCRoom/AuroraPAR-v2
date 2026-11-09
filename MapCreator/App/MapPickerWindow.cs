@@ -6,8 +6,9 @@ using ATCRoom.Maps;
 namespace ATCRoom.MapCreator
 {
     /// <summary>
-    /// "Open an existing map": the map files (.json) found in the maps folder of the Trainer, each with its airport and the
-    /// categories it has. One is chosen to be loaded into the Map Creator, to add or change something.
+    /// "Open an existing map": the map files (.json) found in the maps folders (the shared one, and the old one of AuroraPAR
+    /// v2 Trainer 1.0.0), each with its folder, airport and the categories it has. One is chosen to be loaded into the Map
+    /// Creator, to add or change something.
     /// </summary>
     internal sealed class MapPickerWindow : Window
     {
@@ -15,10 +16,10 @@ namespace ATCRoom.MapCreator
         private readonly Button open = new() { Content = "Open", IsDefault = true, IsEnabled = false, Padding = new Thickness(16, 3, 16, 3), Margin = new Thickness(0, 0, 6, 0) };
         private string? chosen;
 
-        private MapPickerWindow(Window owner, string folder, List<(string Path, string Text)> maps, List<string> unreadable)
+        private MapPickerWindow(Window owner, string folders, List<(string Path, string Text)> maps, List<string> unreadable)
         {
             Title = "Open an existing map";
-            Width = 480;
+            Width = 560;
             Height = 380;
             MinWidth = 360;
             MinHeight = 240;
@@ -27,7 +28,7 @@ namespace ATCRoom.MapCreator
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
             DockPanel root = new() { Margin = new Thickness(12) };
-            TextBlock where = new() { Text = $"Maps in {folder}", TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.DimGray, Margin = new Thickness(0, 0, 0, 8) };
+            TextBlock where = new() { Text = $"Maps in {folders}", TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.DimGray, Margin = new Thickness(0, 0, 0, 8) };
             DockPanel.SetDock(where, Dock.Top);
             root.Children.Add(where);
 
@@ -57,7 +58,7 @@ namespace ATCRoom.MapCreator
             }
             if (maps.Count == 0)
             {
-                list.Items.Add(new ListBoxItem { Content = "No maps yet in this folder.", IsEnabled = false });
+                list.Items.Add(new ListBoxItem { Content = "No maps yet in these folders.", IsEnabled = false });
             }
             list.SelectionChanged += (s, e) => open.IsEnabled = list.SelectedItem is ListBoxItem { Tag: string };
             list.MouseDoubleClick += (s, e) =>
@@ -76,16 +77,22 @@ namespace ATCRoom.MapCreator
             DialogResult = true;
         }
 
-        /// <summary>Shows the maps of the folder; the path of the one chosen, or null.</summary>
-        public static string? Pick(Window owner, string folder)
+        /// <summary>
+        /// Shows the maps of the folders (each with the text that names it to the user, without the Windows user name);
+        /// the path of the one chosen, or null. A folder that is the same as one before it, or missing, is skipped.
+        /// </summary>
+        public static string? Pick(Window owner, IReadOnlyList<(string Folder, string Text)> folders)
         {
             List<(string Path, string Text)> maps = [];
             List<string> unreadable = [];
-            try
+            HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+            foreach ((string folder, string text) in folders)
             {
-                if (Directory.Exists(folder))
+                try
                 {
-                    foreach (string path in Directory.EnumerateFiles(folder, "*.json").Order(StringComparer.OrdinalIgnoreCase))
+                    string full = System.IO.Path.GetFullPath(folder);
+                    if (!seen.Add(full) || !Directory.Exists(full)) continue;
+                    foreach (string path in Directory.EnumerateFiles(full, "*.json").Order(StringComparer.OrdinalIgnoreCase))
                     {
                         string name = System.IO.Path.GetFileName(path);
                         try
@@ -93,7 +100,7 @@ namespace ATCRoom.MapCreator
                             MapFile map = MapFile.Load(path);
                             string categories = string.Join(", ", map.UsedCategories().Select(id => MapCategory.NameOf(id)));
                             string airport = map.Airport.Length > 0 ? map.Airport : "old kind, no airport";
-                            maps.Add((path, $"{name}  ·  {airport}  ·  {(categories.Length > 0 ? categories : "empty")}"));
+                            maps.Add((path, $"{name}  ·  {airport}  ·  {(categories.Length > 0 ? categories : "empty")}  ·  in {text}"));
                         }
                         catch (Exception)
                         {
@@ -101,9 +108,9 @@ namespace ATCRoom.MapCreator
                         }
                     }
                 }
+                catch (Exception) { }
             }
-            catch (Exception) { }
-            MapPickerWindow window = new(owner, folder, maps, unreadable);
+            MapPickerWindow window = new(owner, string.Join(" and ", folders.Select(f => f.Text)), maps, unreadable);
             return window.ShowDialog() == true ? window.chosen : null;
         }
     }

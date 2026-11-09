@@ -17,13 +17,14 @@ namespace ATCRoom.MapCreator
     /// <summary>
     /// The window of ATCRoom Map Creator: drop many files (or a folder) at once, see them all together on one picture,
     /// choose for each part the category it goes into, cut a circle around the airport and save the map of that airport
-    /// into the maps of AuroraPAR v2 Trainer (one file per airport, the categories of other imports are kept).
+    /// into the maps folder shared by the programs (AuroraPAR v2 Trainer, TWR Trainer): one file per airport, the
+    /// categories of other imports are kept.
     /// </summary>
     internal sealed class MainWindow : Window
     {
         private static readonly HashSet<string> KnownExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".geo", ".fix", ".vor", ".ndb", ".ap", ".apt", ".vfi", ".str", ".mva", ".lartcc", ".hartcc", ".artcc", ".ese", ".sct", ".kml", ".kmz", ".pdf"
+            ".geo", ".fix", ".vor", ".ndb", ".ap", ".apt", ".vfi", ".str", ".mva", ".lartcc", ".hartcc", ".artcc", ".ese", ".sct", ".kml", ".kmz", ".pdf", ".pol", ".txi"
         };
 
         private readonly Dictionary<string, FileImport> files = new(StringComparer.OrdinalIgnoreCase);
@@ -37,7 +38,7 @@ namespace ATCRoom.MapCreator
         private readonly TextBox radiusBox = new() { Text = "60", Width = 52, Padding = new Thickness(2), Margin = new Thickness(0, 0, 4, 0) };
         private readonly TextBlock cutText = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0), Foreground = Brushes.DimGray, FontSize = 12 };
         private readonly TextBox sourceBox = new() { Margin = new Thickness(0, 2, 0, 0), Padding = new Thickness(2) };
-        private readonly Button saveButton = new() { Content = "Save into the maps of the Trainer", Padding = new Thickness(12, 4, 12, 4), IsEnabled = false };
+        private readonly Button saveButton = new() { Content = "Save into the maps", Padding = new Thickness(12, 4, 12, 4), IsEnabled = false };
         private readonly Button saveAsButton = new() { Content = "Save as...", Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(8, 0, 0, 0), IsEnabled = false };
         private readonly Button clearButton = new() { Content = "Clear all", Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(8, 0, 0, 0) };
         private readonly TextBlock statusText = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
@@ -96,7 +97,7 @@ namespace ATCRoom.MapCreator
             dropText.Children.Add(new TextBlock { Text = "Drop the map files here (many at once, or a folder)", FontSize = 15, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
             dropText.Children.Add(new TextBlock
             {
-                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · EuroScope .ese .sct · KML/KMZ · AIP table (PDF) · a map already made (.json)",
+                Text = "IVAO: .geo .fix .vor .ndb .ap .vfi .str .mva lartcc/hartcc · ground .pol .txi · EuroScope .ese .sct · KML/KMZ · AIP (PDF) · a map already made (.json)",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 HorizontalAlignment = HorizontalAlignment.Center
@@ -107,7 +108,7 @@ namespace ATCRoom.MapCreator
             {
                 Content = "Open an existing map...",
                 Padding = new Thickness(12, 2, 12, 2),
-                ToolTip = "A map already made (in the maps of the Trainer): to add something or change it."
+                ToolTip = "A map already made (in the maps folder, or in the old one of AuroraPAR v2 Trainer 1.0.0): to add something or change it."
             };
             openExisting.Click += (s, e) => OpenExisting();
             StackPanel dropButtons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
@@ -171,7 +172,7 @@ namespace ATCRoom.MapCreator
             controls.Children.Add(statusText);
             controls.Children.Add(new TextBlock
             {
-                Text = $"Saved into the maps of the Trainer: {TrainerMapsFolderText}.",
+                Text = $"Saved into the maps: {MapsFolderText}. AuroraPAR v2 Trainer 1.0.0 still reads only %AppData%\\AuroraPARTrainer\\Maps: for it, use Save as... into that folder.",
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
@@ -187,7 +188,7 @@ namespace ATCRoom.MapCreator
             root.Children.Add(previewFrame);
             Content = root;
 
-            saveButton.Click += (s, e) => SaveIntoTrainer();
+            saveButton.Click += (s, e) => SaveIntoMaps();
             saveAsButton.Click += (s, e) => SaveAs();
             clearButton.Click += (s, e) => ClearAll();
             cutBox.Click += (s, e) => ApplyCut();
@@ -220,25 +221,25 @@ namespace ATCRoom.MapCreator
             }
         }
 
+        /// <summary>The settings files of the programs that use the maps: one of them beside this program = portable mode.</summary>
+        private static readonly string[] PortableMarkers = ["AuroraPARTrainer.settings.json", "TWRTrainer.settings.json"];
+
+        private static bool Portable => PortableMarkers.Any(m => File.Exists(IoPath.Combine(AppContext.BaseDirectory, m)));
+
         /// <summary>
-        /// The maps folder of AuroraPAR v2 Trainer: beside the program when the Trainer is portable here (its settings file
-        /// next to this program), else in the user's settings folder.
+        /// The maps folder shared by the programs (AuroraPAR v2 Trainer, TWR Trainer): %AppData%\ATCRoom\Maps, or the Maps
+        /// folder beside this program when a program is portable here (its settings file next to this program).
         /// </summary>
-        private static string TrainerMapsFolder
-        {
-            get
-            {
-                string here = AppContext.BaseDirectory;
-                if (File.Exists(IoPath.Combine(here, "AuroraPARTrainer.settings.json"))) return IoPath.Combine(here, "Maps");
-                return IoPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AuroraPARTrainer", "Maps");
-            }
-        }
+        private static string MapsFolder =>
+            Portable ? IoPath.Combine(AppContext.BaseDirectory, "Maps")
+                : IoPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ATCRoom", "Maps");
+
+        /// <summary>The maps folder of AuroraPAR v2 Trainer 1.0.0 (before the shared one): only read, to open the maps made there.</summary>
+        private static string OldTrainerMapsFolder =>
+            IoPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AuroraPARTrainer", "Maps");
 
         /// <summary>The folder as said to the user, without the Windows user name.</summary>
-        private static string TrainerMapsFolderText =>
-            File.Exists(IoPath.Combine(AppContext.BaseDirectory, "AuroraPARTrainer.settings.json"))
-                ? "the Maps folder beside this program (portable Trainer)"
-                : "%AppData%\\AuroraPARTrainer\\Maps";
+        private static string MapsFolderText => Portable ? "the Maps folder beside this program (portable)" : "%AppData%\\ATCRoom\\Maps";
 
         private void Browse()
         {
@@ -246,15 +247,19 @@ namespace ATCRoom.MapCreator
             {
                 Title = "Map files",
                 Multiselect = true,
-                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.sct;*.kml;*.kmz;*.pdf;*.txt;*.json|All files (*.*)|*.*"
+                Filter = "Map files|*.geo;*.fix;*.vor;*.ndb;*.ap;*.apt;*.vfi;*.str;*.mva;*.lartcc;*.hartcc;*.artcc;*.ese;*.sct;*.kml;*.kmz;*.pdf;*.pol;*.txi;*.txt;*.json|All files (*.*)|*.*"
             };
             if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
         }
 
-        /// <summary>Loads a map made before (from the maps of the Trainer) as parts, to add or change something.</summary>
+        /// <summary>Loads a map made before (from the maps folder, or the old one of the Trainer 1.0.0) as parts, to add or change something.</summary>
         private void OpenExisting()
         {
-            string? path = MapPickerWindow.Pick(this, TrainerMapsFolder);
+            string? path = MapPickerWindow.Pick(this,
+            [
+                (MapsFolder, MapsFolderText),
+                (OldTrainerMapsFolder, "%AppData%\\AuroraPARTrainer\\Maps (AuroraPAR v2 Trainer 1.0.0)")
+            ]);
             if (path != null) OpenPaths([path]);
         }
 
@@ -584,6 +589,8 @@ namespace ATCRoom.MapCreator
                 .Select(e => e.Category!).ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (categories.Count == 0) return null;
             MapFile output = Combine();
+            // A part put into the ground also brings its labels into the ground labels: that category is replaced too.
+            categories.UnionWith(output.UsedCategories());
             if (CutActive(out double latitude, out double longitude, out double radius)) output = MapCut.CutCircle(output, latitude, longitude, radius);
             string icao = airportBox.Text.Trim().ToUpperInvariant();
             output.Airport = icao;
@@ -616,7 +623,7 @@ namespace ATCRoom.MapCreator
             return false;
         }
 
-        private void SaveIntoTrainer()
+        private void SaveIntoMaps()
         {
             if (!AirportOk()) return;
             (MapFile Map, HashSet<string> Categories)? built = BuildOutput();
@@ -628,7 +635,7 @@ namespace ATCRoom.MapCreator
                 .Where(f => f.IsExistingMap && string.Equals(f.Airport, icao, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(f => f.Entries).Where(e => e.Suggested != null && !categories.Contains(e.Suggested))
                 .Select(e => e.Suggested!).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            string path = IoPath.Combine(TrainerMapsFolder, FileNameFor(icao));
+            string path = IoPath.Combine(MapsFolder, FileNameFor(icao));
             if (built == null && (removed.Count == 0 || !File.Exists(path)))
             {
                 statusText.Text = "Nothing to save: no part has a category (or the ICAO is not the one of the map opened).";
@@ -665,7 +672,7 @@ namespace ATCRoom.MapCreator
                     toSave = existing;
                 }
             }
-            Save(toSave, path, $"Saved into the maps of the Trainer as {IoPath.GetFileName(path)} ({string.Join(", ", toSave.UsedCategories().Select(c => MapCategory.NameOf(c)))}). In AuroraPAR v2 Trainer: RDR → Maps... → Reload.");
+            Save(toSave, path, $"Saved into the maps as {IoPath.GetFileName(path)} ({string.Join(", ", toSave.UsedCategories().Select(c => MapCategory.NameOf(c)))}). In the program: Maps... → Reload.");
         }
 
         private void SaveAs()
@@ -681,8 +688,8 @@ namespace ATCRoom.MapCreator
             };
             try
             {
-                Directory.CreateDirectory(TrainerMapsFolder);
-                dialog.InitialDirectory = TrainerMapsFolder;
+                Directory.CreateDirectory(MapsFolder);
+                dialog.InitialDirectory = MapsFolder;
             }
             catch (Exception) { }
             if (dialog.ShowDialog(this) != true) return;

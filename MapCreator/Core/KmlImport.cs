@@ -27,7 +27,10 @@ namespace ATCRoom.Maps
         /// KML (Google Earth; a KMZ is a zip of it, opened by the program). Polygons → closed lines with their name as a label at the
         /// centre (of a 3D one - ceiling, floor and walls, as made by the airspace converters - only the outline in plan is taken);
         /// LineString → line; Point → point (not when an area has the same name: it is the label position of that area). One part for
-        /// the CTR (suggested: CTR), one for the ATZ (suggested: ATZ), one for each folder of the others.
+        /// the CTR (suggested: CTR), one for the ATZ (suggested: ATZ), one for each folder of the others, with a ground category
+        /// suggested by the name of the folder (Twys, Rwys, Aprons, TwyCtrls, Stopbars...); the aprons of a folder of other
+        /// areas (an "apron_..." among the concrete areas) are a part of their own. Into the ground the names of the areas are
+        /// not labels, and a point gives a label without what follows an underscore ("A_C" → "A").
         /// </summary>
         public static FileImport ImportKml(string fileName, IReadOnlyList<string> lines)
         {
@@ -68,6 +71,7 @@ namespace ATCRoom.Maps
                 string key = Regex.IsMatch(name, "\\bCTR\\b", RegexOptions.IgnoreCase) ? "CTR"
                     : Regex.IsMatch(name, "\\bATZ\\b", RegexOptions.IgnoreCase) ? "ATZ"
                     : folder.Length > 0 ? folder : "KML";
+                if (key is not ("CTR" or "ATZ") && name.Contains("apron", StringComparison.OrdinalIgnoreCase) && !key.Contains("apron", StringComparison.OrdinalIgnoreCase)) key += " (aprons)";
 
                 // The outlines in plan: every polygon once (the floor repeats the ceiling), not the walls (only two places in plan).
                 List<List<double[]>> outlines = [];
@@ -94,7 +98,7 @@ namespace ATCRoom.Maps
                     if (name.Length > 0)
                     {
                         double[] centre = MapCoordinates.Centroid(ring);
-                        file.Labels.Add(new MapLabel { Text = name, Latitude = centre[0], Longitude = centre[1] });
+                        file.Labels.Add(new MapLabel { Text = name, Latitude = centre[0], Longitude = centre[1], Auto = true });
                     }
                     areas++;
                 }
@@ -108,13 +112,18 @@ namespace ATCRoom.Maps
                 List<double[]> p = KmlCoordinates(placemark.Descendants().Where(e => e.Name.LocalName == "Point")
                     .Select(e => e.Descendants().FirstOrDefault(c => c.Name.LocalName == "coordinates")).FirstOrDefault(c => c != null));
                 if (p.Count == 0) continue;
-                PartOf(part).Points.Add(new MapPoint { Name = name, Latitude = p[0][0], Longitude = p[0][1], Symbol = MapSymbol.Point });
+                int underscore = name.IndexOf('_');
+                PartOf(part).Points.Add(new MapPoint
+                {
+                    Name = name, Latitude = p[0][0], Longitude = p[0][1], Symbol = MapSymbol.Point,
+                    LabelText = underscore > 0 ? name[..underscore] : null
+                });
                 strays++;
             }
 
             foreach (string key in order.OrderBy(k => k == "CTR" ? 0 : k == "ATZ" ? 1 : 2))
             {
-                string? suggested = key == "CTR" ? MapCategory.Ctr : key == "ATZ" ? MapCategory.Atz : null;
+                string? suggested = key == "CTR" ? MapCategory.Ctr : key == "ATZ" ? MapCategory.Atz : key.EndsWith(" (aprons)") ? MapCategory.GroundApron : SuggestGround(key);
                 result.Entries.Add(NewEntry(fileName, key is "CTR" or "ATZ" ? key + " (KML)" : key, suggested, parts[key], source));
             }
             result.Notes.Add($"{Plural(areas, "area", "areas")}, {Plural(linesCount, "line", "lines")}, {Plural(strays, "point", "points")} read.");

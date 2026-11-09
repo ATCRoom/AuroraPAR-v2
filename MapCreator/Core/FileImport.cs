@@ -104,7 +104,8 @@ namespace ATCRoom.Maps
         /// Reads a file (the lines of a text file, or the words of a PDF) with the importer of its kind, from its
         /// extension, else from its content. Kinds: IVAO geographic lines (.geo), FIX (.fix), VOR (.vor), NDB (.ndb),
         /// airports (.ap), VRP (.vfi), maps of an airport (.str: its MAPS groups), polygons (lartcc / hartcc), Aurora
-        /// map (.mva, T and L lines), EuroScope .ese and .sct, AIP table (PDF).
+        /// map (.mva, T and L lines), ground layout (.pol filled polygons, .txi labels of taxiways and aprons), EuroScope .ese
+        /// and .sct, KML, AIP table (PDF).
         /// </summary>
         public static FileImport Read(string fileName, IReadOnlyList<string>? lines, IReadOnlyList<PdfWord>? words)
         {
@@ -126,6 +127,8 @@ namespace ATCRoom.Maps
                 case ".ese": result = FromEuroScope(fileName, lines); break;
                 case ".sct": result = ImportSct(fileName, lines); break;
                 case ".kml": result = ImportKml(fileName, lines); break;
+                case ".pol": result = ImportPol(fileName, lines); break;
+                case ".txi": result = ImportTxi(fileName, lines); break;
                 case ".json": result = ImportMapJson(fileName, lines); break;
                 default:
                     switch (Sniff(lines))
@@ -144,7 +147,7 @@ namespace ATCRoom.Maps
                     break;
             }
             // Files made for one airport carry its ICAO in the name (libc.vfi, libf.str); the national files do not.
-            if (result.Airport == null && extension is ".vfi" or ".str" or ".mva")
+            if (result.Airport == null && extension is ".vfi" or ".str" or ".mva" or ".pol")
             {
                 Match m = Regex.Match(Path.GetFileNameWithoutExtension(fileName), "^([A-Za-z]{4})(?:[^A-Za-z]|$)");
                 if (m.Success) result.Airport = m.Groups[1].Value.ToUpperInvariant();
@@ -157,7 +160,7 @@ namespace ATCRoom.Maps
         private static FileImport Unknown(string fileName)
         {
             FileImport result = new() { FileName = fileName, FormatName = "not recognised" };
-            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; EuroScope .ese and .sct; KML / KMZ; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
+            result.Notes.Add("Format not recognised. Known: IVAO files .geo, .fix, .vor, .ndb, .ap, .vfi, .str, .mva, lartcc / hartcc; ground layout .pol and .txi; EuroScope .ese and .sct; KML / KMZ; AIP (PDF): table of minimum altitudes, VRP (ENR 6.3.1), significant points (ENR 4.4), radio aids (ENR 4.1.1, 4.1.2), CTR (ENR 2.1.2), ATZ (ENR 2.1.3 and the AD 2 sheets).");
             return result;
         }
 
@@ -177,10 +180,11 @@ namespace ATCRoom.Maps
 
         private static bool IsComment(string row) => row.TrimStart().StartsWith("//", StringComparison.Ordinal);
 
+        /// <summary>A coordinate pair of an IVAO / Aurora file (all the forms, also the short ones: see <see cref="MapCoordinates.TryParseHemisphere"/>).</summary>
         private static bool Coordinate(string latitudeText, string longitudeText, out double latitude, out double longitude)
         {
             latitude = longitude = double.NaN;
-            if (!MapCoordinates.TryParseAny(latitudeText, out double a) || !MapCoordinates.TryParseAny(longitudeText, out double b)) return false;
+            if (!MapCoordinates.TryParseAny(latitudeText, out double a, ivao: true) || !MapCoordinates.TryParseAny(longitudeText, out double b, ivao: true)) return false;
             if (!MapCoordinates.IsValid(a, b)) return false;
             latitude = a;
             longitude = b;
@@ -308,12 +312,20 @@ namespace ATCRoom.Maps
                 string source = map.Sources.TryGetValue(id, out string? text) && text.Length > 0 ? text : map.Source;
                 result.Entries.Add(NewEntry(fileName, MapCategory.NameOf(id), id, map.OfCategory(id), source));
             }
+            // Items without a category: a map of the old kind (version 1), the user chooses. Items of a category this version
+            // does not know (made by a newer program) are not offered: they stay in the file when it is saved into the maps.
             MapFile rest = new()
             {
-                Lines = map.Lines.Where(l => MapCategory.Find(l.Category) == null).ToList(),
-                Labels = map.Labels.Where(l => MapCategory.Find(l.Category) == null).ToList(),
-                Points = map.Points.Where(p => MapCategory.Find(p.Category) == null).ToList()
+                Lines = map.Lines.Where(l => l.Category.Length == 0).ToList(),
+                Labels = map.Labels.Where(l => l.Category.Length == 0).ToList(),
+                Points = map.Points.Where(p => p.Category.Length == 0).ToList()
             };
+            List<string> unknown = map.Lines.Select(l => l.Category).Concat(map.Labels.Select(l => l.Category)).Concat(map.Points.Select(p => p.Category))
+                .Where(c => c.Length > 0 && MapCategory.Find(c) == null).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (unknown.Count > 0)
+            {
+                result.Notes.Add($"Categories made by a newer program, not shown here: {string.Join(", ", unknown)}. \"Save into the maps\" keeps them in the file; \"Save as...\" does not.");
+            }
             if (rest.Lines.Count + rest.Labels.Count + rest.Points.Count > 0)
             {
                 result.Entries.Add(NewEntry(fileName, "Items without a category (map of the old kind)", null, rest, map.Source));
@@ -386,7 +398,8 @@ namespace ATCRoom.Maps
             foreach (string tag in order)
             {
                 string title = tag == "COAST" ? "Coast (COAST)" : tag;
-                result.Entries.Add(NewEntry(fileName, title, tag == "COAST" ? MapCategory.Boundaries : null, byTag[tag]));
+                // COAST: the coast; the tags of a ground layout (TAXIWAY, APRON, RUNWAY, TAXI_CENTER, STOPLINE...) suggest its parts.
+                result.Entries.Add(NewEntry(fileName, title, tag == "COAST" ? MapCategory.Boundaries : SuggestGround(tag), byTag[tag]));
             }
             result.Notes.Add($"{Plural(segments, "segment", "segments")} joined into lines.");
             if (skipped > 0) result.Notes.Add($"{Plural(skipped, "row", "rows")} not understood, skipped.");
@@ -745,7 +758,7 @@ namespace ATCRoom.Maps
                 if (Math.Abs(first[0] - last[0]) > 1e-9 || Math.Abs(first[1] - last[1]) > 1e-9) continue;
                 double[] centre = MapCoordinates.Centroid(line.Points);
                 if (!MapCoordinates.IsValid(centre[0], centre[1])) continue;
-                file.Labels.Add(new MapLabel { Text = text, Latitude = centre[0], Longitude = centre[1] });
+                file.Labels.Add(new MapLabel { Text = text, Latitude = centre[0], Longitude = centre[1], Auto = true });
                 if (onlyFirst) break;
             }
         }

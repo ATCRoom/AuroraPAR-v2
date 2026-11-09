@@ -72,7 +72,7 @@ namespace ATCRoom.Maps
                 }
                 string[] f = line.Split(';');
                 if (f.Length >= 4 && f[0].Equals("T", StringComparison.OrdinalIgnoreCase)
-                    && MapCoordinates.TryParseHemisphere(f[2], out double lat) && MapCoordinates.TryParseHemisphere(f[3], out double lon))
+                    && MapCoordinates.TryParseHemisphere(f[2], out double lat, ivao: true) && MapCoordinates.TryParseHemisphere(f[3], out double lon, ivao: true))
                 {
                     string name = f[1].Trim();
                     if (current == null || current.Name != name)
@@ -83,7 +83,7 @@ namespace ATCRoom.Maps
                     current.Points.Add([lat, lon]);
                 }
                 else if (f.Length >= 4 && f[0].Equals("L", StringComparison.OrdinalIgnoreCase)
-                    && MapCoordinates.TryParseHemisphere(f[2], out double labelLat) && MapCoordinates.TryParseHemisphere(f[3], out double labelLon))
+                    && MapCoordinates.TryParseHemisphere(f[2], out double labelLat, ivao: true) && MapCoordinates.TryParseHemisphere(f[3], out double labelLon, ivao: true))
                 {
                     string text = f.Length > 4 && f[4].Trim().Length > 0 ? f[4].Trim() : f[1].Trim();
                     double size = f.Length > 5 && double.TryParse(f[5], NumberStyles.Float, CultureInfo.InvariantCulture, out double s) ? s : MapLabel.DefaultSize;

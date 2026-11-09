@@ -21,7 +21,8 @@ namespace ATCRoom.MapCreator
         private static readonly Dictionary<string, Brush> Brushes_ = Colours.ToDictionary(c => c.Key, c => (Brush)Freeze(new SolidColorBrush(c.Value)));
 
         private MapFile? map;
-        private readonly List<(Color Colour, StreamGeometry Lines)> shapes = [];
+        /// <summary>The lines of each category (in the order of the categories); Filled: the areas of the ground.</summary>
+        private readonly List<(Color Colour, StreamGeometry Lines, bool Filled)> shapes = [];
         /// <summary>Width of a degree of longitude compared with a degree of latitude (at the middle latitude of the map).</summary>
         private double k = 1;
         private double centreLatitude = 45, centreLongitude = 10;
@@ -86,12 +87,12 @@ namespace ATCRoom.MapCreator
                     {
                         foreach (MapLine line in lines)
                         {
-                            context.BeginFigure(new Point(line.Points[0][1] * k, -line.Points[0][0]), false, false);
+                            context.BeginFigure(new Point(line.Points[0][1] * k, -line.Points[0][0]), category.Area, category.Area);
                             for (int i = 1; i < line.Points.Count; i++) context.LineTo(new Point(line.Points[i][1] * k, -line.Points[i][0]), true, false);
                         }
                     }
                     geometry.Freeze();
-                    shapes.Add((Colours[category.Id], geometry));
+                    shapes.Add((Colours[category.Id], geometry, category.Area));
                 }
             }
             if (refit) needsFit = true;
@@ -175,9 +176,12 @@ namespace ATCRoom.MapCreator
         {
             if (map == null) return;
             dc.PushTransform(new MatrixTransform(matrix));
-            foreach ((Color colour, StreamGeometry geometry) in shapes)
+            foreach ((Color colour, StreamGeometry geometry, bool filled) in shapes)
             {
-                dc.DrawGeometry(null, new Pen(new SolidColorBrush(colour), 1.0 / scale), geometry);
+                // The areas of the ground: filled, with a lighter border so they can be told apart even when the colours are close.
+                Brush? fill = filled ? new SolidColorBrush(colour) : null;
+                Color border = filled ? Color.FromRgb((byte)Math.Min(255, colour.R + 60), (byte)Math.Min(255, colour.G + 60), (byte)Math.Min(255, colour.B + 60)) : colour;
+                dc.DrawGeometry(fill, new Pen(new SolidColorBrush(border), 1.0 / scale), geometry);
             }
             dc.Pop();
             // Texts and points: only those in the frame; the names only when there are not too many.

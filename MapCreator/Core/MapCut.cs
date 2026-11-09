@@ -2,7 +2,8 @@ namespace ATCRoom.Maps
 {
     /// <summary>
     /// Cuts a part out of a map (a big file that covers a wide area): only what is inside a circle is kept, so the map of
-    /// an airport is small. Lines are cut at the border of the circle; labels and points outside are dropped. The distances
+    /// an airport is small. Lines are cut at the border of the circle (a filled area of the ground is kept whole when one of
+    /// its corners is inside); labels and points outside are dropped. The distances
     /// are computed on a flat plane around the centre (enough for a few hundred NM).
     /// </summary>
     public static class MapCut
@@ -51,6 +52,15 @@ namespace ATCRoom.Maps
 
             foreach (MapLine line in map.Lines)
             {
+                // A filled area of the ground is kept whole when a corner of it is inside (cut, it would no longer be an area).
+                if (MapCategory.IsArea(line.Category))
+                {
+                    if (line.Points.Any(p => Inside(Local(p[0], p[1]))))
+                    {
+                        result.Lines.Add(new MapLine { Name = line.Name, Category = line.Category, Points = line.Points.Select(p => new[] { p[0], p[1] }).ToList() });
+                    }
+                    continue;
+                }
                 List<double[]>? current = null;
                 (double X, double Y) previous = default;
                 bool previousInside = false;
