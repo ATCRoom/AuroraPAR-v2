@@ -44,6 +44,21 @@ namespace AuroraPAR
         private readonly List<(LessonForget Forget, int SendsLeft)> lessonForgetOut = [];
         private int lessonForgetNumber;
 
+        // The maps of the student's airport (the user, 9 Nov). Instructor: packed, the next piece, what the student has.
+        private (string Icao, object Source, string Id, List<string> Pieces)? lessonMapsPack;
+        private int lessonMapsNext;
+        private string studentMapsId = "";
+        /// <summary>The student's callsign and VID (for the log), as he sends them.</summary>
+        private string studentCallsign = "", studentVid = "";
+        // Student: the pieces arriving (under lessonLock), and the maps read (user interface thread), in memory only.
+        private readonly Dictionary<int, string> lessonPieces = [];
+        private string lessonPiecesId = "";
+        private int lessonPiecesCount;
+        private string lessonMapsWanted = "";
+        private string lessonMapsId = "";
+        private List<LoadedMap>? lessonMaps;
+        private string lessonMapsAirport = "";
+
         private bool LessonStudent => lesson?.Role == LessonRole.Student;
         private bool LessonInstructor => lesson?.Role == LessonRole.Instructor;
         private static bool LessonFresh(DateTime at) => (DateTime.UtcNow - at).TotalSeconds < LessonLink.PresentSeconds;
@@ -109,7 +124,7 @@ namespace AuroraPAR
                 return;
             }
             LessonRole role = settings.Trainer.LessonRole == nameof(LessonRole.Instructor) ? LessonRole.Instructor : LessonRole.Student;
-            LessonWindow window = new(role, settings.Trainer.LessonCode, StartLesson, StopLesson, () => lesson) { Owner = this };
+            LessonWindow window = new(role, settings.Trainer.LessonCode, StartLesson, StopLesson, () => lesson, settings.Trainer, () => SettingsStore.Save(settings)) { Owner = this };
             window.Closed += (s, e) => { if (lessonWindow == window) lessonWindow = null; };
             lessonWindow = window;
             window.Show();
@@ -160,6 +175,18 @@ namespace AuroraPAR
                 studentTraffic = [];
                 studentAt = DateTime.MinValue;
                 lessonForgetOut.Clear();
+                lessonPieces.Clear();
+                lessonPiecesId = lessonMapsWanted = "";
+                lessonPiecesCount = 0;
+                studentMapsId = studentCallsign = studentVid = "";
+                lessonMapsPack = null;
+            }
+            // The student: the maps of the lesson go (never saved), his own again.
+            if (lessonMaps != null)
+            {
+                lessonMaps = null;
+                lessonMapsId = lessonMapsAirport = "";
+                ApplyMapLayers();
             }
             // The student: the aircraft of the lesson go, with their tracks.
             foreach (string callsign in gone) ForgetTracks(callsign);
@@ -195,6 +222,8 @@ namespace AuroraPAR
                         lessonWind = message.WindFrom is double windFrom && message.WindKnots is double windKnots
                             && double.IsFinite(windFrom) && double.IsFinite(windKnots) && windKnots >= 0 && windKnots < 200
                             ? (windFrom, windKnots) : null;
+                        lessonMapsWanted = message.MapsId ?? "";
+                        TakeMapPiece(message.MapPiece);
                         foreach (LessonForget forget in (message.Forget ?? []).Take(50))
                         {
                             if (forget != null && forget.Number > lessonForgetDone && !string.IsNullOrWhiteSpace(forget.Callsign) && forget.Callsign.Length <= 16
@@ -226,6 +255,10 @@ namespace AuroraPAR
                         studentSeen = seen;
                         studentTraffic = traffic;
                         studentAt = DateTime.UtcNow;
+                        studentMapsId = message.MapsId ?? "";
+                        studentCallsign = (message.Callsign ?? "").Trim().ToUpperInvariant();
+                        studentVid = new string((message.Vid ?? "").Where(char.IsAsciiDigit).Take(10).ToArray());
+                        if (studentCallsign.Length > 16) studentCallsign = studentCallsign[..16];
                     }
                 }
             }
@@ -317,6 +350,55 @@ namespace AuroraPAR
             }
         }
 
+        /// <summary>
+        /// Student (background thread, under lessonLock): a piece of the instructor's maps kept; all here, they are read
+        /// (in memory only) and shown on the RDR instead of the ones of this PC for that airport.
+        /// </summary>
+        private void TakeMapPiece(LessonMapPiece? piece)
+        {
+            if (piece == null || string.IsNullOrEmpty(piece.Id) || piece.Id.Length > 32 || piece.Id != lessonMapsWanted || piece.Data == null
+                || piece.Count <= 0 || piece.Count > 400 || piece.Index < 0 || piece.Index >= piece.Count) return;
+            if (piece.Id == lessonMapsId) return;
+            if (piece.Id != lessonPiecesId || piece.Count != lessonPiecesCount)
+            {
+                lessonPieces.Clear();
+                lessonPiecesId = piece.Id;
+                lessonPiecesCount = piece.Count;
+            }
+            lessonPieces[piece.Index] = piece.Data;
+            if (lessonPieces.Count < lessonPiecesCount) return;
+            List<string> all = Enumerable.Range(0, lessonPiecesCount).Select(i => lessonPieces[i]).ToList();
+            string id = lessonPiecesId;
+            lessonPieces.Clear();
+            lessonPiecesId = "";
+            lessonPiecesCount = 0;
+            _ = Task.Run(() =>
+            {
+                List<LoadedMap>? read = LessonMaps.Unpack(all);
+                if (read == null) return;
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (!LessonStudent) return;
+                    lessonMaps = read;
+                    lessonMapsId = id;
+                    lessonMapsAirport = read.Select(m => m.Map.Airport).FirstOrDefault(a => a.Length > 0) ?? "";
+                    ApplyMapLayers();
+                    mapsWindow?.Refresh();
+                });
+            });
+        }
+
+        /// <summary>The maps shown: the student's of a lesson in place of the ones of this PC for their airport.</summary>
+        private (List<LoadedMap> Maps, List<string> Errors) ShownMaps
+        {
+            get
+            {
+                if (!LessonStudent || lessonMaps == null) return maps;
+                List<LoadedMap> shown = maps.Maps.Where(m => !string.Equals(m.Map.Airport, lessonMapsAirport, StringComparison.OrdinalIgnoreCase)).Concat(lessonMaps).ToList();
+                return (shown, maps.Errors);
+            }
+        }
+
         /// <summary>The sign of the student's main window while the lesson is not linked (null: nothing to say).</summary>
         private string? LessonSignText
         {
@@ -389,8 +471,20 @@ namespace AuroraPAR
                         Beam = StudentLessonMessage.Flatten(PlanSector(radar.AzimuthLeftEdge, radar.AzimuthRightEdge)),
                         Scan = StudentLessonMessage.Flatten(PlanSector(radar.ScanLeftEdge, radar.ScanRightEdge)),
                         Seen = aircrafts.Where(a => a.IsSim && radar.IsSeen(a, runway)).Select(a => a.Callsign).ToList(),
-                        Traffic = aurora.Connected ? aircrafts.Where(a => !a.IsTest).Take(300).Select(LessonAircraft.From).ToList() : null
+                        Traffic = aurora.Connected ? aircrafts.Where(a => !a.IsTest).Take(300).Select(LessonAircraft.From).ToList() : null,
+                        MapsId = lessonMapsId,
+                        Callsign = MyCallsign,
+                        Vid = MyVid
                     };
+                    // (The instructor has no maps of this airport any more: his go.)
+                    string wanted;
+                    lock (lessonLock) wanted = lessonMapsWanted;
+                    if (lessonMaps != null && wanted.Length == 0 && LessonFresh(lessonAircraftAt))
+                    {
+                        lessonMaps = null;
+                        lessonMapsId = lessonMapsAirport = "";
+                        ApplyMapLayers();
+                    }
                     link.Send(JsonSerializer.Serialize(message, LessonJson));
                 }
             }
@@ -419,6 +513,24 @@ namespace AuroraPAR
                     WindKnots = flying && windKnots > 0 ? Math.Round(windKnots, 1) : null,
                     Forget = forget.Count > 0 ? forget : null
                 };
+                // The maps of the student's airport, a piece at a time until he has them (the user, 9 Nov).
+                string icao = InstructorRunway.ICAO.Trim().ToUpperInvariant();
+                if (lessonMapsPack is not { } pack || pack.Icao != icao || !ReferenceEquals(pack.Source, maps.Maps))
+                {
+                    List<LoadedMap> ofAirport = maps.Maps.Where(m => string.Equals(m.Map.Airport, icao, StringComparison.OrdinalIgnoreCase)).ToList();
+                    (string id, List<string> pieces) = ofAirport.Count > 0 ? LessonMaps.Pack(ofAirport) : ("", new List<string>());
+                    pack = (icao, maps.Maps, id, pieces);
+                    lessonMapsPack = pack;
+                    lessonMapsNext = 0;
+                }
+                message.MapsId = pack.Id;
+                string has;
+                lock (lessonLock) has = studentMapsId;
+                if (pack.Id.Length > 0 && has != pack.Id && pack.Pieces.Count > 0)
+                {
+                    int index = lessonMapsNext++ % pack.Pieces.Count;
+                    message.MapPiece = new LessonMapPiece { Id = pack.Id, Index = index, Count = pack.Pieces.Count, Data = pack.Pieces[index] };
+                }
                 link.Send(JsonSerializer.Serialize(message, LessonJson));
             }
         }

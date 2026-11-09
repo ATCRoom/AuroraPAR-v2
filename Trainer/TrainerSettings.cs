@@ -31,6 +31,9 @@ namespace AuroraPAR
         /// <summary>The last lesson between two PCs: the role of this PC ("Instructor" or "Student") and the code.</summary>
         public string LessonRole { get; set; } = "Student";
         public string? LessonCode { get; set; }
+        /// <summary>My callsign and VID (the user, 9 Nov: as TWR Trainer): in the log when not connected to IVAO (connected: Aurora's and IVAO's).</summary>
+        public string MyCallsign { get; set; } = "";
+        public string MyVid { get; set; } = "";
 
         /// <summary>A CENTRE mode from its saved name (unknown: AIRPORT).</summary>
         public static CentreMode ParseCentre(string? text) => Enum.TryParse(text, true, out CentreMode mode) && Enum.IsDefined(mode) ? mode : CentreMode.Airport;

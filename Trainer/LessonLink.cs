@@ -34,6 +34,7 @@ namespace AuroraPAR
         public string Session { get; } = Guid.NewGuid().ToString("N")[..8];
 
         private readonly string channel;
+        private readonly byte[] key;
         private readonly string clientId = "aurorapar-lesson-" + Guid.NewGuid().ToString("N")[..12];
         private readonly MqttFactory factory = new();
         private volatile IMqttClient? client;
@@ -53,7 +54,10 @@ namespace AuroraPAR
             Role = role;
             Code = code;
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes("AuroraPAR lesson " + code));
-            channel = "aurorapar/lesson/v1/" + Convert.ToHexString(hash)[..20].ToLowerInvariant();
+            // (v2, 9 Nov: every message encrypted with a key from the code, as TWR Trainer: the relays are public, and the
+            // maps travel on the link; whoever has no code reads nothing.)
+            channel = "aurorapar/lesson/v2/" + Convert.ToHexString(hash)[..20].ToLowerInvariant();
+            key = SHA256.HashData(Encoding.UTF8.GetBytes("AuroraPAR lesson key " + code));
             CoordinationLink.Log($"Lesson: start as {role}");
             _ = Task.Run(Run);
         }
@@ -209,7 +213,7 @@ namespace AuroraPAR
                 {
                     MqttApplicationMessage message = new MqttApplicationMessageBuilder()
                         .WithTopic(OwnTopic)
-                        .WithPayload(payload)
+                        .WithPayload(Seal(payload))
                         .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                         .Build();
                     using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
@@ -233,8 +237,11 @@ namespace AuroraPAR
             {
                 if (e.ApplicationMessage.Topic == OtherTopic)
                 {
-                    Interlocked.Exchange(ref lastHeardTicks, DateTime.UtcNow.Ticks);
-                    Received?.Invoke(Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment));
+                    if (Open(e.ApplicationMessage.PayloadSegment) is string text)
+                    {
+                        Interlocked.Exchange(ref lastHeardTicks, DateTime.UtcNow.Ticks);
+                        Received?.Invoke(text);
+                    }
                 }
             }
             catch (Exception)
@@ -242,6 +249,36 @@ namespace AuroraPAR
                 // A malformed message is ignored.
             }
             return Task.CompletedTask;
+        }
+
+        /// <summary>A message encrypted (AES-GCM): its nonce, its tag, then the text.</summary>
+        private byte[] Seal(string payload)
+        {
+            byte[] plain = Encoding.UTF8.GetBytes(payload);
+            byte[] sealedMessage = new byte[12 + 16 + plain.Length];
+            Span<byte> nonce = sealedMessage.AsSpan(0, 12), tag = sealedMessage.AsSpan(12, 16), cipher = sealedMessage.AsSpan(28);
+            RandomNumberGenerator.Fill(nonce);
+            using AesGcm aes = new(key, 16);
+            aes.Encrypt(nonce, plain, cipher, tag);
+            return sealedMessage;
+        }
+
+        /// <summary>A message of the other side opened; null when it is not one of this lesson (another code, or damaged).</summary>
+        private string? Open(ArraySegment<byte> data)
+        {
+            if (data.Array == null || data.Count < 28) return null;
+            ReadOnlySpan<byte> all = data.AsSpan();
+            byte[] plain = new byte[all.Length - 28];
+            try
+            {
+                using AesGcm aes = new(key, 16);
+                aes.Decrypt(all[..12], all[28..], all[12..28], plain);
+                return Encoding.UTF8.GetString(plain);
+            }
+            catch (CryptographicException)
+            {
+                return null;
+            }
         }
 
         public void Dispose()
@@ -386,6 +423,18 @@ namespace AuroraPAR
         [JsonPropertyName("wk")] public double? WindKnots { get; set; }
         /// <summary>Aircraft removed or started again, each with a number (sent a few times).</summary>
         [JsonPropertyName("f")] public List<LessonForget>? Forget { get; set; }
+        /// <summary>The maps of the student's airport on the instructor's PC (their id: none, ""), and a piece of them while the student has not got them all.</summary>
+        [JsonPropertyName("m")] public string? MapsId { get; set; }
+        [JsonPropertyName("mp")] public LessonMapPiece? MapPiece { get; set; }
+    }
+
+    /// <summary>A piece of the maps (compressed, as text), sent until the student has them all (the user, 9 Nov).</summary>
+    internal sealed class LessonMapPiece
+    {
+        [JsonPropertyName("id")] public string Id { get; set; } = "";
+        [JsonPropertyName("i")] public int Index { get; set; }
+        [JsonPropertyName("n")] public int Count { get; set; }
+        [JsonPropertyName("d")] public string Data { get; set; } = "";
     }
 
     internal sealed class LessonForget
@@ -406,6 +455,10 @@ namespace AuroraPAR
         [JsonPropertyName("seen")] public List<string>? Seen { get; set; }
         /// <summary>The student's IVAO traffic (from his Aurora).</summary>
         [JsonPropertyName("t")] public List<LessonAircraft>? Traffic { get; set; }
+        /// <summary>The maps the student has from the instructor (their id), his callsign and VID (for the log; the user, 9 Nov).</summary>
+        [JsonPropertyName("m")] public string? MapsId { get; set; }
+        [JsonPropertyName("cs")] public string? Callsign { get; set; }
+        [JsonPropertyName("vid")] public string? Vid { get; set; }
 
         public static double[] Flatten(IEnumerable<(double Latitude, double Longitude)> points) =>
             points.SelectMany(p => new[] { Math.Round(p.Latitude, 6), Math.Round(p.Longitude, 6) }).ToArray();

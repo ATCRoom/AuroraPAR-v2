@@ -25,7 +25,8 @@ namespace AuroraPAR
         /// <param name="connect">Starts the lesson: an error to show, or null.</param>
         /// <param name="disconnect">Stops the lesson.</param>
         /// <param name="link">The lesson running, or null.</param>
-        public LessonWindow(LessonRole role, string? code, Func<LessonRole, string, string?> connect, Action disconnect, Func<LessonLink?> link)
+        public LessonWindow(LessonRole role, string? code, Func<LessonRole, string, string?> connect, Action disconnect, Func<LessonLink?> link,
+            TrainerSettings trainer, Action save)
         {
             this.connect = connect;
             this.disconnect = disconnect;
@@ -68,6 +69,34 @@ namespace AuroraPAR
             });
             root.Children.Add(connectButton);
             root.Children.Add(stateText);
+            // (The user, 9 Nov: the callsign and the VID in the log of the session, as TWR Trainer.)
+            root.Children.Add(new TextBlock { Text = "My callsign and VID (for the log of the session)", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 14, 0, 2) });
+            TextBox callsignBox = new() { Width = 100, MaxLength = 10, CharacterCasing = CharacterCasing.Upper, Text = trainer.MyCallsign, Margin = new Thickness(0, 0, 12, 0), VerticalContentAlignment = VerticalAlignment.Center };
+            TextBox vidBox = new() { Width = 90, MaxLength = 10, Text = trainer.MyVid, VerticalContentAlignment = VerticalAlignment.Center };
+            StackPanel meRow = new() { Orientation = Orientation.Horizontal };
+            meRow.Children.Add(new TextBlock { Text = "Callsign", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            meRow.Children.Add(callsignBox);
+            meRow.Children.Add(new TextBlock { Text = "VID", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            meRow.Children.Add(vidBox);
+            root.Children.Add(meRow);
+            root.Children.Add(new TextBlock
+            {
+                Text = "Connected to IVAO, the callsign comes from Aurora and the VID from IVAO's list of who is connected; these are used when not connected (and when IVAO's list does not give the VID). The student's go to the instructor's log.",
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brushes.DimGray,
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+            void SaveMe()
+            {
+                string callsign = callsignBox.Text.Trim().ToUpperInvariant(), vid = new(vidBox.Text.Where(char.IsAsciiDigit).ToArray());
+                if (callsign == trainer.MyCallsign && vid == trainer.MyVid) return;
+                trainer.MyCallsign = callsign;
+                trainer.MyVid = vid;
+                save();
+            }
+            callsignBox.LostFocus += (s, e) => SaveMe();
+            vidBox.LostFocus += (s, e) => SaveMe();
+            Closed += (s, e) => SaveMe();
             Content = root;
 
             newCodeButton.Click += (s, e) => codeBox.Text = CoordinationSettings.GenerateCode();

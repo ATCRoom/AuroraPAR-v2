@@ -102,6 +102,8 @@ namespace AuroraPAR
             }
             // Lesson between two PCs: what arrived is used, and this PC sends its message.
             LessonTick(aircrafts);
+            // The session and its log (the user, 9 Nov).
+            SessionTick();
         }
 
         partial void TrainerKey(KeyEventArgs e, ModifierKeys modifiers)
@@ -122,6 +124,7 @@ namespace AuroraPAR
 
         partial void TrainerClosing()
         {
+            approachLog.EndSession(instructor.Engine.Time, "the program closed");
             lessonWindow?.Close();
             LessonLink? link = lesson;
             lesson = null;
@@ -209,7 +212,7 @@ namespace AuroraPAR
             mapAirport = icao;
             List<MapLayer> layers = [];
             HashSet<string> airports = new(StringComparer.OrdinalIgnoreCase);
-            foreach (LoadedMap map in maps.Maps)
+            foreach (LoadedMap map in ShownMaps.Maps)
             {
                 if (map.Map.Airport.Length == 0)
                 {
@@ -250,7 +253,7 @@ namespace AuroraPAR
                 mapsWindow.Activate();
                 return;
             }
-            MapsWindow window = new(settings.Trainer, () => maps, LoadMaps, () => mapAirport, () =>
+            MapsWindow window = new(settings.Trainer, () => ShownMaps, LoadMaps, () => mapAirport, () =>
             {
                 ApplyMapLayers();
                 SettingsStore.Save(settings);
@@ -453,6 +456,8 @@ namespace AuroraPAR
             window.AttachWeather(() => aurora.Connected, () => qnh, SetManualQnh);
             // Aircraft removed or started again: their old tracks and history dots go from every view.
             window.AttachForget(ForgetTracks);
+            // START SESSION, PHOTO (the user, 9 Nov: as TWR Trainer).
+            window.AttachSessionBar(SessionBar());
             FeedInstructorView();
             UpdatePlusButton();
         }
@@ -481,6 +486,9 @@ namespace AuroraPAR
 
         partial void TrainerInstructorClosed()
         {
+            // (Its aircraft go with it: the session ends.)
+            approachLog.EndSession(instructor.Engine.Time, "the Instructor+ closed");
+            ShowSession();
             instructorView = null;
             instructorPar = null;
             UpdatePlusButton();

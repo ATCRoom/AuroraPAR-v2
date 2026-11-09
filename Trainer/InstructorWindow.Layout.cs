@@ -96,6 +96,16 @@ namespace AuroraPAR
             return placement;
         }
 
+        /// <summary>The plan view's grid: the bar of the session (START SESSION, PHOTO) goes on it, top left.</summary>
+        private Grid? sessionHost;
+
+        /// <summary>The bar of the session and of the photos (the user, 9 Nov: as TWR Trainer), made by the main window.</summary>
+        internal void AttachSessionBar(UIElement bar)
+        {
+            if (sessionHost == null || sessionHost.Children.Contains(bar)) return;
+            sessionHost.Children.Add(bar);
+        }
+
         /// <summary>The plan view (with its CENTRE selector) and, over it, the floating panels.</summary>
         private UIElement BuildTrainerView(PlanView view, MiniParView par)
         {
@@ -104,6 +114,7 @@ namespace AuroraPAR
             waitingCaption.Foreground = PanelTheme.Dim;
             Grid root = new();
             Grid planHost = new();
+            sessionHost = planHost;
             planHost.Children.Add(view);
             CentreBar centre = new(view);
             centre.PlaceTop();

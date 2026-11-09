@@ -26,6 +26,7 @@ TRAFFIC** at the top of the views.
 12. [Keys and macro keyboard](#12-keys-and-macro-keyboard)
 13. [A lesson on one PC](#13-a-lesson-on-one-pc)
 14. [A lesson between two PCs](#14-a-lesson-between-two-pcs)
+15. [Session, log, traces and photos](#15-session-log-traces-and-photos)
 
 ---
 
@@ -258,6 +259,12 @@ What travels, about twice a second:
 
 - **To the student:** the simulated aircraft, the QNH of the instructor (used only when the student has no Aurora)
   and the wind of the simulation; aircraft removed or started again also lose their tracks on the student's PC.
+  **The maps** of the student's airport from the instructor's Maps folder: they arrive in pieces at the start (a few
+  seconds), are shown on the student's RDR in place of his own maps of that airport and are kept **in memory only**:
+  never saved on the student's PC, gone at the end of the lesson. His **Maps...** window still chooses what to show
+  and the colours.
+- **To the instructor:** also the student's **callsign and VID** for the log (from his Aurora and IVAO's list when he
+  is connected to IVAO, else the ones typed in his Lesson window).
 - **To the instructor:** the student's runway and the beam of its PAR (**BEAM** and **TRAINEE PAR** show what the
   student really sees), which aircraft its PAR sees, and its IVAO traffic.
 
@@ -280,7 +287,37 @@ A new simulated aircraft cannot take the callsign of an IVAO aircraft of either 
 On the student's PC the Instructor windows do not open while the lesson runs. If the link stops, the simulated
 aircraft disappear after 5 seconds, the student's screen shows **LESSON: LINK LOST** and the link comes back by itself;
 the simulation goes on on the instructor's PC. **Disconnect** ends the lesson. Whoever has the code can see the
-lesson: make a new one for each lesson.
+lesson: make a new one for each lesson. Every message is **encrypted with the code**: the relays are public, and
+without the code nobody can read the aircraft or the maps. Both PCs need the same version of the Trainer (1.2.0 or
+later): older versions do not link with it.
 
 To try it on one PC: two copies of the Trainer in two folders, each with an empty file `AuroraPARTrainer.settings.json`
 beside the program (portable mode: each copy keeps its own settings), one as instructor and one as student.
+
+## 15. Session, log, traces and photos
+
+As in TWR Trainer. At the top left of the Instructor+ plan view:
+
+- **START SESSION** starts the training or the exam: a new **log** (a CSV file in the **Logs** folder: Excel opens it
+  in any language), the time from 0:00:00, a new folder of photos. Nothing starts flying. The button shows the time of
+  the session; click it again for **END SESSION** (asked first): the summary is written and the simulation paused.
+  Closing the Instructor+ or the program ends the session too.
+- **PHOTO** saves a picture of the Instructor+ (the simulation goes on) in the **Photos** folder of the session, as
+  `Photo-03_T+12m40s.png`, with a row `PHOTO 3` in the log. **📁** opens that folder, **LOGS** the Logs folder.
+
+**The log.** On top: airport, runway, start, network, the callsign and VID of the instructor and of the student
+(connected to IVAO: from Aurora and IVAO's list of who is connected; else the ones typed in the **Lesson…** window:
+*My callsign and VID*). Then a row per event, with the time of the session: ADDED, APPROACH STARTED (an aircraft
+inside the range of the PAR, in front of the runway, flying towards it), ON GLIDE PATH, **AT MINIMUMS** (where the
+glide path reaches the decision height: how many feet above or below the glide path, how many feet left or right of
+the centreline), LANDING, GO AROUND (a climb before the minimums), MISSED APPROACH (a climb after them), REMOVED; the
+instructor's commands that change the flight (HEADING, ALTITUDE, RATE, SPEED, PAUSE, STICK, NAVIGATION) and the pause of
+the simulation. At the end a summary per aircraft: approaches, landings, go-arounds, missed approaches, the last
+deviation at the minimums.
+
+**The trace of each approach.** At the end of each approach a picture in the folder of the session (beside its log,
+same name), named in its row (`Trace-02_PONY21.png`): the **elevation** (height above the threshold, the glide path,
+its approach limits and the safety limits as the profile shows them, the decision height) and the **azimuth** (the
+centreline, its approach limits where the profile draws them), the white trace of the aircraft and an orange circle
+where it reached the minimums. On top: callsign, class, runway, glide path, number of the approach, time and result.
+

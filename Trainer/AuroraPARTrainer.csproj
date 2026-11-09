@@ -14,7 +14,7 @@
     <ApplicationIcon>AuroraPARTrainer.ico</ApplicationIcon>
     <DefineConstants>$(DefineConstants);TRAINER</DefineConstants>
     <!-- Version of the Trainer, shown in the title bar. Raise it at every release of the Trainer. -->
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <!-- Date and commit of the build (the commit is given by the GitHub build: -p:BuildCommit=...), read by AppInfo. -->
