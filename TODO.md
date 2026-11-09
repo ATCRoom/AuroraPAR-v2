@@ -7,9 +7,8 @@
   ⚙ Simulation settings, ✎ Traffic generation, ✈ Aircraft control, ☰ Traffic list, ⊿ Trainee PAR.
 - **ATCRoom Map Creator a separate download**: not in the Trainer zip any more (still its own artifact); the Maps window
   key opens it when `ATCRoomMapCreator.exe` is beside the program, else "Download ATCRoom Map Creator" opens
-  https://github.com/ATCRoom/MapCreator/releases/latest. Docs: README, trainer.html, tutorial 5. **To do:** the
-  repository ATCRoom/MapCreator (decided by the user 9 Nov) with its source, workflow and releases; until it has a
-  release the link shows an empty page. Before the next Trainer release: <Version> of the Trainer, and MapCreator/
+  https://github.com/ATCRoom/MapCreator/releases/latest. Docs: README, trainer.html, tutorial 5. **Done 9 Nov:** the
+  repository ATCRoom/MapCreator with its source, workflow and the release v2.0.0 (the link works). Before the next Trainer release: <Version> of the Trainer, and MapCreator/
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
