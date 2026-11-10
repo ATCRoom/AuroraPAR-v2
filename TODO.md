@@ -18,6 +18,7 @@
 ## Next update
 - **Next group (the user, 10 Nov):** light blue keys for NORMAL, Final CRS and Slow down to final, on the panel and on the
   label (the commands that put the aircraft on the approach: blue as "the normal thing", orange the urgent ones).
+  NORMAL while the aircraft is on the glide path: light blue with a thick white border (the user, 10 Nov: "va bene").
 - **Group A (the user, 10 Nov: "si va bene") — WRITTEN, local commits on `trainer`, waiting for the go of the build:** PAUSE / RUN
   and IVAO on the bar; speed x1 / x2 / x4 (x1 in a session); the lesson window as TWR Trainer (START LESSON, COPY CODE, JOIN)
   and LESSON on the bar; the panel SETTINGS with Appearance and Network (My callsign / VID; also in the Lesson window, for the
