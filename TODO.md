@@ -16,6 +16,10 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Aircraft control and label (the user, 10 Nov; mock-up shown, waiting for the go):** HDG with a **Go** key (as ALT); for
+  the no-gyro PAR **TURN LEFT / TURN RIGHT** (one click: a turn at the rate chosen, 3° / 1.5° / FREE, until STOP TURN), all on
+  one row with the rates and STOP TURN; the label of the selected aircraft with a small grey name before each field that can
+  be changed (ALT, SPD, HDG, WPT, VS); the lists of the label opened with the value now in the middle (not at the bottom).
 - **Log of the lesson and recording, as TWR Trainer (the user, 9 Nov: to make the two programs alike)** — to design: a CSV
   log per session (Logs folder) as TWR Trainer's; the recording in the common format of **ATCRoom Replay** (an app of its own,
   home in ATCRoom/TWR-Trainer, as the Map Creator; step 2: AuroraPAR v2 Trainer records, its RDR seen in the top view; step 3:
