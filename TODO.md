@@ -16,6 +16,18 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Alike in TWR Trainer and AuroraPAR v2 Trainer (the user, 10 Nov: the list of differences, his answers) — DECIDED, next groups:**
+  (1) the pilot reaction (0–5 s) in TWR Trainer too; (2) the speed of the simulation x1 / x2 / x4 in AuroraPAR v2 Trainer
+  too, in both only OUTSIDE a session: START SESSION puts it back to x1 and it stays x1 until END SESSION; (3) the same
+  lesson window and words in both (LESSON on the bar, START LESSON makes the code, COPY CODE, JOIN; the key lit with the
+  code); (4) the student's display every 0.5 s in both; (5) My callsign / My VID in the same place in both (Settings ›
+  Network); (6) no strip bay in AuroraPAR (not needed); (7) NO docking in the column in TWR Trainer (the user: useless):
+  the parts only float, as in AuroraPAR; (8) the settings panel named "Settings" in both, the titles written the same way;
+  (9) LIGHT / DARK in the same section with the same name (Appearance); (10) the same order and names on the top bar (PAUSE /
+  RUN, [NORTH / RWY], START SESSION, [STUDENT], LESSON, PHOTO, 📁, LOGS, IVAO); (11) one word: PAUSE / RUN (no PAUSE ALL /
+  RESUME ALL); (12) F12 with the list of the keys in AuroraPAR too (the keys to assign stay); (13) one step for the rate
+  ▲ / ▼ (the one of Keys…); (14) the same colours for the urgent commands — mock-up shown (STOP of the rate orange as STOP
+  TURN), waiting for the answer; (15) the labels stay different (different commands).
 - **Aircraft control and label (the user, 10 Nov; mock-ups shown; "ci siamo. procedi": WRITTEN, local commit, waiting for the go of the build):** HDG with a **Go** key (as ALT); for
   the no-gyro PAR **TURN LEFT / TURN RIGHT** (one click: a turn at the rate chosen, 3° / 1.5° / FREE, until STOP TURN), all on
   one row with the rates and STOP TURN; the label of the selected aircraft with a small grey name before each field that can
