@@ -16,7 +16,7 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
-- **Aircraft control and label (the user, 10 Nov; mock-up shown, waiting for the go):** HDG with a **Go** key (as ALT); for
+- **Aircraft control and label (the user, 10 Nov; mock-ups shown; "ci siamo. procedi": WRITTEN, local commit, waiting for the go of the build):** HDG with a **Go** key (as ALT); for
   the no-gyro PAR **TURN LEFT / TURN RIGHT** (one click: a turn at the rate chosen, 3° / 1.5° / FREE, until STOP TURN), all on
   one row with the rates and STOP TURN; the label of the selected aircraft with a small grey name before each field that can
   be changed (ALT, SPD, HDG, WPT, VS); the lists of the label opened with the value now in the middle (not at the bottom).

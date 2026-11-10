@@ -73,6 +73,35 @@ const double RunwayHeading = 325.80;
 }
 
 {
+    // Continuous turn (no-gyro, the user 10 Nov): goes round past 360° until "stop turn", then rolls out.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 3000, 0, 150);
+    engine.SetTurnRateMode(a, TurnRateMode.Half);
+    engine.SetContinuousTurn(a, TurnDirection.Left);
+    engine.RunFor(1);
+    Check(engine.Get(a)!.ContinuousTurn == TurnDirection.Left, "Continuous turn left: on");
+    double turned = 0, last = engine.Get(a)!.HeadingTrue;
+    for (int i = 0; i < 300; i++)
+    {
+        engine.RunFor(1);
+        double now = engine.Get(a)!.HeadingTrue;
+        turned += ((last - now) % 360 + 540) % 360 - 180;
+        last = now;
+    }
+    AircraftState s = engine.Get(a)!;
+    Check(turned > 400 && Near(s.TurnRateDps, -1.5, 0.05), "Continuous turn left at half rate: more than a full turn in 300 s, still at 1.5°/s", $"turned {turned:F0}° rate {s.TurnRateDps:F2}");
+    engine.StopTurn(a);
+    engine.RunFor(5);
+    s = engine.Get(a)!;
+    Check(s.ContinuousTurn == TurnDirection.Shortest && Math.Abs(s.TurnRateDps) < 0.01, "Continuous turn: stop turn rolls out", $"rate {s.TurnRateDps:F3}");
+    engine.SetContinuousTurn(a, TurnDirection.Right);
+    engine.RunFor(5);
+    engine.SetHeading(a, 180);
+    engine.RunFor(1);
+    Check(engine.Get(a)!.ContinuousTurn == TurnDirection.Shortest, "Continuous turn: a heading given ends it");
+}
+
+{
     SimEngine engine = new();
     string a = engine.Add(0, 0, 3000, 350, 150);
     engine.SetHeading(a, 10);

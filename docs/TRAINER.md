@@ -92,18 +92,32 @@ The instructor's radar fills the whole window. Over it float five panels:
 
 ## 4. Commands on the label
 
-The selected aircraft has a larger label, with the values given by the instructor in blue:
+The selected aircraft has a larger label that commands it by itself: a line per command, its small grey name, the
+value given in blue, then its keys.
 
 ```
-PONY01 J  ROUTE
-025↓ 020  220 kt
-H243  →ALFA  -650
+PONY01 J  MANUAL
+NOW 025↓  220kt  -720fpm
+HDG 243 [◀ 1][1 ▶][FINAL CRS]
+TURN [◀][■][▶] [3][1.5][F]
+     continuous turn (no-gyro)
+ALT 020
+VS  -700 [▲ 50][▼ 50][NORMAL][STOP]
+SPD 220 [SLOW]
+NAV →ALFA [NEXT WPT]
 ```
 
-Line 1: callsign, class, ROUTE / MANUAL. Line 2: altitude now (hundreds of ft) with ↑↓, cleared altitude, speed.
-Line 3: heading, the next point, the rate.
+- **NOW**: altitude now (hundreds of ft) with ↑↓, speed and vertical speed now.
+- **HDG**: the heading given, ◀ 1 / 1 ▶ (1° at a time), **FINAL CRS**.
+- **TURN**: the **continuous turn** for the no-gyro approach: ◀ turns left, ▶ turns right, at the rate chosen (**3**,
+  **1.5** °/s or **F** free, the one chosen in blue), and the turn goes on until ■ (**STOP TURN**, orange) or a heading.
+  The side turning is yellow.
+- **ALT**: the altitude given. **VS**: the rate given, ▲ / ▼ (the step of the keys of the panel), **NORMAL** (the glide
+  path, blue while flown), **STOP** (levels off).
+- **SPD**: the speed given, **SLOW** (the final speed of the class). **NAV**: the next point, **NEXT WPT**.
 
-- **Click on a value** (heading, cleared altitude, speed, point, rate): a list opens beside it; a click (or the arrows
+- **Click on a value** (heading, cleared altitude, speed, point, rate): a list opens beside it, with the value now in
+  the middle; a click (or the arrows
   and Enter) gives the value; or type it and press **Go**; **Esc** closes. The lists have their buttons too:
   ◀5 / 5▶, STOP TURN, Final CRS (heading); STOP CLIMB / DESCENT (altitude); Normal, STOP (rate); **Final (n)** (speed:
   the final speed of the class); Next WPT, MANUAL, Edit route… (point).
@@ -177,7 +191,8 @@ Normal gives), **VS**, **TURN**, **HDG**, **DRIFT**. Then a row for each command
 
 | Row | Commands |
 | --- | --- |
-| **HDG** | ◀ / ▶ (1°, held: repeats), the heading box, **Final CRS**; turn rate **3° / FREE / 1.5°**, **STOP TURN** |
+| **HDG** | ◀ / ▶ (1°, held: repeats), the heading box, **Go** (or Enter), **Final CRS**; the turn rate **3° / 1.5° / FREE** |
+| *Continuous turn (no-gyro approach)* | **◀ TURN LEFT**, **STOP TURN** (orange), **TURN RIGHT ▶**: a turn at the rate chosen that goes on until STOP TURN or a heading; the side turning is yellow and the heading box follows the turn |
 | **ALT** | altitude **at** a rate (ft/min), **Go** |
 | **RATE** | ▲ / ▼, **Normal** (the glide path), **STOP** (levels off where it is) |
 | **SPD** | speed, **Go**, **Slow dwn to final** (the final speed of the class) |

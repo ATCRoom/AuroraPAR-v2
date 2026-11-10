@@ -291,11 +291,30 @@ namespace ATCRoom.Sim
 
         /// <summary>Instruction: heading to fly (degrees true), turning on this side.</summary>
         public void SetHeading(string callsign, double headingTrue, TurnDirection direction = TurnDirection.Shortest) =>
-            Instruct(callsign, Kind.Heading, a => { a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; a.Navigation = NavigationMode.Manual; });
+            Instruct(callsign, Kind.Heading, a => { a.ContinuousTurn = TurnDirection.Shortest; a.TargetHeading = Normalize(headingTrue); a.TurnDirection = direction; a.Navigation = NavigationMode.Manual; });
+
+        /// <summary>
+        /// Instruction "turn left / turn right" of the no-gyro approach (the user, 10 Nov): a turn to that side at the turn
+        /// rate chosen, that goes on until a heading or "stop turn" is given; MANUAL.
+        /// </summary>
+        public void SetContinuousTurn(string callsign, TurnDirection side) =>
+            Instruct(callsign, Kind.Heading, a =>
+            {
+                a.ContinuousTurn = side;
+                a.Navigation = NavigationMode.Manual;
+                if (side != TurnDirection.Shortest) KeepTurning(a);
+            });
+
+        /// <summary>The heading wanted a quarter of a turn ahead on the side of the continuous turn: it never arrives.</summary>
+        private static void KeepTurning(SimAircraft plane)
+        {
+            plane.TargetHeading = Normalize(plane.HeadingTrue + (plane.ContinuousTurn == TurnDirection.Left ? -90 : 90));
+            plane.TurnDirection = plane.ContinuousTurn;
+        }
 
         /// <summary>Instruction "stop turn": the aircraft rolls out on the heading it has when the pilot carries it out; MANUAL.</summary>
         public void StopTurn(string callsign) =>
-            Instruct(callsign, Kind.Heading, a => { StraightOn(a); a.Navigation = NavigationMode.Manual; });
+            Instruct(callsign, Kind.Heading, a => { a.ContinuousTurn = TurnDirection.Shortest; StraightOn(a); a.Navigation = NavigationMode.Manual; });
 
         /// <summary>
         /// Instruction "stop climb / descent": the aircraft levels off where it is when the pilot carries it out (the
@@ -372,6 +391,7 @@ namespace ATCRoom.Sim
                 if (y != 0) pending.RemoveAll(p => Same(p.Callsign, callsign) && p.Kind == Kind.Vertical);
                 // The pilot flying by hand: the stick sideways means MANUAL (the route is kept), up or down takes over its altitudes.
                 if (x != 0) plane.Navigation = NavigationMode.Manual;
+                if (x != 0) plane.ContinuousTurn = TurnDirection.Shortest;
                 if (y != 0) plane.AltitudeGiven = true;
                 if (x == 0 && plane.StickX != 0)
                 {
@@ -881,6 +901,12 @@ namespace ATCRoom.Sim
 
         private static void Turn(SimAircraft plane)
         {
+            // A continuous turn (no-gyro): only by hand (a route takes over and ends it).
+            if (plane.ContinuousTurn != TurnDirection.Shortest)
+            {
+                if (plane.Navigation != NavigationMode.Manual || plane.StickX != 0) plane.ContinuousTurn = TurnDirection.Shortest;
+                else KeepTurning(plane);
+            }
             if (plane.StickX != 0)
             {
                 // Stick: turns at the turn rate (Free: faster the longer it is held at its edge, with a steeper bank).

@@ -416,11 +416,17 @@ namespace AuroraPAR
             headingBox.Margin = new Thickness(0, 0, 3, 0);
             Detach(finalCourseButton);
             finalCourseButton.Padding = new Thickness(6, 2, 6, 2);
-            control.Children.Add(Line("HDG", headingLeft, headingBox, headingRight, finalCourseButton));
-            // 3°/s, FREE, 1.5°/s (the buttons of the shared code: 0 half, 1 rate one, 2 free), STOP TURN.
-            List<UIElement> turns = [];
+            // (The user, 10 Nov: Go as on the ALT line; Enter still gives it.)
+            Button giveHeading = SmallButton("Go");
+            giveHeading.FontWeight = FontWeights.SemiBold;
+            giveHeading.Margin = new Thickness(0, 0, 3, 0);
+            giveHeading.ToolTip = "Gives the heading in the box (as Enter), after the pilot reaction. A heading puts the aircraft in MANUAL and ends a continuous turn.";
+            giveHeading.Click += (s, e) => GiveHeading();
+            control.Children.Add(Line("HDG", headingLeft, headingBox, headingRight, giveHeading, finalCourseButton));
+            // The turn rate: 3°/s, 1.5°/s, FREE (the buttons of the shared code: 0 half, 1 rate one, 2 free).
+            List<UIElement> turns = [Caption("rate")];
             string[] turnTexts = ["1.5°", "3°", "FREE"];
-            foreach (int i in new[] { 1, 2, 0 })
+            foreach (int i in new[] { 1, 0, 2 })
             {
                 Button button = Detach(turnButtons[i]);
                 button.Content = turnTexts[i];
@@ -429,10 +435,28 @@ namespace AuroraPAR
                 button.Margin = new Thickness(0, 0, 1, 0);
                 turns.Add(button);
             }
-            Button stopTurn = new() { Content = "STOP TURN", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(6, 0, 0, 0), ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once." };
-            stopTurn.Click += (s, e) => StopTurn();
-            turns.Add(stopTurn);
             control.Children.Add(Line("", turns.ToArray()));
+            // Continuous turn for the no-gyro approach (the user, 10 Nov): apart from the heading by a thin line; the
+            // side turning lit yellow, STOP TURN always orange.
+            control.Children.Add(new Border { BorderBrush = Frozen(Color.FromRgb(0xC9, 0xD2, 0xDB)), BorderThickness = new Thickness(0, 1, 0, 0), Margin = new Thickness(46, 6, 4, 4) });
+            control.Children.Add(Line("", new TextBlock { Text = "Continuous turn (no-gyro approach)", FontWeight = FontWeights.SemiBold, FontSize = 11, VerticalAlignment = VerticalAlignment.Center }));
+            turnLeftButton.Click += (s, e) => ContinuousTurn(TurnDirection.Left);
+            turnRightButton.Click += (s, e) => ContinuousTurn(TurnDirection.Right);
+            Button stopTurn = new()
+            {
+                Content = "STOP TURN",
+                FontWeight = FontWeights.SemiBold,
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 3, 0),
+                Background = StopTurnBack,
+                Foreground = Brushes.White,
+                BorderBrush = Frozen(Color.FromRgb(0xC8, 0x5F, 0x1E)),
+                ToolTip = "Stop turn: the aircraft rolls out on the heading it has (after the pilot reaction); in ROUTE it goes to MANUAL at once. Ends a continuous turn."
+            };
+            stopTurn.Click += (s, e) => StopTurn();
+            control.Children.Add(Line("", turnLeftButton, stopTurn, turnRightButton));
+            control.Children.Add(Line("", new TextBlock { Text = "The turn goes on at the rate above until STOP TURN.", FontSize = 11, Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center }));
+            control.Children.Add(Line("", continuousText));
 
             // Altitude (with the rate to reach it).
             Detach(altitudeBox);
@@ -526,6 +550,63 @@ namespace AuroraPAR
             return panel;
         }
 
+        // ----- Continuous turn (no-gyro; the user, 10 Nov) ------------------------------------------------------------
+
+        private static readonly Brush StopTurnBack = Frozen(Color.FromRgb(0xE8, 0x74, 0x2A));
+        private static readonly Brush TurningBack = Frozen(Color.FromRgb(0xFF, 0xD2, 0x4A));
+        private static readonly Brush TurningText = Frozen(Color.FromRgb(0x2C, 0x2C, 0x2A));
+        private readonly Button turnLeftButton = new()
+        {
+            Content = "◀ TURN LEFT", FontWeight = FontWeights.SemiBold, Padding = new Thickness(8, 2, 8, 2), Margin = new Thickness(0, 0, 3, 0),
+            ToolTip = "Continuous turn left (no-gyro approach): after the pilot reaction the aircraft turns left at the rate chosen and goes on turning until STOP TURN (or a heading). Yellow while it turns."
+        };
+        private readonly Button turnRightButton = new()
+        {
+            Content = "TURN RIGHT ▶", FontWeight = FontWeights.SemiBold, Padding = new Thickness(8, 2, 8, 2),
+            ToolTip = "Continuous turn right (no-gyro approach): after the pilot reaction the aircraft turns right at the rate chosen and goes on turning until STOP TURN (or a heading). Yellow while it turns."
+        };
+        private readonly TextBlock continuousText = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = Frozen(Color.FromRgb(0xB8, 0x86, 0x0B)), VerticalAlignment = VerticalAlignment.Center };
+
+        /// <summary>TURN LEFT / TURN RIGHT: a continuous turn to that side (after the pilot reaction); MANUAL at once.</summary>
+        private void ContinuousTurn(TurnDirection side)
+        {
+            if (SelectedCallsign is not string callsign) return;
+            bridge.Engine.SetNavigation(callsign, false);
+            bridge.Engine.SetContinuousTurn(callsign, side);
+        }
+
+        /// <summary>The side turning lit yellow (and its line), grey again when the turn stops; the heading box follows the turn.</summary>
+        private void ShowContinuousTurn(AircraftState? state)
+        {
+            TurnDirection side = state?.ContinuousTurn ?? TurnDirection.Shortest;
+            foreach ((Button button, TurnDirection mine) in new[] { (turnLeftButton, TurnDirection.Left), (turnRightButton, TurnDirection.Right) })
+            {
+                if (side == mine)
+                {
+                    button.Background = TurningBack;
+                    button.Foreground = TurningText;
+                }
+                else
+                {
+                    button.ClearValue(BackgroundProperty);
+                    button.ClearValue(ForegroundProperty);
+                }
+            }
+            if (state == null || side == TurnDirection.Shortest)
+            {
+                continuousText.Text = "";
+                return;
+            }
+            string rate = state.TurnRateMode switch
+            {
+                TurnRateMode.Half => "1.5°/s",
+                TurnRateMode.Standard => "3°/s",
+                _ => "free"
+            };
+            continuousText.Text = $"● turning {(side == TurnDirection.Left ? "left" : "right")} {rate}";
+            if (!headingBox.IsKeyboardFocused) headingBox.Text = Magnetic(state.HeadingTrue, variation()).ToString("000", CultureInfo.InvariantCulture);
+        }
+
         /// <summary>Stop turn: MANUAL at once (in ROUTE), the roll-out after the pilot reaction.</summary>
         private void StopTurn()
         {
@@ -569,6 +650,7 @@ namespace AuroraPAR
             {
                 headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
             }
+            ShowContinuousTurn(state);
             ShowInformation(state);
             RefreshTrafficList(state);
             ShowQnh();

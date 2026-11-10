@@ -53,6 +53,15 @@ namespace AuroraPAR
                 _ => FormatRate(Math.Round(state.VerticalSpeedFpm / 100) * 100)
             };
             bool manual = state.Navigation == NavigationMode.Manual;
+            // (The user, 10 Nov: a label to command the aircraft by itself, as TWR Trainer's: a line per command, its small
+            // grey name, the value given in blue (click: its list; wheel: steps), then its keys.)
+            const double NameWidth = 34;
+            LabelPart FieldName(string text) => new(text, Look: LabelLook.Name, MinWidth: NameWidth);
+            LabelPart FieldKey(string text, string command, bool on = false) => new(text, "CMD:" + command, Look: on ? LabelLook.KeyOn : LabelLook.Key);
+            LabelPart Divider() => new("", Look: LabelLook.Divider);
+            TurnDirection turning = state.ContinuousTurn;
+            string rateStep = RateKeyStep.ToString("0", CultureInfo.InvariantCulture);
+            string actualRate = (Math.Round(state.VerticalSpeedFpm / 10) * 10).ToString("+0;-0;0", CultureInfo.InvariantCulture);
             return new List<IReadOnlyList<LabelPart>>
             {
                 new List<LabelPart>
@@ -63,21 +72,91 @@ namespace AuroraPAR
                 },
                 new List<LabelPart>
                 {
-                    new(Hundreds(state.AltitudeFt) + arrow + " "),
-                    new(Hundreds(state.TargetAltitudeFt), "ALT", Given: true),
-                    new("  "),
-                    new(state.TargetSpeedKt.ToString("0", CultureInfo.InvariantCulture), "SPD", Given: true),
-                    new(" kt", Dim: true)
+                    FieldName("NOW"),
+                    new(Hundreds(state.AltitudeFt) + arrow + "  "),
+                    new(state.SpeedKt.ToString("0", CultureInfo.InvariantCulture)),
+                    new("kt  ", Dim: true),
+                    new(actualRate),
+                    new("fpm", Dim: true)
+                },
+                new List<LabelPart> { Divider() },
+                new List<LabelPart>
+                {
+                    FieldName("HDG"),
+                    new(Magnetic(state.TargetHeading, magneticVariation).ToString("000", CultureInfo.InvariantCulture) + " ", "HDG", Given: true, Dim: !manual),
+                    FieldKey("◀ 1", "HDG-1"),
+                    FieldKey("1 ▶", "HDG+1"),
+                    FieldKey("FINAL CRS", "FINAL")
                 },
                 new List<LabelPart>
                 {
-                    new("H" + Magnetic(state.TargetHeading, magneticVariation).ToString("000", CultureInfo.InvariantCulture), "HDG", Given: true, Dim: !manual),
-                    new("  "),
-                    new(next, "WPT", Given: true),
-                    new("  "),
-                    new(rate, "VS", Given: true)
-                }
+                    FieldName("TURN"),
+                    new("◀", "CMD:TURNL", Look: turning == TurnDirection.Left ? LabelLook.KeyTurning : LabelLook.Key),
+                    new("■", "CMD:STOPTURN", Look: LabelLook.KeyStop),
+                    new("▶", "CMD:TURNR", Look: turning == TurnDirection.Right ? LabelLook.KeyTurning : LabelLook.Key),
+                    new(" "),
+                    FieldKey("3", "RATE3", state.TurnRateMode == TurnRateMode.Standard),
+                    FieldKey("1.5", "RATE15", state.TurnRateMode == TurnRateMode.Half),
+                    FieldKey("F", "RATEF", state.TurnRateMode == TurnRateMode.Free)
+                },
+                new List<LabelPart> { FieldName(""), new("continuous turn (no-gyro)", Look: LabelLook.Note) },
+                new List<LabelPart> { Divider() },
+                new List<LabelPart> { FieldName("ALT"), new(Hundreds(state.TargetAltitudeFt), "ALT", Given: true) },
+                new List<LabelPart>
+                {
+                    FieldName("VS"),
+                    new(rate + " ", "VS", Given: true),
+                    FieldKey("▲ " + rateStep, "VS+"),
+                    FieldKey("▼ " + rateStep, "VS-"),
+                    FieldKey("NORMAL", "NORMAL", state.VerticalMode == VerticalMode.GlidePath),
+                    FieldKey("STOP", "STOPVS")
+                },
+                new List<LabelPart> { Divider() },
+                new List<LabelPart>
+                {
+                    FieldName("SPD"),
+                    new(state.TargetSpeedKt.ToString("0", CultureInfo.InvariantCulture) + " ", "SPD", Given: true),
+                    FieldKey("SLOW", "SLOW")
+                },
+                new List<LabelPart> { FieldName("NAV"), new(next + " ", "WPT", Given: true), FieldKey("NEXT WPT", "NEXT") }
             };
+        }
+
+        /// <summary>A key of the label (the user, 10 Nov): the same command as on the panel, for the selected aircraft.</summary>
+        private void LabelKey(AircraftState state, string command)
+        {
+            switch (command)
+            {
+                case "HDG-1":
+                case "HDG+1":
+                    headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
+                    StepHeading(command == "HDG-1" ? -1 : 1);
+                    break;
+                case "FINAL": FinalCourse(); break;
+                case "TURNL": ContinuousTurn(TurnDirection.Left); break;
+                case "TURNR": ContinuousTurn(TurnDirection.Right); break;
+                case "STOPTURN": StopTurn(); break;
+                case "RATE3": SetTurnMode(state.Callsign, TurnRateMode.Standard); break;
+                case "RATE15": SetTurnMode(state.Callsign, TurnRateMode.Half); break;
+                case "RATEF": SetTurnMode(state.Callsign, TurnRateMode.Free); break;
+                case "VS+":
+                case "VS-":
+                    double now = state.VerticalMode == VerticalMode.Rate ? state.CommandedVerticalSpeedFpm : state.VerticalSpeedFpm;
+                    rateBox.Text = FormatRate(Math.Round(now / 10) * 10);
+                    StepRate(command == "VS+" ? RateKeyStep : -RateKeyStep);
+                    break;
+                case "NORMAL": NormalRate(); break;
+                case "STOPVS": StopVertical(); break;
+                case "SLOW": SlowToFinal(); break;
+                case "NEXT": NextWaypoint(); break;
+            }
+            plan?.InvalidateVisual();
+        }
+
+        private void SetTurnMode(string callsign, TurnRateMode mode)
+        {
+            bridge.Engine.SetTurnRateMode(callsign, mode);
+            ShowTurnMode(mode);
         }
 
         /// <summary>The wheel over a field of the label: heading 5°, altitude 100 ft, speed 5 kt, rate 100 ft/min.</summary>
@@ -216,13 +295,41 @@ namespace AuroraPAR
             };
             fieldPopup = popup;
             popup.IsOpen = true;
-            list.Dispatcher.InvokeAsync(() => { if (list.SelectedItem != null) list.ScrollIntoView(list.SelectedItem); });
+            // The value now in the middle of the list (the user, 10 Nov: the next one to give is above or below it, no scrolling).
+            ScrollViewer.SetCanContentScroll(list, false);
+            list.Dispatcher.InvokeAsync(() =>
+            {
+                if (list.SelectedItem is not ListBoxItem item) return;
+                list.ScrollIntoView(item);
+                list.UpdateLayout();
+                if (FindScroll(list) is not ScrollViewer viewer) return;
+                double top = item.TranslatePoint(new Point(0, 0), viewer).Y + viewer.VerticalOffset;
+                viewer.ScrollToVerticalOffset(Math.Max(0, top - (viewer.ViewportHeight - item.ActualHeight) / 2));
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        /// <summary>The scroll viewer inside a control (its template).</summary>
+        private static ScrollViewer? FindScroll(DependencyObject root)
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, i);
+                if (child is ScrollViewer viewer) return viewer;
+                if (FindScroll(child) is ScrollViewer inner) return inner;
+            }
+            return null;
         }
 
         /// <summary>A click on a field of the label: its list.</summary>
         private void OpenFieldList(string callsign, string field, Point at)
         {
             if (!string.Equals(callsign, SelectedCallsign, StringComparison.OrdinalIgnoreCase) || Selected() is not AircraftState state) return;
+            if (field.StartsWith("CMD:", StringComparison.Ordinal))
+            {
+                ClosePopup();
+                LabelKey(state, field[4..]);
+                return;
+            }
             double magneticVariation = variation();
             switch (field)
             {

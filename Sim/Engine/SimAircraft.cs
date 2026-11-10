@@ -97,7 +97,9 @@ namespace ATCRoom.Sim
         // Whether the route still gives the altitude and the speed (until the instructor gives one).
         bool RouteAltitude = false,
         bool RouteSpeed = false,
-        NavigationMode Navigation = NavigationMode.Manual);
+        NavigationMode Navigation = NavigationMode.Manual,
+        // A continuous turn (the no-gyro approach: turning until "stop turn"), Shortest: none.
+        TurnDirection ContinuousTurn = TurnDirection.Shortest);
 
     /// <summary>An aircraft inside the engine: actual values and the values commanded by the instructor. Only the engine changes it, under its lock.</summary>
     internal sealed class SimAircraft
@@ -114,6 +116,8 @@ namespace ATCRoom.Sim
         // Commanded values.
         public double TargetHeading;
         public TurnDirection TurnDirection = TurnDirection.Shortest;
+        /// <summary>A continuous turn to this side (the no-gyro approach; the user, 10 Nov) until a heading or "stop turn"; Shortest: none.</summary>
+        public TurnDirection ContinuousTurn = TurnDirection.Shortest;
         public double SelectedTurnRateDps = SimEngine.StandardTurnRate;
         public TurnRateMode TurnRateMode = TurnRateMode.Standard;
         public VerticalMode VerticalMode = VerticalMode.Altitude;
@@ -157,6 +161,6 @@ namespace ATCRoom.Sim
             TargetHeading, TurnDirection, SelectedTurnRateDps, TurnRateMode, VerticalMode, TargetAltitudeFt, SelectedVerticalRateFpm,
             CommandedVerticalSpeedFpm, BestVerticalSpeedFpm, TargetSpeedKt, Frozen, StickX != 0 || StickY != 0, pendingCommands,
             Class.Name, GroundSpeedKt, TrackTrue, DriftDegrees, Contact,
-            Route, Route != null ? RouteNext : -1, Route != null && !AltitudeGiven, Route != null && !SpeedGiven, Navigation);
+            Route, Route != null ? RouteNext : -1, Route != null && !AltitudeGiven, Route != null && !SpeedGiven, Navigation, ContinuousTurn);
     }
 }
