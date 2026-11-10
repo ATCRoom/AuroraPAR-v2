@@ -16,6 +16,8 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Next group (the user, 10 Nov: "si"):** Keys… does not take F12 (reserved for the list of the keys) nor N (next aircraft):
+  "F12: reserved for this list of the keys"; an F12 already assigned in the saved settings taken away once at the start.
 - **Next group (the user, 10 Nov):** the ALT line written "ALT [2900] ft QNH · rate [1000] ft/min [Go]"; the rate a box to
   type (no drop-down list), changed with the mouse wheel as the other boxes (100 ft/min a click, Shift 500; 100 to 6000: the user "si vanno bene");
   Enter or Go gives altitude and rate; changed while climbing / descending: the new rate at once (as the list now).
