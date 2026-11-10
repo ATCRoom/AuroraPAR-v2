@@ -16,6 +16,8 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Next group (the user, 10 Nov):** the decision height mark on the mini-PAR (TRAINEE PAR) too, as on the PAR scope:
+  the DH line and its mark where the glide path reaches it (the missed approach point), with the profile's style and options.
 - **Next group (the user, 10 Nov):** light blue keys for NORMAL, Final CRS and Slow down to final, on the panel and on the
   label (the commands that put the aircraft on the approach: blue as "the normal thing", orange the urgent ones).
   Light blue → GREEN while it is done (the user, 10 Nov, instead of the white border): NORMAL while the aircraft flies the
