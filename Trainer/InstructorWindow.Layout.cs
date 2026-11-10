@@ -172,8 +172,38 @@ namespace AuroraPAR
             Button performance = new() { Content = "Aircraft performance…", Padding = new Thickness(8, 1, 8, 1), Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "The performance classes (speeds, initial and final speed, climb, descent, turns): a table to change them." };
             performance.Click += (s, e) => OpenPerformanceWindow();
             simulation.Children.Add(performance);
-            // Panels: LIGHT / DARK (the user, 9 Nov), from the next start.
-            StackPanel themeRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+            // The speed of the simulation: x1 / x2 / x4 (as TWR Trainer), only outside a session.
+            StackPanel speedRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), ToolTip = "How fast the simulated time runs. Only outside a session: START SESSION puts it back to x1." };
+            speedRow.Children.Add(new TextBlock { Text = "Speed:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            foreach (double factor in new[] { 1.0, 2.0, 4.0 })
+            {
+                RadioButton choice = new() { Content = $"x{factor:0}", GroupName = "SimSpeed", Tag = factor, IsChecked = factor == 1, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+                choice.Checked += (s, e) => { if (!speedLocked) bridge.TimeFactor = factor; };
+                speedChoices.Add(choice);
+                speedRow.Children.Add(choice);
+            }
+            bridge.TimeFactor = 1;
+            speedNote.Text = "(only outside a session)";
+            speedRow.Children.Add(speedNote);
+            simulation.Children.Add(speedRow);
+            // GO AROUND: the altitude to climb to (feet above the threshold).
+            TextBox goAroundBox = new() { Width = 54, Text = settings.GoAroundHeight.ToString("0", CultureInfo.InvariantCulture), HorizontalContentAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 4, 0) };
+            void ApplyGoAround()
+            {
+                if (TryRead(goAroundBox, out double feet) && feet >= 500 && feet <= 10000) settings.GoAroundHeight = Math.Round(feet / 100) * 100;
+                goAroundBox.Text = settings.GoAroundHeight.ToString("0", CultureInfo.InvariantCulture);
+                save();
+            }
+            goAroundBox.LostFocus += (s, e) => ApplyGoAround();
+            goAroundBox.KeyDown += (s, e) => { if (e.Key == Key.Enter) ApplyGoAround(); };
+            StackPanel goAroundRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0), ToolTip = "GO AROUND: the aircraft climbs straight ahead to this height above the threshold (500 to 10000 ft)." };
+            goAroundRow.Children.Add(new TextBlock { Text = "Go around to", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            goAroundRow.Children.Add(goAroundBox);
+            goAroundRow.Children.Add(new TextBlock { Text = "ft above the threshold", VerticalAlignment = VerticalAlignment.Center });
+            simulation.Children.Add(goAroundRow);
+            // Appearance: panels LIGHT / DARK (the user, 9 Nov; the section named as in TWR Trainer, 10 Nov), from the next start.
+            simulation.Children.Add(SectionTitle("Appearance"));
+            StackPanel themeRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
             themeRow.Children.Add(new TextBlock { Text = "Panels:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
             RadioButton lightPanels = new() { Content = "LIGHT", GroupName = "PanelTheme", IsChecked = !settings.DarkPanels, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
             RadioButton darkPanels = new() { Content = "DARK", GroupName = "PanelTheme", IsChecked = settings.DarkPanels, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
@@ -184,7 +214,9 @@ namespace AuroraPAR
             themeRow.Children.Add(new TextBlock { Text = "(from the next start)", Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center });
             themeRow.ToolTip = "The look of the panels of the Instructor+: LIGHT (Windows' own) or DARK (dark controls inside). It changes at the next start of the program.";
             simulation.Children.Add(themeRow);
-            overlay.Children.Add(new FloatingPanel("SIMULATION SETTINGS", "⚙", simulation, simulationSummary, 440, Placement("Simulation", false),
+            // Network: My callsign, My VID (from the main window; as TWR Trainer).
+            simulation.Children.Add(settingsExtra);
+            overlay.Children.Add(new FloatingPanel("SETTINGS", "⚙", simulation, simulationSummary, 440, Placement("Simulation", false),
                 (area, size) => new Point(left, first), save));
 
             // ----- Traffic generation ----------------------------------------------------------------------------------
@@ -372,6 +404,9 @@ namespace AuroraPAR
             {
                 string name = bridge.Add(x, y, altitude, heading, speed, callsign, otherCallsigns(), classBox.SelectedItem as string);
                 bridge.Engine.SetTurnRateMode(name, CurrentTurnMode());
+                // Create & START: the simulation is not left paused (the log of 10 Nov: aircraft made in pause looked stuck).
+                bridge.Engine.Paused = false;
+                pauseButton.Content = PauseText(false);
                 newCallsignBox.Text = "";
                 Refresh();
                 Select(name);
@@ -407,11 +442,11 @@ namespace AuroraPAR
             }
 
             // Heading and turn rate.
-            RepeatButton headingLeft = StepKey("◀", "Heading 1° left (held: repeats). After the pilot reaction. A heading puts the aircraft in MANUAL.");
+            RepeatButton headingLeft = StepKey("◀ 1", "Heading 1° left (held: repeats). After the pilot reaction. A heading puts the aircraft in MANUAL.");
             headingLeft.Click += (s, e) => StepHeading(-1);
-            RepeatButton headingRight = StepKey("▶", "Heading 1° right (held: repeats). After the pilot reaction. A heading puts the aircraft in MANUAL.");
+            RepeatButton headingRight = StepKey("1 ▶", "Heading 1° right (held: repeats). After the pilot reaction. A heading puts the aircraft in MANUAL.");
             headingRight.Click += (s, e) => StepHeading(1);
-            headingLeft.MinWidth = headingRight.MinWidth = 26;
+            headingLeft.MinWidth = headingRight.MinWidth = 34;
             Detach(headingBox);
             headingBox.Margin = new Thickness(0, 0, 3, 0);
             Detach(finalCourseButton);
@@ -470,19 +505,30 @@ namespace AuroraPAR
             control.Children.Add(Line("ALT", altitudeBox, altitudeUnit, altitudeRateBox, Caption("ft/min"), giveAltitude));
 
             // Rate.
-            RepeatButton up = StepKey("▲", "Rate up: less descent (held: repeats; stops once at the Normal rate). After the pilot reaction.");
-            up.Click += (s, e) => StepRate(RateKeyStep);
-            RepeatButton down = StepKey("▼", "Rate down: more descent (held: repeats; stops once at the Normal rate). After the pilot reaction.");
-            down.Click += (s, e) => StepRate(-RateKeyStep);
-            up.MinWidth = down.MinWidth = 26;
+            // (One step for the keys, the panel and the label, written on the keys; the user, 10 Nov.)
+            RepeatButton up = rateUpKey = StepKey("▲", "Rate up: less descent, by the step of Keys… (held: repeats; stops once at the Normal rate). After the pilot reaction.");
+            up.Click += (s, e) => StepRate(RateStep);
+            RepeatButton down = rateDownKey = StepKey("▼", "Rate down: more descent, by the step of Keys… (held: repeats; stops once at the Normal rate). After the pilot reaction.");
+            down.Click += (s, e) => StepRate(-RateStep);
+            up.MinWidth = down.MinWidth = 44;
+            ShowRateStep();
             Detach(rateBox);
             rateBox.Width = 54;
             rateBox.Margin = new Thickness(0, 0, 3, 0);
             Detach(normalButton);
             normalButton.Padding = new Thickness(6, 2, 6, 2);
-            Button stopVertical = new() { Content = "STOP", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), ToolTip = "Stop climb / descent: the aircraft levels off where it is (after the pilot reaction). From then on the route's altitudes are not flown." };
+            Button stopVertical = new() { Content = "STOP", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), Background = StopTurnBack, Foreground = Brushes.White, BorderBrush = Frozen(Color.FromRgb(0xC8, 0x5F, 0x1E)), ToolTip = "Stop climb / descent: the aircraft levels off where it is (after the pilot reaction). From then on the route's altitudes are not flown." };
             stopVertical.Click += (s, e) => StopVertical();
             control.Children.Add(Line("RATE", up, rateBox, down, normalButton, stopVertical));
+            // GO AROUND (the user, 10 Nov): orange as the other urgent commands.
+            Button goAround = new()
+            {
+                Content = "GO AROUND", FontWeight = FontWeights.SemiBold, Padding = new Thickness(10, 2, 10, 2), Background = StopTurnBack, Foreground = Brushes.White,
+                BorderBrush = Frozen(Color.FromRgb(0xC8, 0x5F, 0x1E)),
+                ToolTip = "Go around: after the pilot reaction the aircraft climbs straight ahead to the go-around altitude (Settings: feet above the threshold). In the log GO AROUND, or MISSED APPROACH after the minimums."
+            };
+            goAround.Click += (s, e) => GoAround();
+            control.Children.Add(Line("G/A", goAround));
 
             // Speed.
             Detach(speedBox);
@@ -549,6 +595,63 @@ namespace AuroraPAR
             });
             return panel;
         }
+
+        // ----- One step of the rate, GO AROUND, the speed of the simulation (the user, 10 Nov) -------------------------
+
+        private RepeatButton? rateUpKey, rateDownKey;
+        private double RateStep => Math.Clamp(settings.RateKeyStep, 10, 500);
+        private string shownRateStep = "";
+
+        private void ShowRateStep()
+        {
+            string step = RateStep.ToString("0", CultureInfo.InvariantCulture);
+            if (step == shownRateStep || rateUpKey == null || rateDownKey == null) return;
+            shownRateStep = step;
+            rateUpKey.Content = "▲ " + step;
+            rateDownKey.Content = "▼ " + step;
+        }
+
+        /// <summary>A command the log cannot see from the values (GO AROUND, STOP CLIMB / DESCENT): callsign, command.</summary>
+        internal event Action<string, string>? CommandNoted;
+
+        /// <summary>GO AROUND: straight ahead, climbing to the go-around altitude (after the pilot reaction); MANUAL at once.</summary>
+        private void GoAround()
+        {
+            if (SelectedCallsign is not string callsign) return;
+            bridge.Engine.SetNavigation(callsign, false);
+            bridge.Engine.GoAround(callsign, Elevation + settings.GoAroundHeight);
+            CommandNoted?.Invoke(callsign, "GO AROUND");
+            fillFields = true;
+        }
+
+        private readonly List<RadioButton> speedChoices = [];
+        private readonly TextBlock speedNote = new() { Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center };
+        private bool speedLocked;
+
+        /// <summary>
+        /// The speed of the simulation only outside a session (the user, 10 Nov): START SESSION puts it back to x1 and it
+        /// stays x1 until END SESSION.
+        /// </summary>
+        internal void LockSpeed(bool locked)
+        {
+            speedLocked = locked;
+            if (locked) bridge.TimeFactor = 1;
+            foreach (RadioButton choice in speedChoices)
+            {
+                choice.IsEnabled = !locked;
+                if (locked) choice.IsChecked = choice.Tag is double factor && factor == 1;
+            }
+            speedNote.Text = locked ? "(x1 during a session)" : "(only outside a session)";
+        }
+
+        /// <summary>Things of the main window in the Settings panel (the Network section).</summary>
+        private readonly StackPanel settingsExtra = new();
+        internal void AttachSettingsExtra(UIElement element)
+        {
+            if (!settingsExtra.Children.Contains(element)) settingsExtra.Children.Add(element);
+        }
+
+        private static TextBlock SectionTitle(string text) => new() { Text = text, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 2) };
 
         // ----- Continuous turn (no-gyro; the user, 10 Nov) ------------------------------------------------------------
 
@@ -621,6 +724,7 @@ namespace AuroraPAR
         {
             if (SelectedCallsign is not string callsign) return;
             bridge.Engine.StopVertical(callsign);
+            CommandNoted?.Invoke(callsign, "STOP CLIMB / DESCENT");
             fillFields = true;
         }
 
@@ -651,6 +755,10 @@ namespace AuroraPAR
                 headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
             }
             ShowContinuousTurn(state);
+            ShowRateStep();
+            // (The pause may be put by the bar of the session or END SESSION: the key of the panel follows it.)
+            string pauseText = PauseText(bridge.Engine.Paused);
+            if (!Equals(pauseButton.Content, pauseText)) pauseButton.Content = pauseText;
             ShowInformation(state);
             RefreshTrafficList(state);
             ShowQnh();

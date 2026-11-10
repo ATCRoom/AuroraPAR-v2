@@ -31,7 +31,9 @@ namespace AuroraPAR
         /// <summary>Instructor+: the floating panels (by name): place, open or closed, size.</summary>
         public Dictionary<string, PanelPlacement>? Panels { get; set; }
         public double HeadingKeyStep { get; set; } = 5;
-        public double RateKeyStep { get; set; } = 100;
+        public double RateKeyStep { get; set; } = 50;
+        /// <summary>GO AROUND: the altitude to climb to, feet above the threshold (the user, 10 Nov).</summary>
+        public double GoAroundHeight { get; set; } = 2000;
         public Dictionary<string, string>? Keys { get; set; }
 
         public void Normalize()
@@ -40,7 +42,8 @@ namespace AuroraPAR
             CallsignPrefix = prefix.Length is >= 1 and <= 6 && prefix.All(char.IsAsciiLetterOrDigit) ? prefix : "SIM";
             ReactionSeconds = double.IsFinite(ReactionSeconds) ? Math.Clamp(ReactionSeconds, 0, SimEngine.MaxReaction) : 1;
             HeadingKeyStep = double.IsFinite(HeadingKeyStep) ? Math.Clamp(Math.Round(HeadingKeyStep), 1, 10) : 5;
-            RateKeyStep = double.IsFinite(RateKeyStep) ? Math.Clamp(Math.Round(RateKeyStep / 10) * 10, 10, 500) : 100;
+            RateKeyStep = double.IsFinite(RateKeyStep) ? Math.Clamp(Math.Round(RateKeyStep / 10) * 10, 10, 500) : 50;
+            GoAroundHeight = double.IsFinite(GoAroundHeight) ? Math.Clamp(Math.Round(GoAroundHeight / 100) * 100, 500, 10000) : 2000;
         }
     }
 
@@ -80,6 +83,13 @@ namespace AuroraPAR
         /// <summary>Wall clock of the simulation (not changed by a change of the computer's clock) and its last reading (s).</summary>
         private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
         private double lastAdvance = double.NaN;
+        private double timeFactor = 1;
+        /// <summary>How fast the simulated time runs (1, 2 or 4; the user, 10 Nov: only outside a session).</summary>
+        public double TimeFactor
+        {
+            get { lock (sync) return timeFactor; }
+            set { lock (sync) timeFactor = value is 2 or 4 ? value : 1; }
+        }
         private Dictionary<string, Aircraft> lastPositions = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Last position given to Aurora's rhythm: position every 0.4–0.65 s, altitude every 3 s in steps of 10 ft.</summary>
@@ -243,7 +253,7 @@ namespace AuroraPAR
                 double elapsed = clock.Elapsed.TotalSeconds;
                 double seconds = double.IsNaN(lastAdvance) ? 0 : elapsed - lastAdvance;
                 lastAdvance = elapsed;
-                Engine.Advance(seconds);
+                Engine.Advance(seconds * TimeFactor);
                 List<Aircraft> result = [];
                 if (plane == null || reference == null) return result;
                 Dictionary<string, Aircraft> positions = new(StringComparer.OrdinalIgnoreCase);

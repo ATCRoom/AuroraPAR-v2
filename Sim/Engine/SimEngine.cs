@@ -331,6 +331,21 @@ namespace ATCRoom.Sim
                 a.AltitudeGiven = true;
             });
 
+        /// <summary>
+        /// Instruction "go around" (the user, 10 Nov): the aircraft climbs straight ahead (the heading it has when the pilot
+        /// carries it out; a turn is stopped) to this altitude (ft above mean sea level); MANUAL, the route's altitudes no more flown.
+        /// </summary>
+        public void GoAround(string callsign, double altitudeFt)
+        {
+            Instruct(callsign, Kind.Heading, a => { a.ContinuousTurn = TurnDirection.Shortest; StraightOn(a); a.Navigation = NavigationMode.Manual; });
+            Instruct(callsign, Kind.Vertical, a =>
+            {
+                a.VerticalMode = VerticalMode.Altitude;
+                a.TargetAltitudeFt = Math.Clamp(Math.Max(altitudeFt, a.AltitudeFt), runwayElevation, MaxAltitude);
+                a.AltitudeGiven = true;
+            });
+        }
+
         /// <summary>Instruction: altitude to reach (ft above mean sea level), optionally with a new vertical rate (ft/min).</summary>
         public void SetAltitude(string callsign, double altitudeFt, double? verticalRateFpm = null) =>
             Instruct(callsign, Kind.Vertical, a =>

@@ -29,7 +29,8 @@ namespace AuroraPAR
             ("NextWaypoint", "Next WPT"),
             ("SlowToFinal", "Slow dwn to final"),
             ("NextAircraft", "Next aircraft"),
-            ("Pause", "PAUSE ALL / RESUME ALL")
+            ("GoAround", "Go around"),
+            ("Pause", "PAUSE / RUN")
         ];
 
         /// <summary>Keys at the start: for a macro keyboard of 6 keys and a knob (knob: heading and Final CRS).</summary>
@@ -64,6 +65,13 @@ namespace AuroraPAR
         {
             Key key = PressedKey(e);
             if (key == Key.None) return;
+            // F12 (fixed, as TWR Trainer; the user, 10 Nov): the list of the keys.
+            if (key == Key.F12 && Keyboard.Modifiers == ModifierKeys.None && !KeyMap.Values.Any(v => string.Equals(v, nameof(Key.F12), StringComparison.OrdinalIgnoreCase)))
+            {
+                OpenKeysWindow();
+                e.Handled = true;
+                return;
+            }
             // N / Shift+N (fixed, not assigned): the next / previous aircraft, only while not typing in a field.
             if (key == Key.N && (Keyboard.Modifiers == ModifierKeys.None || Keyboard.Modifiers == ModifierKeys.Shift) && !Typing()
                 && !KeyMap.Values.Any(v => string.Equals(v, nameof(Key.N), StringComparison.OrdinalIgnoreCase)))
@@ -112,6 +120,7 @@ namespace AuroraPAR
                 case "NextWaypoint": NextWaypoint(); break;
                 case "SlowToFinal": SlowToFinal(); break;
                 case "NextAircraft": StepAircraft(1); break;
+                case "GoAround": GoAround(); break;
                 case "Pause": TogglePause(); break;
             }
         }
@@ -183,7 +192,7 @@ namespace AuroraPAR
             TextBox headingStep = NumberBox(settings.HeadingKeyStep.ToString("0", CultureInfo.InvariantCulture));
             TextBox rateStep = NumberBox(settings.RateKeyStep.ToString("0", CultureInfo.InvariantCulture));
             headingStep.ToolTip = "Degrees of heading for each press of the heading keys (or each click of the knob): 1 to 10. The ◀ L / R ▶ buttons of the window stay at 1°.";
-            rateStep.ToolTip = "Feet per minute of rate for each press of the rate keys: 10 to 500.";
+            rateStep.ToolTip = "Feet per minute of rate for each press of the rate keys and of ▲ / ▼ on the panel and on the label (one step for all): 10 to 500.";
             void ApplySteps()
             {
                 if (TryRead(headingStep, out double degrees) && degrees >= 1 && degrees <= 10) settings.HeadingKeyStep = Math.Round(degrees);
@@ -216,7 +225,7 @@ namespace AuroraPAR
 
             Window window = new()
             {
-                Title = "Instructor+ keys",
+                Title = "Instructor+ keys (F12)",
                 Owner = this,
                 SizeToContent = SizeToContent.WidthAndHeight,
                 ResizeMode = ResizeMode.NoResize,
@@ -228,9 +237,9 @@ namespace AuroraPAR
             {
                 settings.Keys = DefaultKeys();
                 settings.HeadingKeyStep = 5;
-                settings.RateKeyStep = 100;
+                settings.RateKeyStep = 50;
                 headingStep.Text = "5";
-                rateStep.Text = "100";
+                rateStep.Text = "50";
                 assigning = null;
                 save();
                 ShowKeys();

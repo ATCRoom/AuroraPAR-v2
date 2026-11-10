@@ -60,7 +60,7 @@ namespace AuroraPAR
             LabelPart FieldKey(string text, string command, bool on = false) => new(text, "CMD:" + command, Look: on ? LabelLook.KeyOn : LabelLook.Key);
             LabelPart Divider() => new("", Look: LabelLook.Divider);
             TurnDirection turning = state.ContinuousTurn;
-            string rateStep = RateKeyStep.ToString("0", CultureInfo.InvariantCulture);
+            string rateStep = RateStep.ToString("0", CultureInfo.InvariantCulture);
             string actualRate = (Math.Round(state.VerticalSpeedFpm / 10) * 10).ToString("+0;-0;0", CultureInfo.InvariantCulture);
             return new List<IReadOnlyList<LabelPart>>
             {
@@ -109,7 +109,8 @@ namespace AuroraPAR
                     FieldKey("▲ " + rateStep, "VS+"),
                     FieldKey("▼ " + rateStep, "VS-"),
                     FieldKey("NORMAL", "NORMAL", state.VerticalMode == VerticalMode.GlidePath),
-                    FieldKey("STOP", "STOPVS")
+                    new("STOP", "CMD:STOPVS", Look: LabelLook.KeyStop),
+                    new("G/A", "CMD:GOAROUND", Look: LabelLook.KeyStop)
                 },
                 new List<LabelPart> { Divider() },
                 new List<LabelPart>
@@ -143,10 +144,11 @@ namespace AuroraPAR
                 case "VS-":
                     double now = state.VerticalMode == VerticalMode.Rate ? state.CommandedVerticalSpeedFpm : state.VerticalSpeedFpm;
                     rateBox.Text = FormatRate(Math.Round(now / 10) * 10);
-                    StepRate(command == "VS+" ? RateKeyStep : -RateKeyStep);
+                    StepRate(command == "VS+" ? RateStep : -RateStep);
                     break;
                 case "NORMAL": NormalRate(); break;
                 case "STOPVS": StopVertical(); break;
+                case "GOAROUND": GoAround(); break;
                 case "SLOW": SlowToFinal(); break;
                 case "NEXT": NextWaypoint(); break;
             }

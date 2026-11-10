@@ -677,8 +677,8 @@ namespace AuroraPAR
         private bool Qfe => qfeRadio.IsChecked == true;
 
 #if TRAINER
-        /// <summary>The Instructor+: PAUSE ALL / RESUME ALL (each aircraft has its own pause in the TRAFFIC LIST).</summary>
-        private static string PauseText(bool paused) => paused ? "RESUME ALL" : "PAUSE ALL";
+        /// <summary>The Instructor+: PAUSE / RUN, one word as TWR Trainer (the user, 10 Nov; each aircraft has its own pause in the TRAFFIC LIST).</summary>
+        private static string PauseText(bool paused) => paused ? "RUN" : "PAUSE";
 #else
         private static string PauseText(bool paused) => paused ? "Resume" : "Pause";
 #endif
@@ -699,8 +699,14 @@ namespace AuroraPAR
 
         private double Elevation => bridge.Reference?.Elevation ?? 0;
 
+        private DateTime pauseToggledAt = DateTime.MinValue;
+
         internal void TogglePause()
         {
+            // (A double click, or a key repeated, must not put the pause back at once: the log of 10 Nov.)
+            DateTime now = DateTime.UtcNow;
+            if ((now - pauseToggledAt).TotalSeconds < 0.5) return;
+            pauseToggledAt = now;
             bridge.Engine.Paused = !bridge.Engine.Paused;
             pauseButton.Content = PauseText(bridge.Engine.Paused);
         }

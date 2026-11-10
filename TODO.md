@@ -16,6 +16,14 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Group A (the user, 10 Nov: "si va bene") — WRITTEN, local commits on `trainer`, waiting for the go of the build:** PAUSE / RUN
+  and IVAO on the bar; speed x1 / x2 / x4 (x1 in a session); the lesson window as TWR Trainer (START LESSON, COPY CODE, JOIN)
+  and LESSON on the bar; the panel SETTINGS with Appearance and Network (My callsign / VID; also in the Lesson window, for the
+  student who does not open the Instructor+); one word PAUSE / RUN; F12; one step for the rate (Keys…, 50 at first); STOP of
+  the rate orange; GO AROUND (panel, G/A on the label, key; 2000 ft above the threshold, in SETTINGS; log: GO AROUND / MISSED
+  APPROACH at once); START SESSION asks when the student is not linked; Create & start takes the pause off; a second click
+  on the pause within 0.5 s ignored; log: one REMOVED row, STOP CLIMB / DESCENT. From the log of 10 Nov: the "stuck" aircraft
+  were the simulation paused. Titles of the panels: upper case in both (TWR Trainer to change in group B).
 - **Alike in TWR Trainer and AuroraPAR v2 Trainer (the user, 10 Nov: the list of differences, his answers) — DECIDED, next groups:**
   (1) the pilot reaction (0–5 s) in TWR Trainer too; (2) the speed of the simulation x1 / x2 / x4 in AuroraPAR v2 Trainer
   too, in both only OUTSIDE a session: START SESSION puts it back to x1 and it stays x1 until END SESSION; (3) the same

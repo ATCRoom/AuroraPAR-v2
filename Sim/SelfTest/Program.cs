@@ -73,6 +73,22 @@ const double RunwayHeading = 325.80;
 }
 
 {
+    // Go around (the user, 10 Nov): out of a descent and a turn, straight ahead up to the altitude given.
+    SimEngine engine = new();
+    string a = engine.Add(0, 0, 1000, 0, 150);
+    engine.SetVerticalSpeed(a, -700);
+    engine.SetContinuousTurn(a, TurnDirection.Right);
+    engine.RunFor(10);
+    engine.GoAround(a, 3000);
+    engine.RunFor(20);
+    AircraftState s = engine.Get(a)!;
+    Check(s.VerticalSpeedFpm > 300 && Math.Abs(s.TurnRateDps) < 0.01 && s.ContinuousTurn == TurnDirection.Shortest, "Go around: climbing, straight ahead", $"vs {s.VerticalSpeedFpm:F0} rate {s.TurnRateDps:F2}");
+    engine.RunFor(400);
+    s = engine.Get(a)!;
+    Check(Near(s.AltitudeFt, 3000, 20), "Go around: levels at the altitude given", $"altitude {s.AltitudeFt:F0}");
+}
+
+{
     // Continuous turn (no-gyro, the user 10 Nov): goes round past 360° until "stop turn", then rolls out.
     SimEngine engine = new();
     string a = engine.Add(0, 0, 3000, 0, 150);

@@ -17,7 +17,7 @@ TRAFFIC** at the top of the views.
 3. [The radar of the instructor](#3-the-radar-of-the-instructor)
 4. [Commands on the label](#4-commands-on-the-label)
 5. [Routes on the radar](#5-routes-on-the-radar)
-6. [SIMULATION SETTINGS](#6-simulation-settings)
+6. [SETTINGS](#6-settings)
 7. [TRAFFIC GENERATION](#7-traffic-generation)
 8. [TRAFFIC LIST](#8-traffic-list)
 9. [AIRCRAFT CONTROL](#9-aircraft-control)
@@ -44,16 +44,16 @@ The instructor's radar fills the whole window. Over it float five panels:
 
 | Panel | What it is for |
 | --- | --- |
-| **SIMULATION SETTINGS** | runway, wind, QNH / QFE, pilot reaction, callsign prefix, Aircraft performance… |
+| **SETTINGS** | runway, wind, QNH / QFE, pilot reaction, callsign prefix, Aircraft performance… |
 | **TRAFFIC GENERATION** | new aircraft: Quick starts, flight plans, scenarios, the route editor |
-| **TRAFFIC LIST** | the aircraft flying and those waiting to start; Start all, PAUSE ALL, Remove all aircraft |
+| **TRAFFIC LIST** | the aircraft flying and those waiting to start; Start all, PAUSE, Remove all aircraft |
 | **AIRCRAFT CONTROL** | the commands of the selected aircraft |
 | **TRAINEE PAR** | the student's PAR in small, to follow the approach |
 
 - **Move** a panel by dragging its blue bar; **▴** closes it: it is parked at the top, as a small box with
   its symbol (⚙ ✎ ✈ ☰ ⊿; its name under the mouse), **▾** there (or a double click) opens it again where it was.
   The boxes stand in a row on the left of the CENTRE bar.
-- **Panels: LIGHT / DARK** (in SIMULATION SETTINGS): the look of the inside of the panels and of the Aircraft
+- **Panels: LIGHT / DARK** (in SETTINGS): the look of the inside of the panels and of the Aircraft
   performance window. LIGHT (the default) is Windows' own; DARK makes the boxes, lists, buttons and tables dark, easier
   on the eyes in a dim room. It changes at the next start of the program.
 
@@ -102,7 +102,7 @@ HDG 243 [◀ 1][1 ▶][FINAL CRS]
 TURN [◀][■][▶] [3][1.5][F]
      continuous turn (no-gyro)
 ALT 020
-VS  -700 [▲ 50][▼ 50][NORMAL][STOP]
+VS  -700 [▲ 50][▼ 50][NORMAL][STOP][G/A]
 SPD 220 [SLOW]
 NAV →ALFA [NEXT WPT]
 ```
@@ -112,8 +112,8 @@ NAV →ALFA [NEXT WPT]
 - **TURN**: the **continuous turn** for the no-gyro approach: ◀ turns left, ▶ turns right, at the rate chosen (**3**,
   **1.5** °/s or **F** free, the one chosen in blue), and the turn goes on until ■ (**STOP TURN**, orange) or a heading.
   The side turning is yellow.
-- **ALT**: the altitude given. **VS**: the rate given, ▲ / ▼ (the step of the keys of the panel), **NORMAL** (the glide
-  path, blue while flown), **STOP** (levels off).
+- **ALT**: the altitude given. **VS**: the rate given, ▲ / ▼ (the step of **Keys…**), **NORMAL** (the glide path, blue
+  while flown), **STOP** (levels off) and **G/A** (go around), both orange.
 - **SPD**: the speed given, **SLOW** (the final speed of the class). **NAV**: the next point, **NEXT WPT**.
 
 - **Click on a value** (heading, cleared altitude, speed, point, rate): a list opens beside it, with the value now in
@@ -125,7 +125,7 @@ NAV →ALFA [NEXT WPT]
 - **Right click on an aircraft** (label or track): Pause / Unpause, Reactivate, ROUTE / MANUAL, Edit route…, Rename…,
   Hide label, Remove.
 
-All commands are carried out after the **pilot reaction** (SIMULATION SETTINGS), as real pilots are not instantaneous.
+All commands are carried out after the **pilot reaction** (SETTINGS), as real pilots are not instantaneous.
 
 ## 5. Routes on the radar
 
@@ -137,7 +137,7 @@ All commands are carried out after the **pilot reaction** (SIMULATION SETTINGS),
   stay. If the aircraft is flying to that point, it turns at once to the new place.
 - **Right click on a point**: **Remove WPT**; for an aircraft also **Direct to this point** and **Edit route…**.
 
-## 6. SIMULATION SETTINGS
+## 6. SETTINGS
 
 On its bar: a summary (runway, wind, QNH / QFE, reaction). Inside:
 
@@ -148,6 +148,9 @@ On its bar: a summary (runway, wind, QNH / QFE, reaction). Inside:
 - **Wind**: from (degrees true, as in the METAR; the magnetic value beside it), speed, gusts; **From METAR** copies
   the wind of the METAR received from Aurora.
 - **Pilot reaction**: 0–5 s.
+- **Speed**: x1 / x2 / x4, only outside a session (START SESSION puts it back to x1).
+- **Go around to**: the height above the threshold the GO AROUND climbs to (500–10000 ft, 2000 at first).
+- **Appearance**: the panels LIGHT / DARK (from the next start). **Network**: My callsign and My VID for the log.
 - **Aircraft performance…**: see [11](#11-aircraft-performance).
 
 ## 7. TRAFFIC GENERATION
@@ -179,8 +182,8 @@ next free one). Then:
 - **WAITING**: the aircraft sent with TFC LIST or Move to TFC list. **▶** starts one, **✕** takes it out (a flight
   plan waits again in TRAFFIC GENERATION). A click on a flight plan shows its route in the editor.
 - **Start all**: all the waiting aircraft start.
-- **PAUSE ALL / RESUME ALL**: the whole simulation stops and goes on.
-- **Remove all aircraft**: flying and waiting, after a question (the flight plans wait again); a PAUSE ALL is ended,
+- **PAUSE / RUN**: the whole simulation stops and goes on.
+- **Remove all aircraft**: flying and waiting, after a question (the flight plans wait again); a PAUSE is ended,
   so the next aircraft started move at once.
 
 ## 9. AIRCRAFT CONTROL
@@ -194,7 +197,8 @@ Normal gives), **VS**, **TURN**, **HDG**, **DRIFT**. Then a row for each command
 | **HDG** | ◀ / ▶ (1°, held: repeats), the heading box, **Go** (or Enter), **Final CRS**; the turn rate **3° / 1.5° / FREE** |
 | *Continuous turn (no-gyro approach)* | **◀ TURN LEFT**, **STOP TURN** (orange), **TURN RIGHT ▶**: a turn at the rate chosen that goes on until STOP TURN or a heading; the side turning is yellow and the heading box follows the turn |
 | **ALT** | altitude **at** a rate (ft/min), **Go** |
-| **RATE** | ▲ / ▼, **Normal** (the glide path), **STOP** (levels off where it is) |
+| **RATE** | ▲ / ▼ with their step (the one of **Keys…**, the same on the label and for the keys), **Normal** (the glide path), **STOP** (orange: levels off where it is) |
+| **G/A** | **GO AROUND** (orange): the aircraft climbs straight ahead to the go-around altitude (SETTINGS: feet above the threshold); in the log GO AROUND, or MISSED APPROACH after the minimums |
 | **SPD** | speed, **Go**, **Slow dwn to final** (the final speed of the class) |
 | **NAV** | **MANUAL / ROUTE**, **Next WPT**; → a point of the route or of the maps, **Go**, **Route…** (Edit route) |
 | **STICK** | **Show / Hide** the stick, **Joystick…** (a real joystick or gamepad) |
@@ -203,7 +207,7 @@ Normal gives), **VS**, **TURN**, **HDG**, **DRIFT**. Then a row for each command
 - **MANUAL**: the aircraft flies the headings you give (and the stick); a route, if any, is kept.
 - **ROUTE**: it flies the points of its route; the route's altitudes and speeds are flown until you give one.
   A heading (or the stick sideways) puts it back in MANUAL at once.
-- **Keys…** (on the bar): see [12](#12-keys-and-macro-keyboard).
+- **Keys…** (on the bar) or **F12**: see [12](#12-keys-and-macro-keyboard).
 
 ## 10. TRAINEE PAR
 
@@ -216,7 +220,7 @@ they appear to the student.
 
 ## 11. Aircraft performance
 
-**Aircraft performance…** (SIMULATION SETTINGS) or **…** beside a Class box: a table with a row for each class.
+**Aircraft performance…** (SETTINGS) or **…** beside a Class box: a table with a row for each class.
 
 | Column | Meaning |
 | --- | --- |
@@ -245,7 +249,7 @@ Default classes (the Instructor+ proposes the **Jet**):
 
 **Keys…** gives a key to each command of the selected aircraft (heading left / right by a step, Final CRS, rate up /
 down by a step, Normal rate, Stop turn, Stop climb / descent, MANUAL / ROUTE, Next WPT, Slow dwn to final, Next
-aircraft, PAUSE ALL) and chooses the steps of the heading and rate keys. Click **Assign**, then press the key (or turn
+aircraft, PAUSE) and chooses the steps of the heading and rate keys. Click **Assign**, then press the key (or turn
 the knob of a macro keyboard). These keys work while the Instructor+ window is in front, also while typing in a field:
 choose keys that are not used for typing. The defaults are **F13–F21**, made for a macro keyboard of 6 keys and a knob
 (program the macro keyboard with its own software to send those keys).
@@ -264,9 +268,9 @@ The Instructor+ on the instructor's PC, the PAR and RDR on the student's PC, lin
 public relays as the coordination panel (encrypted connection, nothing to install, no port to open). Both PCs run
 **AuroraPAR v2 Trainer**. Talk to each other as usual (Discord, TeamSpeak, phone…).
 
-1. **Instructor:** **Lesson…** (beside Coordination) → *Instructor* → **New code** → **Connect**. Tell the code to the
-   student.
-2. **Student:** **Lesson…** → *Student* → type the code → **Connect**.
+1. **Instructor:** **LESSON** (on the bar at the top left of the Instructor+, or **Lesson…** beside Coordination) →
+   **START LESSON**: a new code is made (**COPY CODE** copies it). Tell the code to the student.
+2. **Student:** **Lesson…** → write the code → **JOIN** (**LEAVE** ends it).
 3. The Lesson key turns blue on both PCs when they are linked (orange while waiting). The plan view of the
    Instructor+ shows `LESSON <code>: STUDENT LINKED`.
 
@@ -313,7 +317,8 @@ beside the program (portable mode: each copy keeps its own settings), one as ins
 
 As in TWR Trainer. At the top left of the Instructor+ plan view:
 
-- **PAUSE / RUN** pauses all the aircraft (as PAUSE ALL; yellow **RUN** while paused).
+- **PAUSE / RUN** pauses all the aircraft (yellow **RUN** while paused). **Create & start** takes the pause off.
+- **LESSON** opens the lesson between two PCs ([14](#14-a-lesson-between-two-pcs)); lit with its code while a lesson is on.
 - **IVAO** (last on the bar): the IVAO traffic on the Instructor+ shown (green **● IVAO**: Aurora on IVAO; orange
   **IVAO ?**: Aurora not on IVAO) or hidden (grey: only the simulated aircraft). Aurora stays connected either way:
   the PAR and RDR of the PC keep the IVAO traffic, the QNH and the callsign for the log. Both programs work also without
@@ -321,7 +326,9 @@ As in TWR Trainer. At the top left of the Instructor+ plan view:
 - **START SESSION** starts the training or the exam: a new **log** (a CSV file in the **Logs** folder: Excel opens it
   in any language), the time from 0:00:00, a new folder of photos. Nothing starts flying. The button shows the time of
   the session; click it again for **END SESSION** (asked first): the summary is written and the simulation paused.
-  Closing the Instructor+ or the program ends the session too.
+  Closing the Instructor+ or the program ends the session too. With a lesson between two PCs started and the student
+  not linked yet, START SESSION asks first. During a session the **speed of the simulation** is x1 (x2 / x4, in
+  SETTINGS, only outside a session).
 - **PHOTO** saves a picture of the Instructor+ (the simulation goes on) in the **Photos** folder of the session, as
   `Photo-03_T+12m40s.png`, with a row `PHOTO 3` in the log. **📁** opens that folder, **LOGS** the Logs folder.
 

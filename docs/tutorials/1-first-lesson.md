@@ -13,7 +13,7 @@ Press **Shift+I**, or the button **Instructor+ (⇧I)** in the main window.
 
 [![Open the Instructor+](gifs/t1-open-instructor.gif)](gifs/t1-open-instructor.gif)
 
-The radar of the instructor fills the window. Five panels float over it: **SIMULATION SETTINGS**,
+The radar of the instructor fills the window. Five panels float over it: **SETTINGS**,
 **TRAFFIC GENERATION**, **TRAFFIC LIST**, **AIRCRAFT CONTROL**, **TRAINEE PAR**.
 
 - Drag a panel by its blue bar; **▴** parks it as a small box with its symbol, on the left of the CENTRE bar; **▾** there opens it again.
@@ -22,7 +22,7 @@ The radar of the instructor fills the window. Five panels float over it: **SIMUL
 
 ## Step 2 — Check the settings
 
-In **SIMULATION SETTINGS** look at runway, wind and QNH. Without Aurora connected you type the QNH yourself;
+In **SETTINGS** look at runway, wind and QNH. Without Aurora connected you type the QNH yourself;
 **From METAR** gets wind and QNH from the internet for the airport.
 
 ## Step 3 — Start an aircraft with Quick
@@ -43,7 +43,7 @@ The aircraft appears on your radar and, as normal traffic, on the student's PAR 
 
 - Click the track (or its label): it is the selected aircraft, its label grows.
 - **TRAINEE PAR** shows what the student sees. An aircraft outside the student's beams is **grey** with "not seen".
-- **PAUSE ALL** stops everything, **RESUME ALL** goes on.
+- **PAUSE** stops everything, **RUN** goes on.
 
 ## Step 5 — Finish
 

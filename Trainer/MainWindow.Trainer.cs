@@ -460,6 +460,9 @@ namespace AuroraPAR
             window.AttachForget(ForgetTracks);
             // START SESSION, PHOTO (the user, 9 Nov: as TWR Trainer).
             window.AttachSessionBar(SessionBar());
+            window.AttachSettingsExtra(NetworkSection());
+            window.LockSpeed(approachLog.InSession);
+            window.CommandNoted += (callsign, command) => approachLog.Note(instructor.Engine.Time, callsign, command);
             FeedInstructorView();
             UpdatePlusButton();
         }

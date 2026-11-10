@@ -81,6 +81,9 @@ namespace AuroraPAR
             sessionBar.Children.Add(runButton);
             sessionButton = BarButton("START SESSION", "", ToggleSession);
             sessionBar.Children.Add(sessionButton);
+            // (The same order as TWR Trainer: PAUSE / RUN, START SESSION, LESSON, PHOTO, 📁, LOGS, IVAO.)
+            barLessonButton = BarButton("LESSON", "", OpenLessonWindow);
+            sessionBar.Children.Add(barLessonButton);
             sessionBar.Children.Add(BarButton("PHOTO", "A picture of the Instructor+ (the simulation goes on), in the Photos folder of this session; a mark PHOTO n in the log.", TakePhoto));
             sessionBar.Children.Add(BarButton("📁", "Opens the folder of the photos of this session (or the Photos folder).", OpenPhotos));
             sessionBar.Children.Add(BarButton("LOGS", "Opens the Logs folder: a CSV per session (Excel), and a folder per session with the pictures of the traces of the approaches.", OpenLogs));
@@ -99,6 +102,12 @@ namespace AuroraPAR
         {
             if (!approachLog.InSession)
             {
+                // (The user, 10 Nov: a lesson between two PCs started but the student not linked yet: asked first.)
+                if (LessonInstructor && lesson is { OtherPresent: false }
+                    && MessageBox.Show(instructorWindow ?? (Window)this, "The student is not linked yet. Start the session anyway?", AppInfo.ProductName,
+                        MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+                // (The speed of the simulation back to x1, and x1 until END SESSION.)
+                instructorWindow?.LockSpeed(true);
                 photoSession = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture);
                 photoCount = 0;
                 Runway reference = InstructorRunway;
@@ -122,15 +131,57 @@ namespace AuroraPAR
                 photoSession = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture);
                 photoCount = 0;
                 instructor.Engine.Paused = true;
+                instructorWindow?.LockSpeed(false);
                 PhotoSaid($"Session ended: {file}");
             }
             ShowSession();
         }
 
-        private Button? runButton, ivaoButton;
+        private Button? runButton, ivaoButton, barLessonButton;
+
+        /// <summary>The Network section of the Settings panel of the Instructor+ (as TWR Trainer): My callsign, My VID.</summary>
+        private UIElement? networkSection;
+        private UIElement NetworkSection()
+        {
+            if (networkSection != null)
+            {
+                ((networkSection as FrameworkElement)?.Parent as Panel)?.Children.Remove(networkSection);
+                return networkSection;
+            }
+            StackPanel section = new();
+            section.Children.Add(new TextBlock { Text = "Network", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 2) });
+            TextBox callsignBox = new() { Width = 100, MaxLength = 10, CharacterCasing = CharacterCasing.Upper, Text = settings.Trainer.MyCallsign, Margin = new Thickness(0, 0, 12, 0), VerticalContentAlignment = VerticalAlignment.Center };
+            TextBox vidBox = new() { Width = 90, MaxLength = 10, Text = settings.Trainer.MyVid, VerticalContentAlignment = VerticalAlignment.Center };
+            StackPanel row = new() { Orientation = Orientation.Horizontal, ToolTip = "For the log of the session: used when Aurora is not connected to IVAO (connected: the callsign from Aurora, the VID from IVAO's list of who is connected)." };
+            row.Children.Add(new TextBlock { Text = "My callsign", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            row.Children.Add(callsignBox);
+            row.Children.Add(new TextBlock { Text = "My VID", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            row.Children.Add(vidBox);
+            section.Children.Add(row);
+            void SaveMe()
+            {
+                string callsign = callsignBox.Text.Trim().ToUpperInvariant(), vid = new(vidBox.Text.Where(char.IsAsciiDigit).ToArray());
+                vidBox.Text = vid;
+                if (callsign == settings.Trainer.MyCallsign && vid == settings.Trainer.MyVid) return;
+                settings.Trainer.MyCallsign = callsign;
+                settings.Trainer.MyVid = vid;
+                SettingsStore.Save(settings);
+            }
+            callsignBox.LostFocus += (s, e) => SaveMe();
+            vidBox.LostFocus += (s, e) => SaveMe();
+            // (Changed in the Lesson window: shown here when the panel gets the keyboard again.)
+            section.GotKeyboardFocus += (s, e) =>
+            {
+                if (!callsignBox.IsKeyboardFocused && callsignBox.Text != settings.Trainer.MyCallsign) callsignBox.Text = settings.Trainer.MyCallsign;
+                if (!vidBox.IsKeyboardFocused && vidBox.Text != settings.Trainer.MyVid) vidBox.Text = settings.Trainer.MyVid;
+            };
+            networkSection = section;
+            return section;
+        }
         private static readonly Brush RunBack = new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x4A));
         private static readonly Brush DarkText = new SolidColorBrush(Color.FromRgb(0x2C, 0x2C, 0x2A));
         private static readonly Brush IvaoOn = new SolidColorBrush(Color.FromRgb(0x63, 0x99, 0x22));
+        private static readonly Brush KeyLinked = new SolidColorBrush(Color.FromRgb(0x85, 0xB7, 0xEB));
         private static readonly Brush IvaoSearching = new SolidColorBrush(Color.FromRgb(0xEF, 0x9F, 0x27));
 
         /// <summary>IVAO on the bar: the IVAO traffic on the Instructor+ shown or not (Aurora stays connected for the PAR and RDR).</summary>
@@ -154,6 +205,20 @@ namespace AuroraPAR
                     runButton.Background = paused ? RunBack : BarOff;
                     runButton.Foreground = paused ? DarkText : Brushes.White;
                     runButton.ToolTip = paused ? "The simulation is paused (all the aircraft). Click: RUN (as RESUME ALL)." : "The simulation runs. Click: PAUSE all the aircraft (as PAUSE ALL).";
+                }
+            }
+            if (barLessonButton != null)
+            {
+                // LESSON lit with its code while a lesson is on (blue: linked; orange: waiting or lost), as TWR Trainer.
+                string text = lesson != null ? $"LESSON {lesson.Code}" : "LESSON";
+                Brush back = lesson == null ? BarOff : lesson.OtherPresent ? KeyLinked : IvaoSearching;
+                if (!Equals(barLessonButton.Content, text) || !ReferenceEquals(barLessonButton.Background, back))
+                {
+                    barLessonButton.Content = text;
+                    barLessonButton.Background = back;
+                    barLessonButton.Foreground = lesson == null ? Brushes.White : DarkText;
+                    barLessonButton.ToolTip = lesson == null ? "A lesson between two PCs: start one (a code for the student), or join one as the student."
+                        : $"A lesson is on: code {lesson.Code}{(lesson.OtherPresent ? ", linked" : ", waiting for the other PC")}. Click: its window.";
                 }
             }
             if (ivaoButton != null)

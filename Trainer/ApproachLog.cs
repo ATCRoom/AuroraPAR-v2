@@ -33,6 +33,8 @@ namespace AuroraPAR
             public bool OnApproach, OnGlidePath, PastMinimums;
             /// <summary>An approach ended: a new one only after the aircraft has left the sector or turned away (the review of 9 Nov).</summary>
             public bool Rearm;
+            /// <summary>A command noted (GO AROUND, STOP): the altitude it gives is not written again as ALTITUDE.</summary>
+            public bool SkipAltitude;
             public int Climbing;
             public double LastDistance = double.NaN, LastDeviation = double.NaN;
             public string MinimumsText = "";
@@ -208,10 +210,30 @@ namespace AuroraPAR
             foreach (string gone in seen.Keys.Where(k => !now.Contains(k)).ToList())
             {
                 Seen was = seen[gone];
+                // (One row: removed during its approach, or removed; the log of 10 Nov had both.)
                 if (was.OnApproach) EndApproach(time, gone, was, "REMOVED during the approach", runway, radar, limitsTo, azimuthLimits);
-                if (was.State.Contact != GroundContact.Landed) Event(time, "REMOVED", gone);
+                else if (was.State.Contact != GroundContact.Landed) Event(time, "REMOVED", gone);
                 seen.Remove(gone);
             }
+        }
+
+        /// <summary>
+        /// A command of the instructor that the values do not show (the user, 10 Nov). GO AROUND: the approach going on ends
+        /// at once, as GO AROUND before the minimums or MISSED APPROACH after them (its trace made); STOP CLIMB / DESCENT: its row.
+        /// </summary>
+        public void Note(double time, string callsign, string command)
+        {
+            if (!inSession) return;
+            seen.TryGetValue(callsign, out Seen? was);
+            if (was != null) was.SkipAltitude = true;
+            if (command == "GO AROUND" && was is { OnApproach: true } && last is { } context)
+            {
+                if (was.PastMinimums) was.Missed++;
+                else was.GoArounds++;
+                EndApproach(time, callsign, was, was.PastMinimums ? "MISSED APPROACH" : "GO AROUND", context.Runway, context.Radar, context.LimitsTo, context.AzimuthLimits, "INSTRUCTOR");
+                return;
+            }
+            Event(time, command, callsign, source: "INSTRUCTOR");
         }
 
         /// <summary>The instructor's commands that change the flight, seen from the values commanded (second by second).</summary>
@@ -234,7 +256,10 @@ namespace AuroraPAR
                 else if (s.VerticalMode == VerticalMode.Rate && Math.Abs(s.CommandedVerticalSpeedFpm - was.CommandedVerticalSpeedFpm) >= 1)
                     Say(string.Create(CultureInfo.InvariantCulture, $"RATE {Math.Round(s.CommandedVerticalSpeedFpm):+0;-0;0} fpm"));
                 else if (s.VerticalMode == VerticalMode.Altitude && !s.RouteAltitude && Math.Abs(s.TargetAltitudeFt - was.TargetAltitudeFt) >= 1)
-                    Say(string.Create(CultureInfo.InvariantCulture, $"ALTITUDE {Math.Round(s.TargetAltitudeFt):0} ft"));
+                {
+                    if (seen.TryGetValue(cs, out Seen? noted) && noted.SkipAltitude) noted.SkipAltitude = false;
+                    else Say(string.Create(CultureInfo.InvariantCulture, $"ALTITUDE {Math.Round(s.TargetAltitudeFt):0} ft"));
+                }
             }
             if (!s.RouteSpeed && Math.Abs(s.TargetSpeedKt - was.TargetSpeedKt) >= 1) Say(string.Create(CultureInfo.InvariantCulture, $"SPEED {Math.Round(s.TargetSpeedKt):0} kt"));
         }
@@ -322,7 +347,7 @@ namespace AuroraPAR
         }
 
         /// <summary>The end of an approach: its row (with the file of its trace), the picture made.</summary>
-        private void EndApproach(double time, string callsign, Seen was, string what, Runway runway, Radar radar, double limitsTo, bool azimuthLimits)
+        private void EndApproach(double time, string callsign, Seen was, string what, Runway runway, Radar radar, double limitsTo, bool azimuthLimits, string source = "SIM")
         {
             was.OnApproach = false;
             was.Rearm = true;
@@ -335,7 +360,7 @@ namespace AuroraPAR
                 picture = string.Create(CultureInfo.InvariantCulture, $"Trace-{traceCount:00}_{Safe(callsign)}.png");
                 SaveTrace(Path.Combine(SessionFolder, picture), callsign, was, what, time, runway, radar, limitsTo, azimuthLimits);
             }
-            Event(time, what, callsign, string.Join(", ", new[] { was.MinimumsText.Length > 0 ? $"at minimums {was.MinimumsText}" : "", picture.Length > 0 ? $"trace {picture}" : "" }.Where(t => t.Length > 0)));
+            Event(time, what, callsign, string.Join(", ", new[] { was.MinimumsText.Length > 0 ? $"at minimums {was.MinimumsText}" : "", picture.Length > 0 ? $"trace {picture}" : "" }.Where(t => t.Length > 0)), source);
             was.Trace = [];
         }
 

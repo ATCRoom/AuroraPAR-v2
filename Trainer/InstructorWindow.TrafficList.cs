@@ -58,7 +58,7 @@ namespace AuroraPAR
             pauseButton.Padding = new Thickness(8, 1, 8, 1);
             pauseButton.Margin = new Thickness(0, 0, 6, 0);
             pauseButton.Focusable = false;
-            pauseButton.ToolTip = "Pause / Resume: the whole simulation stops and goes on.";
+            pauseButton.ToolTip = "PAUSE / RUN: the whole simulation stops and goes on (as PAUSE / RUN on the bar at the top).";
             buttons.Children.Add(pauseButton);
             Button removeAll = new() { Content = "Remove all aircraft", Padding = new Thickness(8, 1, 8, 1), ToolTip = "Removes all the aircraft, flying and waiting (after a question): the flight plans wait again in Traffic generation; the aircraft of Quick are gone." };
             removeAll.Click += (s, e) => RemoveAllAircraft();

@@ -1,6 +1,6 @@
 # 4. Fly the traffic
 
-All the commands are carried out after the **pilot reaction** (SIMULATION SETTINGS, 0–5 s), as real pilots are not
+All the commands are carried out after the **pilot reaction** (SETTINGS, 0–5 s), as real pilots are not
 instantaneous.
 
 ## Step 1 — Commands on the label
@@ -44,7 +44,7 @@ Typical approach: a heading to intercept, **Final CRS**, speed to the final spee
 
 ## Step 4 — Pause one aircraft
 
-**II / ▶** on its row in the TRAFFIC LIST (or right click → Pause) stops only that aircraft; **PAUSE ALL** stops
+**II / ▶** on its row in the TRAFFIC LIST (or right click → Pause) stops only that aircraft; **PAUSE** stops
 the whole simulation.
 
 Next: [maps for the RDR](5-maps.md).
