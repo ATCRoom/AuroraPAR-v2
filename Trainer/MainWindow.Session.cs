@@ -75,11 +75,17 @@ namespace AuroraPAR
                 return sessionBar;
             }
             sessionBar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8, 26, 0, 0) };
+            // PAUSE / RUN first and IVAO last, as on TWR Trainer (the user, 10 Nov).
+            runButton = BarButton("PAUSE", "", () => instructorWindow?.TogglePause());
+            runButton.MinWidth = 64;
+            sessionBar.Children.Add(runButton);
             sessionButton = BarButton("START SESSION", "", ToggleSession);
             sessionBar.Children.Add(sessionButton);
             sessionBar.Children.Add(BarButton("PHOTO", "A picture of the Instructor+ (the simulation goes on), in the Photos folder of this session; a mark PHOTO n in the log.", TakePhoto));
             sessionBar.Children.Add(BarButton("📁", "Opens the folder of the photos of this session (or the Photos folder).", OpenPhotos));
             sessionBar.Children.Add(BarButton("LOGS", "Opens the Logs folder: a CSV per session (Excel), and a folder per session with the pictures of the traces of the approaches.", OpenLogs));
+            ivaoButton = BarButton("IVAO", "", ToggleInstructorIvao);
+            sessionBar.Children.Add(ivaoButton);
             sessionBar.Children.Add(photoText);
             ShowSession();
             return sessionBar;
@@ -121,6 +127,53 @@ namespace AuroraPAR
             ShowSession();
         }
 
+        private Button? runButton, ivaoButton;
+        private static readonly Brush RunBack = new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x4A));
+        private static readonly Brush DarkText = new SolidColorBrush(Color.FromRgb(0x2C, 0x2C, 0x2A));
+        private static readonly Brush IvaoOn = new SolidColorBrush(Color.FromRgb(0x63, 0x99, 0x22));
+        private static readonly Brush IvaoSearching = new SolidColorBrush(Color.FromRgb(0xEF, 0x9F, 0x27));
+
+        /// <summary>IVAO on the bar: the IVAO traffic on the Instructor+ shown or not (Aurora stays connected for the PAR and RDR).</summary>
+        private void ToggleInstructorIvao()
+        {
+            settings.Trainer.InstructorIvao = !settings.Trainer.InstructorIvao;
+            SettingsStore.Save(settings);
+            ShowBar();
+        }
+
+        /// <summary>PAUSE / RUN (yellow RUN while paused) and IVAO (grey off, orange: Aurora not on IVAO, green: on IVAO), as TWR Trainer.</summary>
+        private void ShowBar()
+        {
+            if (runButton != null)
+            {
+                bool paused = instructor.Engine.Paused;
+                string text = paused ? "RUN" : "PAUSE";
+                if (!Equals(runButton.Content, text))
+                {
+                    runButton.Content = text;
+                    runButton.Background = paused ? RunBack : BarOff;
+                    runButton.Foreground = paused ? DarkText : Brushes.White;
+                    runButton.ToolTip = paused ? "The simulation is paused (all the aircraft). Click: RUN (as RESUME ALL)." : "The simulation runs. Click: PAUSE all the aircraft (as PAUSE ALL).";
+                }
+            }
+            if (ivaoButton != null)
+            {
+                bool on = settings.Trainer.InstructorIvao, linked = aurora.Connected, network = linked && ivaoCallsign.Length > 0;
+                string text = !on ? "IVAO" : network ? "● IVAO" : "IVAO ?";
+                Brush back = !on ? BarOff : network ? IvaoOn : IvaoSearching;
+                if (!Equals(ivaoButton.Content, text) || !ReferenceEquals(ivaoButton.Background, back))
+                {
+                    ivaoButton.Content = text;
+                    ivaoButton.Background = back;
+                    ivaoButton.Foreground = on ? DarkText : Brushes.White;
+                }
+                ivaoButton.ToolTip = !on ? "The IVAO traffic on the Instructor+: hidden (only the simulated aircraft). Aurora stays connected: the PAR and RDR of this PC keep it. Click: shown."
+                    : network ? $"Aurora on IVAO as {ivaoCallsign}: its traffic on the Instructor+. Click: hide it (Aurora stays connected)."
+                    : linked ? "Aurora found, but not connected to IVAO: no IVAO traffic yet. Click: hide it."
+                    : "Aurora not found on this PC (STS SIM: the simulated aircraft only). Click: hide the IVAO traffic.";
+            }
+        }
+
         private void ShowSession()
         {
             if (sessionButton == null) return;
@@ -139,6 +192,7 @@ namespace AuroraPAR
         private void SessionTick()
         {
             DateTime now = DateTime.UtcNow;
+            ShowBar();
             if (aurora.Connected && !ivaoAsking && now - ivaoAskedAt > TimeSpan.FromSeconds(30)) _ = AskIvao();
             else if (!aurora.Connected && ivaoCallsign.Length > 0) ivaoCallsign = ivaoVid = ivaoVidFor = "";
             if (!approachLog.InSession || now - sessionStepAt < TimeSpan.FromSeconds(1)) return;

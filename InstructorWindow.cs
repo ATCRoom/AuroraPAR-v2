@@ -699,7 +699,7 @@ namespace AuroraPAR
 
         private double Elevation => bridge.Reference?.Elevation ?? 0;
 
-        private void TogglePause()
+        internal void TogglePause()
         {
             bridge.Engine.Paused = !bridge.Engine.Paused;
             pauseButton.Content = PauseText(bridge.Engine.Paused);

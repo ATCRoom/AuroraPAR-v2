@@ -86,7 +86,9 @@ namespace AuroraPAR
             if (radarWindow != null || radarInMain) RefreshRadar();
             if (instructorView != null)
             {
-                instructorView.Update(aircrafts, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
+                // IVAO off on the bar: the Instructor+ shows the simulated aircraft only (the TRAINEE PAR shows what the student sees).
+                List<Aircraft> shownTraffic = settings.Trainer.InstructorIvao ? aircrafts : aircrafts.Where(a => a.IsSim || a.IsTest).ToList();
+                instructorView.Update(shownTraffic, DateTime.UtcNow, viewOptions.HistoryEnabled, viewOptions.HistoryDots, viewOptions.HistoryInterval);
                 instructorPar?.Update(aircrafts, DateTime.UtcNow);
                 FeedInstructorView();
             }

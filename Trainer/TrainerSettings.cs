@@ -34,6 +34,8 @@ namespace AuroraPAR
         /// <summary>My callsign and VID (the user, 9 Nov: as TWR Trainer): in the log when not connected to IVAO (connected: Aurora's and IVAO's).</summary>
         public string MyCallsign { get; set; } = "";
         public string MyVid { get; set; } = "";
+        /// <summary>IVAO on the bar of the Instructor+ (the user, 10 Nov): the IVAO traffic shown there (Aurora stays connected: the PAR and RDR keep it).</summary>
+        public bool InstructorIvao { get; set; } = true;
 
         /// <summary>A CENTRE mode from its saved name (unknown: AIRPORT).</summary>
         public static CentreMode ParseCentre(string? text) => Enum.TryParse(text, true, out CentreMode mode) && Enum.IsDefined(mode) ? mode : CentreMode.Airport;
