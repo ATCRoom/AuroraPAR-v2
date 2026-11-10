@@ -16,6 +16,13 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Tests of 1.2.0 group A (the user, 10 Nov): all OK, except the link with another PC (not tested yet).**
+- **IDEA (the user, 10 Nov): a flight simulator linked straight to the trainers, without IVAO** (a friend flies MSFS / X-Plane /
+  P3D, the controller guides him on the PAR or from the tower). Proposed shape: ONE small external program on the pilot's
+  PC (e.g. "ATCRoom Pilot Link", its own download as Map Creator and Replay): it reads position, altitude, speed and heading
+  from the simulator (SimConnect for MSFS / P3D, the UDP data of X-Plane) and sends them on the same lesson link (code,
+  relays or VPN, encrypted); AuroraPAR v2 Trainer and TWR Trainer show it as one more aircraft (a "live" one, not commanded
+  by the instructor). Not started: to plan after the publication.
 - **Backup link through a VPN or the home network (the user, 10 Nov: "si perfetto") — in group B (TWR) and in the next
   AuroraPAR group, shared code:** in the lesson window the kind of link: **Internet relays** (default, as now) or **Direct
   (VPN or LAN)**: the instructor's program runs its own small relay on a fixed port (MQTTnet, already used), the window shows
