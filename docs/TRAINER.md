@@ -313,6 +313,11 @@ beside the program (portable mode: each copy keeps its own settings), one as ins
 
 As in TWR Trainer. At the top left of the Instructor+ plan view:
 
+- **PAUSE / RUN** pauses all the aircraft (as PAUSE ALL; yellow **RUN** while paused).
+- **IVAO** (last on the bar): the IVAO traffic on the Instructor+ shown (green **● IVAO**: Aurora on IVAO; orange
+  **IVAO ?**: Aurora not on IVAO) or hidden (grey: only the simulated aircraft). Aurora stays connected either way:
+  the PAR and RDR of the PC keep the IVAO traffic, the QNH and the callsign for the log. Both programs work also without
+  IVAO (here STS SIM: the simulated aircraft only).
 - **START SESSION** starts the training or the exam: a new **log** (a CSV file in the **Logs** folder: Excel opens it
   in any language), the time from 0:00:00, a new folder of photos. Nothing starts flying. The button shows the time of
   the session; click it again for **END SESSION** (asked first): the summary is written and the simulation paused.
