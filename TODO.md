@@ -16,6 +16,9 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Next group (the user, 10 Nov):** the ALT line written "ALT [2900] ft QNH · rate [1000] ft/min [Go]"; the rate a box to
+  type (no drop-down list), changed with the mouse wheel as the other boxes (100 ft/min a click, Shift 500; 100 to 6000);
+  Enter or Go gives altitude and rate; changed while climbing / descending: the new rate at once (as the list now).
 - **Next group (the user, 10 Nov):** the decision height mark on the mini-PAR (TRAINEE PAR) too, as on the PAR scope:
   the DH line and its mark where the glide path reaches it (the missed approach point), with the profile's style and options.
 - **Next group (the user, 10 Nov):** light blue keys for NORMAL, Final CRS and Slow down to final, on the panel and on the
