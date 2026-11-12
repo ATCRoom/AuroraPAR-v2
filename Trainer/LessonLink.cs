@@ -149,7 +149,6 @@ namespace AuroraPAR
                     server = started;
                     if (stop.IsCancellationRequested && Interlocked.Exchange(ref server, null) is MQTTnet.Server.MqttServer late)
                     {
-                        await late.StopAsync();
                         late.Dispose();
                         return;
                     }
@@ -374,8 +373,8 @@ namespace AuroraPAR
                     MQTTnet.Server.MqttServer? own = Interlocked.Exchange(ref server, null);
                     if (own != null)
                     {
-                        try { await own.StopAsync(); } catch (Exception) { }
-                        own.Dispose();
+                        // (Dispose stops it: StopAsync wants options in this version of MQTTnet.)
+                        try { own.Dispose(); } catch (Exception) { }
                     }
                 }).Wait(TimeSpan.FromSeconds(3));
             }
