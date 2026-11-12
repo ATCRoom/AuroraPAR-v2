@@ -59,6 +59,13 @@ namespace AuroraPAR
         public string? Direct { get; }
         private MQTTnet.Server.MqttServer? server;
 
+        /// <summary>An IPv4 address written in full (four numbers 0–255 with dots), as the student must type it.</summary>
+        public static bool IsAddress(string text)
+        {
+            string[] parts = (text ?? "").Trim().Split('.');
+            return parts.Length == 4 && parts.All(p => p.Length is > 0 and <= 3 && p.All(char.IsAsciiDigit) && int.Parse(p, System.Globalization.CultureInfo.InvariantCulture) <= 255);
+        }
+
         /// <summary>The IPv4 addresses of this PC (a VPN first: Hamachi 25.x, Radmin 26.x, Tailscale 100.x), for the instructor to tell.</summary>
         public static List<string> LocalAddresses()
         {
@@ -133,10 +140,11 @@ namespace AuroraPAR
             // to allow it in the firewall).
             if (Role == LessonRole.Instructor && Direct != null)
             {
+                MQTTnet.Server.MqttServer? started = null;
                 try
                 {
                     MQTTnet.Server.MqttServerOptions options = new MQTTnet.Server.MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(DirectPort).Build();
-                    MQTTnet.Server.MqttServer started = factory.CreateMqttServer(options);
+                    started = factory.CreateMqttServer(options);
                     await started.StartAsync();
                     server = started;
                     if (stop.IsCancellationRequested && Interlocked.Exchange(ref server, null) is MQTTnet.Server.MqttServer late)
@@ -149,7 +157,8 @@ namespace AuroraPAR
                 }
                 catch (Exception error)
                 {
-                    DirectError = $"The direct link could not start on port {DirectPort} ({error.Message}).";
+                    started?.Dispose();
+                    DirectError = $"The direct link could not start on port {DirectPort} (another program uses it, or it is not allowed): stop the lesson and choose Internet relays.";
                     CoordinationLink.Log($"Lesson: own relay failed ({error.GetType().Name}: {error.Message})");
                 }
             }
@@ -195,6 +204,8 @@ namespace AuroraPAR
 
         private async Task Connect()
         {
+            // (The instructor's own relay did not start: nothing to connect to; the window says what to do.)
+            if (Role == LessonRole.Instructor && DirectError != null) return;
             IMqttClient next = factory.CreateMqttClient();
             (string host, int port, string? webSocket) = Brokers[brokerIndex];
             bool direct = Direct != null;

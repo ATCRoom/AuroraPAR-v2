@@ -14,6 +14,7 @@ namespace AuroraPAR
         private readonly Func<LessonRole, string, string?, string?> connect;
         /// <summary>The IP addresses of this PC, read once for each direct lesson (not at every refresh).</summary>
         private string? addressesShown;
+        private TextBlock instructorNote = new();
         private readonly TrainerSettings trainer;
         private readonly Action save;
         private readonly RadioButton relaysChoice = new() { Content = "Internet relays (normal)", GroupName = "LessonLinkKind", Margin = new Thickness(0, 0, 14, 0) };
@@ -70,7 +71,8 @@ namespace AuroraPAR
             directChoice.Checked += (s, e) => KindChanged();
             hostBox.Text = trainer.LessonHost;
             root.Children.Add(Title2("Instructor (this PC flies the aircraft)"));
-            root.Children.Add(Note("Start the lesson and give its code to the student. The maps of the airport go to him at the start (kept in memory only, never saved on his PC), then the simulated aircraft. Nothing to install, no ports: public relays on the internet, every message encrypted with the code. Talk to each other as usual (Discord, TeamSpeak, phone...)."));
+            instructorNote = Note("");
+            root.Children.Add(instructorNote);
             StackPanel instructorRow = new() { Orientation = Orientation.Horizontal };
             instructorRow.Children.Add(startButton);
             instructorRow.Children.Add(copyButton);
@@ -155,7 +157,7 @@ namespace AuroraPAR
                 }
                 codeBox.Text = typed;
                 string host = hostBox.Text.Trim();
-                if (directChoice.IsChecked == true && !System.Net.IPAddress.TryParse(host, out _))
+                if (directChoice.IsChecked == true && !LessonLink.IsAddress(host))
                 {
                     MessageBox.Show(this, "Write the IP address of the instructor (for example 26.12.34.56): he reads it in his Lesson window.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
@@ -203,7 +205,10 @@ namespace AuroraPAR
             codeBox.IsEnabled = current == null;
             relaysChoice.IsEnabled = directChoice.IsEnabled = current == null;
             bool directNow = current != null ? current.Direct != null : directChoice.IsChecked == true;
-            hostRow.Visibility = directNow ? Visibility.Visible : Visibility.Collapsed;
+            hostRow.Visibility = directNow && !instructor ? Visibility.Visible : Visibility.Collapsed;
+            instructorNote.Text = directNow
+                ? "Start the lesson and tell the student the code and your IP address (below). The maps of the airport go to him at the start (kept in memory only, never saved on his PC), then the simulated aircraft. Direct: through your VPN or home network, port 18830; every message encrypted with the code."
+                : "Start the lesson and give its code to the student. The maps of the airport go to him at the start (kept in memory only, never saved on his PC), then the simulated aircraft. Nothing to install, no ports: public relays on the internet, every message encrypted with the code. Talk to each other as usual (Discord, TeamSpeak, phone...).";
             hostBox.IsEnabled = current == null;
             if (!instructor || current!.Direct == null) addressesShown = null;
             else addressesShown ??= LessonLink.LocalAddresses() is { Count: > 0 } list ? string.Join("  or  ", list.Take(3)) : "see your VPN program";
