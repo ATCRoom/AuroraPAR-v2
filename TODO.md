@@ -16,6 +16,10 @@
   copied back from ATCRoom/TWR-Trainer.
 
 ## Next update
+- **Group A2 (the user, 12 Nov: "fai la prossima build comunque") — WRITTEN:** light blue / green Final CRS, Normal, Slow dwn
+  to final (panel and label); DH on the mini-PAR; ALT "ft QNH · rate [box] ft/min" (wheel 100 / Shift 500, 100–6000); Keys…
+  refuses F12 and N (an F12 or N saved taken away); direct link (VPN or home network: own relay on port 18830, the student
+  writes the IP; LessonLink v2 unchanged otherwise); docs/VPN.md finished, TRAINER.md.
 - **Tests of 1.2.0 group A (the user, 10 Nov): all OK, except the link with another PC (not tested yet).**
 - **IDEA (the user, 10 Nov): a flight simulator linked straight to the trainers, without IVAO** (a friend flies MSFS / X-Plane /
   P3D, the controller guides him on the PAR or from the tower). Proposed shape: ONE small external program on the pilot's

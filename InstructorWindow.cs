@@ -968,7 +968,13 @@ namespace AuroraPAR
                 System.Media.SystemSounds.Beep.Play();
                 return;
             }
+#if TRAINER
+            // (The Trainer: the rate typed in its box, the user 10 Nov.)
+            double rate = TryRead(altitudeRateText, out double typed) ? Math.Clamp(Math.Round(typed / 10) * 10, SimEngine.MinVerticalRate, SimEngine.MaxVerticalRate) : 1000;
+            altitudeRateText.Text = rate.ToString("0", CultureInfo.InvariantCulture);
+#else
             double rate = VerticalRates[Math.Clamp(altitudeRateBox.SelectedIndex, 0, VerticalRates.Length - 1)];
+#endif
             bridge.Engine.SetAltitude(callsign, Qfe ? value + Elevation : value, rate);
         }
 
@@ -1251,6 +1257,9 @@ namespace AuroraPAR
                     renameBox.Text = state.Callsign;
                     int index = Array.FindIndex(VerticalRates, r => Math.Abs(r - state.SelectedVerticalRateFpm) < 1);
                     if (index >= 0) altitudeRateBox.SelectedIndex = index;
+#if TRAINER
+                    if (!altitudeRateText.IsKeyboardFocused) altitudeRateText.Text = Math.Round(state.SelectedVerticalRateFpm).ToString("0", CultureInfo.InvariantCulture);
+#endif
                 }
                 finally
                 {

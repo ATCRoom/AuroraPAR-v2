@@ -13,7 +13,7 @@ namespace AuroraPAR
     /// Trainer's): text; the small grey name of a field (with a width, so the values line up); a small grey note; a key
     /// (dark), a key lit (blue), the side of a continuous turn (yellow), STOP TURN (orange); a thin line between groups.
     /// </summary>
-    internal enum LabelLook { Text, Name, Note, Key, KeyOn, KeyTurning, KeyStop, Divider }
+    internal enum LabelLook { Text, Name, Note, Key, KeyOn, KeyTurning, KeyStop, KeyGo, KeyDone, Divider }
 
     /// <summary>
     /// The labels of the plan view, as those of the PAR of AuroraPAR: they can be dragged with the left button (a leader
@@ -40,7 +40,10 @@ namespace AuroraPAR
         private static readonly Pen DividerPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x3A, 0x46, 0x52))), 1));
         private const double KeyPadding = 4, KeyGap = 3;
 
-        private static bool IsKey(LabelLook look) => look is LabelLook.Key or LabelLook.KeyOn or LabelLook.KeyTurning or LabelLook.KeyStop;
+        private static bool IsKey(LabelLook look) => look is LabelLook.Key or LabelLook.KeyOn or LabelLook.KeyTurning or LabelLook.KeyStop or LabelLook.KeyGo or LabelLook.KeyDone;
+        private static readonly Brush KeyGoBack = Freeze(new SolidColorBrush(Color.FromRgb(0x85, 0xB7, 0xEB)));
+        private static readonly Brush KeyDoneBack = Freeze(new SolidColorBrush(Color.FromRgb(0x6C, 0xC0, 0x4A)));
+        private static readonly Brush KeyGoText = Freeze(new SolidColorBrush(Color.FromRgb(0x0C, 0x2A, 0x44)));
 
         /// <summary>How wide a part takes on its line (a key: its text, its padding and the gap after it).</summary>
         private static double PartWidth(FormattedText text, LabelPart part) =>
@@ -122,6 +125,7 @@ namespace AuroraPAR
                         LabelLook.Key => KeyText,
                         LabelLook.KeyOn or LabelLook.KeyStop => Brushes.White,
                         LabelLook.KeyTurning => KeyTurningText,
+                        LabelLook.KeyGo or LabelLook.KeyDone => KeyGoText,
                         _ => part.Given ? (part.Dim ? DimBrush : GivenBrush) : part.Dim ? DimBrush : normal
                     };
                     double partSize = part.Look is LabelLook.Name or LabelLook.Note ? size - 3 : IsKey(part.Look) ? size - 1 : size;
@@ -173,6 +177,8 @@ namespace AuroraPAR
                             LabelLook.KeyOn => KeyOnBack,
                             LabelLook.KeyTurning => KeyTurningBack,
                             LabelLook.KeyStop => KeyStopBack,
+                            LabelLook.KeyGo => KeyGoBack,
+                            LabelLook.KeyDone => KeyDoneBack,
                             _ => KeyBack
                         };
                         dc.DrawRoundedRectangle(back, KeyBorder, key, 2, 2);

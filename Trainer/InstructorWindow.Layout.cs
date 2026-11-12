@@ -494,15 +494,21 @@ namespace AuroraPAR
             control.Children.Add(Line("", continuousText));
 
             // Altitude (with the rate to reach it).
+            // (The user, 10 Nov: "ALT [2900] ft QNH · rate [1000] ft/min [Go]": the rate a box with the wheel, no list.)
             Detach(altitudeBox);
-            Detach(altitudeRateBox);
             altitudeBox.Margin = new Thickness(0);
-            altitudeRateBox.Margin = new Thickness(0, 0, 3, 0);
+            altitudeRateText.Margin = new Thickness(0, 0, 3, 0);
+            altitudeRateText.ToolTip = "The rate to reach the altitude (ft/min, 100 to 6000). Mouse wheel: 100 (+Shift: 500); while climbing or descending the new rate at once. Enter or Go: the altitude with this rate.";
+            altitudeRateText.KeyDown += (s, e) => { if (e.Key == Key.Enter) { GiveAltitude(); e.Handled = true; } };
+            Wheel(altitudeRateText, 100, 500, SimEngine.MinVerticalRate, SimEngine.MaxVerticalRate, "0", () =>
+            {
+                if (SelectedCallsign is string callsign && TryRead(altitudeRateText, out double rate)) bridge.Engine.SetVerticalRate(callsign, rate);
+            });
             Button giveAltitude = SmallButton("Go");
             giveAltitude.FontWeight = FontWeights.SemiBold;
             giveAltitude.Margin = new Thickness(3, 0, 0, 0);
             giveAltitude.Click += (s, e) => GiveAltitude();
-            control.Children.Add(Line("ALT", altitudeBox, altitudeUnit, altitudeRateBox, Caption("ft/min"), giveAltitude));
+            control.Children.Add(Line("ALT", altitudeBox, altitudeUnit, Caption("· rate"), altitudeRateText, Caption("ft/min"), giveAltitude));
 
             // Rate.
             // (One step for the keys, the panel and the label, written on the keys; the user, 10 Nov.)
@@ -537,7 +543,6 @@ namespace AuroraPAR
             giveSpeed.Margin = new Thickness(3, 0, 0, 0);
             giveSpeed.Click += (s, e) => GiveSpeed();
             speedBox.Margin = new Thickness(0);
-            Button slowToFinal = new() { Content = "Slow dwn to final", Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(8, 0, 0, 0), ToolTip = "The final speed of the aircraft's class (Aircraft performance…), after the pilot reaction." };
             slowToFinal.Click += (s, e) => SlowToFinal();
             control.Children.Add(Line("SPD", speedBox, Caption("kt"), giveSpeed, slowToFinal));
 
@@ -597,6 +602,38 @@ namespace AuroraPAR
         }
 
         // ----- One step of the rate, GO AROUND, the speed of the simulation (the user, 10 Nov) -------------------------
+
+        private readonly TextBox altitudeRateText = new() { Width = 52, Text = "1000", HorizontalContentAlignment = HorizontalAlignment.Right, VerticalContentAlignment = VerticalAlignment.Center };
+        private readonly Button slowToFinal = new() { Content = "Slow dwn to final", FontWeight = FontWeights.SemiBold, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(8, 0, 0, 0), ToolTip = "The final speed of the aircraft's class (Aircraft performance…), after the pilot reaction. Light blue; green while the speed given is the final speed." };
+
+        // The commands that put the aircraft on the approach (the user, 10 Nov): light blue, green while done.
+        internal static readonly Brush GoBack = Frozen(Color.FromRgb(0x85, 0xB7, 0xEB));
+        internal static readonly Brush DoneBack = Frozen(Color.FromRgb(0x6C, 0xC0, 0x4A));
+        internal static readonly Brush GoText = Frozen(Color.FromRgb(0x0C, 0x2A, 0x44));
+
+        /// <summary>Final CRS: the heading given is the final course (hand flying, no continuous turn).</summary>
+        private bool OnFinalCourse(AircraftState s) =>
+            bridge.Reference is Runway runway && s.Navigation == NavigationMode.Manual && s.ContinuousTurn == TurnDirection.Shortest && !s.StickActive
+            && Math.Abs(SimEngine.Normalize(s.TargetHeading - runway.Heading + 180) - 180) < 0.5;
+
+        /// <summary>Slow to final: the speed given is the final speed of its class.</summary>
+        private bool AtFinalSpeed(AircraftState s) => FinalSpeed(s) is double final && Math.Abs(s.TargetSpeedKt - final) < 1;
+
+        private static void ShowGo(Button button, bool done)
+        {
+            Brush back = done ? DoneBack : GoBack;
+            if (ReferenceEquals(button.Background, back)) return;
+            button.Background = back;
+            button.Foreground = GoText;
+            button.BorderBrush = back;
+        }
+
+        private void ShowGoKeys(AircraftState? state)
+        {
+            ShowGo(finalCourseButton, state != null && OnFinalCourse(state));
+            ShowGo(normalButton, state is { VerticalMode: VerticalMode.GlidePath });
+            ShowGo(slowToFinal, state != null && AtFinalSpeed(state));
+        }
 
         private RepeatButton? rateUpKey, rateDownKey;
         private double RateStep => Math.Clamp(settings.RateKeyStep, 10, 500);
@@ -747,7 +784,7 @@ namespace AuroraPAR
             bool routeValues = state != null && state.Route != null && state.Navigation != NavigationMode.Manual && (state.RouteAltitude || state.RouteSpeed);
             // At the bottom of the commands: nothing moves when it comes and goes.
             routeValuesHint.Visibility = routeValues ? Visibility.Visible : Visibility.Collapsed;
-            altitudeUnit.Text = Qfe ? "QFE at" : "QNH at";
+            altitudeUnit.Text = Qfe ? "ft QFE" : "ft QNH";
             // While the route turns the aircraft the heading box follows, so that the keys and ◀ L / R ▶ start from the
             // heading it is flying (a heading given puts it in MANUAL at once, and then the box is left as typed).
             if (state != null && state.Navigation != NavigationMode.Manual && !headingBox.IsKeyboardFocused)
@@ -755,6 +792,7 @@ namespace AuroraPAR
                 headingBox.Text = Magnetic(state.TargetHeading, variation()).ToString("000", CultureInfo.InvariantCulture);
             }
             ShowContinuousTurn(state);
+            ShowGoKeys(state);
             ShowRateStep();
             // (The pause may be put by the bar of the session or END SESSION: the key of the panel follows it.)
             string pauseText = PauseText(bridge.Engine.Paused);

@@ -17,6 +17,8 @@ namespace AuroraPAR
         private static readonly Pen GroundPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x1D, 0x8A, 0x1D))), 1));
         private static readonly Pen TickPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x14, 0x5C, 0x14))), 1));
         private static readonly Brush TickText = Freeze(new SolidColorBrush(Color.FromRgb(0x2F, 0xBF, 0x2F)));
+        private static readonly Pen DhPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0x90, 0x30))), 1.2) { DashStyle = Freeze(new DashStyle([4, 3], 0)) });
+        private static readonly Brush DhBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0x90, 0x30)));
         private static readonly Pen PathPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0x00))), 1.6));
         private static readonly Color TrackColor = Color.FromRgb(0x35, 0xD3, 0x6A);
         private static readonly Pen TrackPen = Freeze(new Pen(Freeze(new SolidColorBrush(TrackColor)), 1.6));
@@ -150,6 +152,16 @@ namespace AuroraPAR
             dc.DrawLine(GroundPen, new Point(0, azimuthMiddle), new Point(width, azimuthMiddle));
             dc.DrawLine(PathPen, new Point(X(0), HeightY(runway.GlidePathHeight(0))), new Point(X(range), HeightY(runway.GlidePathHeight(range))));
             dc.DrawLine(PathPen, new Point(X(0), azimuthMiddle), new Point(X(range), azimuthMiddle));
+            // The decision height (the user, 10 Nov): its line from the touchdown, and a mark where the glide path reaches it.
+            double mapt = runway.MissedApproachPointNM;
+            if (double.IsFinite(mapt) && mapt > 0 && mapt < range && runway.MDH > 0 && runway.MDH < maxHeight)
+            {
+                double dhY = HeightY(runway.MDH);
+                dc.DrawLine(DhPen, new Point(X(0), dhY), new Point(X(Math.Min(range, mapt + 0.6)), dhY));
+                dc.DrawLine(new Pen(DhBrush, 1.6), new Point(X(mapt), dhY - 7), new Point(X(mapt), Math.Min(elevationBase, dhY + 7)));
+                FormattedText dh = Text("DH", 10, DhBrush, Face, pixelsPerDip);
+                dc.DrawText(dh, new Point(X(Math.Min(range, mapt + 0.6)) + 3, dhY - dh.Height / 2));
+            }
 
             // Tracks: history dots, symbol in both views, a short label; the selected one with a square.
             foreach (Aircraft aircraft in traffic)

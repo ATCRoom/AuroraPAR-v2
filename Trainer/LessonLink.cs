@@ -49,10 +49,44 @@ namespace AuroraPAR
         /// <summary>A message of the other side (raised on a background thread).</summary>
         public event Action<string>? Received;
 
-        public LessonLink(LessonRole role, string code)
+        /// <summary>The port of the direct link (VPN or home network): the instructor's PC runs its own small relay on it.</summary>
+        public const int DirectPort = 18830;
+
+        /// <summary>
+        /// The direct link (the user, 10 Nov: a backup when the public relays are slow or blocked): null = the public relays;
+        /// for the instructor "" = his own small relay on <see cref="DirectPort"/>; for the student the instructor's IP address.
+        /// </summary>
+        public string? Direct { get; }
+        private MQTTnet.Server.MqttServer? server;
+
+        /// <summary>The IPv4 addresses of this PC (a VPN first: Hamachi 25.x, Radmin 26.x, Tailscale 100.x), for the instructor to tell.</summary>
+        public static List<string> LocalAddresses()
+        {
+            List<string> found = [];
+            try
+            {
+                foreach (System.Net.NetworkInformation.NetworkInterface nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up || nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+                    foreach (System.Net.NetworkInformation.UnicastIPAddressInformation address in nic.GetIPProperties().UnicastAddresses)
+                        if (address.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !System.Net.IPAddress.IsLoopback(address.Address))
+                            found.Add(address.Address.ToString());
+                }
+            }
+            catch (Exception)
+            {
+                // (No list: the instructor reads the address in his VPN program.)
+            }
+            static int Rank(string ip) => ip.StartsWith("25.", StringComparison.Ordinal) || ip.StartsWith("26.", StringComparison.Ordinal) || ip.StartsWith("100.", StringComparison.Ordinal) ? 0
+                : ip.StartsWith("169.254.", StringComparison.Ordinal) ? 2 : 1;
+            return found.Distinct().OrderBy(Rank).ToList();
+        }
+
+        public LessonLink(LessonRole role, string code, string? direct = null)
         {
             Role = role;
             Code = code;
+            Direct = direct;
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes("AuroraPAR lesson " + code));
             // (v2, 9 Nov: every message encrypted with a key from the code, as TWR Trainer: the relays are public, and the
             // maps travel on the link; whoever has no code reads nothing.)
@@ -67,7 +101,7 @@ namespace AuroraPAR
 
         public bool Connected => client?.IsConnected == true;
         /// <summary>Relay in use, or null while not connected.</summary>
-        public string? RelayName => Connected ? Brokers[brokerIndex].Host : null;
+        public string? RelayName => !Connected ? null : Direct != null ? "direct" : Brokers[brokerIndex].Host;
 
         /// <summary>The other side has been heard at least once.</summary>
         public bool EverHeard => Interlocked.Read(ref lastHeardTicks) != 0;
@@ -95,6 +129,30 @@ namespace AuroraPAR
         /// <summary>Connects, reconnects after a network problem, and changes relay when the other side is not heard.</summary>
         private async Task Run()
         {
+            // The instructor of a direct lesson: his own small relay, on all the networks of this PC (Windows asks once
+            // to allow it in the firewall).
+            if (Role == LessonRole.Instructor && Direct != null)
+            {
+                try
+                {
+                    MQTTnet.Server.MqttServerOptions options = new MQTTnet.Server.MqttServerOptionsBuilder().WithDefaultEndpoint().WithDefaultEndpointPort(DirectPort).Build();
+                    MQTTnet.Server.MqttServer started = factory.CreateMqttServer(options);
+                    await started.StartAsync();
+                    server = started;
+                    if (stop.IsCancellationRequested && Interlocked.Exchange(ref server, null) is MQTTnet.Server.MqttServer late)
+                    {
+                        await late.StopAsync();
+                        late.Dispose();
+                        return;
+                    }
+                    CoordinationLink.Log($"Lesson: own relay on port {DirectPort}");
+                }
+                catch (Exception error)
+                {
+                    DirectError = $"The direct link could not start on port {DirectPort} ({error.Message}).";
+                    CoordinationLink.Log($"Lesson: own relay failed ({error.GetType().Name}: {error.Message})");
+                }
+            }
             while (!stop.IsCancellationRequested)
             {
                 try
@@ -103,7 +161,7 @@ namespace AuroraPAR
                     {
                         await Connect();
                     }
-                    else
+                    else if (Direct == null)
                     {
                         // Each side uses the first relay that works on its own network: the two may end up on two relays,
                         // both connected but deaf to each other. The student then tries the other relay soon, the
@@ -139,6 +197,14 @@ namespace AuroraPAR
         {
             IMqttClient next = factory.CreateMqttClient();
             (string host, int port, string? webSocket) = Brokers[brokerIndex];
+            bool direct = Direct != null;
+            if (direct)
+            {
+                // (Direct: the instructor's own relay, no TLS: the messages are encrypted with the code anyway.)
+                host = Role == LessonRole.Instructor || Direct!.Length == 0 ? "127.0.0.1" : Direct!;
+                port = DirectPort;
+                webSocket = null;
+            }
             try
             {
                 next.ApplicationMessageReceivedAsync += OnMessage;
@@ -147,8 +213,8 @@ namespace AuroraPAR
                 builder = webSocket != null
                     ? builder.WithWebSocketServer(o => o.WithUri(webSocket))
                     : builder.WithTcpServer(host, port);
+                if (!direct) builder = builder.WithTlsOptions(o => o.UseTls());
                 MqttClientOptions options = builder
-                    .WithTlsOptions(o => o.UseTls())
                     .WithClientId(clientId)
                     .WithCleanSession()
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(20))
@@ -181,8 +247,8 @@ namespace AuroraPAR
                 CoordinationLink.Log($"Lesson: failed ({error.GetType().Name}: {error.Message})");
                 next.ApplicationMessageReceivedAsync -= OnMessage;
                 next.Dispose();
-                // No network or relay not reachable: the loop tries again, with the next relay.
-                brokerIndex = (brokerIndex + 1) % Brokers.Length;
+                // No network or relay not reachable: the loop tries again, with the next relay (direct: the same address).
+                if (!direct) brokerIndex = (brokerIndex + 1) % Brokers.Length;
             }
         }
 
@@ -281,6 +347,9 @@ namespace AuroraPAR
             }
         }
 
+        /// <summary>The instructor's own relay could not start (the port taken, or not allowed), or null.</summary>
+        public string? DirectError { get; private set; }
+
         public void Dispose()
         {
             stop.Cancel();
@@ -288,7 +357,16 @@ namespace AuroraPAR
             try
             {
                 // On a pool thread: waiting on the UI thread for a task that resumes there would hang.
-                Task.Run(Disconnect).Wait(TimeSpan.FromSeconds(2));
+                Task.Run(async () =>
+                {
+                    await Disconnect();
+                    MQTTnet.Server.MqttServer? own = Interlocked.Exchange(ref server, null);
+                    if (own != null)
+                    {
+                        try { await own.StopAsync(); } catch (Exception) { }
+                        own.Dispose();
+                    }
+                }).Wait(TimeSpan.FromSeconds(3));
             }
             catch (Exception)
             {

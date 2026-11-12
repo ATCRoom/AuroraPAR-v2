@@ -1,8 +1,6 @@
-# Connecting through a VPN (draft)
+# A lesson through a VPN or the home network
 
-> **Draft, written in advance (12 Oct 2026).** The direct connection by IP address is planned for the
-> **AuroraPAR Instructor** and does not exist in the program yet. The VPN steps below are final; the
-> AuroraPAR steps (marked *[to be confirmed]*) will be completed when the feature is built.
+For the lesson between two PCs of **AuroraPAR v2 Trainer** (and of TWR Trainer, which works the same way).
 
 ## When to use it
 
@@ -74,22 +72,26 @@ Help pages of the program: [radmin-vpn.com/help](https://radmin-vpn.com/help/).
 The idea is the same: both PCs in the same network, then the student uses the **instructor's address in
 that network**, as shown by the VPN program.
 
-## In AuroraPAR *[to be confirmed]*
+## In AuroraPAR v2 Trainer
 
-1. **Instructor:** Instructor → *Session* → **Allow direct connections** (on). The window shows the port
-   (default *[to be decided]*) and the addresses of this PC; the VPN one is the `25.…` (Hamachi) or
-   `26.…` (Radmin VPN) address.
-2. **Student:** *Connect to instructor* → **By IP address** → type the instructor's VPN address → **Connect**.
-3. The status shows **Linked (direct)**.
+1. **Instructor:** **LESSON** (on the bar of the Instructor+, or **Lesson…**) → tick **Direct (VPN or home network)** →
+   **START LESSON**. The window shows the code and **the IP addresses of this PC**: the VPN one is the `25.…`
+   (Hamachi), `26.…` (Radmin VPN) or `100.…` (Tailscale) address; on the same home network the `192.168.…` one.
+   Tell the student the code and that address.
+2. **Student:** **Lesson…** → tick **Direct (VPN or home network)** → write the **instructor's IP address** and the
+   **code** → **JOIN**.
+3. The state shows **● Linked with the …**. The messages are encrypted with the code, as on the relays. The program
+   uses the port **18830** on the instructor's PC.
 
 ## Windows firewall (the most common problem)
 
-The first time the instructor allows direct connections, Windows asks whether AuroraPAR may communicate on
+The first time the instructor starts a direct lesson, Windows asks whether the program may communicate on
 the networks: tick **both Private and Public** and press **Allow access**. VPN networks are often classed by
 Windows as *Public*: if only *Private* is ticked, the student cannot connect.
 
 If the question was answered wrongly: *Start → Windows Security → Firewall & network protection →
-Allow an app through firewall → Change settings →* tick AuroraPAR for **Private** and **Public** → OK.
+Allow an app through firewall → Change settings →* tick the program (AuroraPAR v2 Trainer or TWR Trainer) for
+**Private** and **Public** → OK.
 
 Antivirus programs with their own firewall (Kaspersky, Norton, ESET…) may need the same permission; for
 Radmin VPN, Kaspersky suggests marking the `26.0.0.0/8` network as trusted.

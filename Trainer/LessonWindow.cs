@@ -11,7 +11,16 @@ namespace AuroraPAR
     /// </summary>
     internal sealed class LessonWindow : Window
     {
-        private readonly Func<LessonRole, string, string?> connect;
+        private readonly Func<LessonRole, string, string?, string?> connect;
+        /// <summary>The IP addresses of this PC, read once for each direct lesson (not at every refresh).</summary>
+        private string? addressesShown;
+        private readonly TrainerSettings trainer;
+        private readonly Action save;
+        private readonly RadioButton relaysChoice = new() { Content = "Internet relays (normal)", GroupName = "LessonLinkKind", Margin = new Thickness(0, 0, 14, 0) };
+        private readonly RadioButton directChoice = new() { Content = "Direct (VPN or home network)", GroupName = "LessonLinkKind" };
+        private readonly TextBlock addressText = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+        private readonly StackPanel hostRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
+        private readonly TextBox hostBox = new() { Width = 140, FontFamily = new FontFamily("Consolas"), FontSize = 14, VerticalContentAlignment = VerticalAlignment.Center };
         private readonly Action disconnect;
         private readonly Func<LessonLink?> link;
         private readonly Button startButton = new() { Padding = new Thickness(14, 4, 14, 4), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 6, 0) };
@@ -26,9 +35,11 @@ namespace AuroraPAR
         /// <param name="connect">Starts the lesson: an error to show, or null.</param>
         /// <param name="disconnect">Stops the lesson.</param>
         /// <param name="link">The lesson running, or null.</param>
-        public LessonWindow(LessonRole role, string? code, Func<LessonRole, string, string?> connect, Action disconnect, Func<LessonLink?> link,
+        public LessonWindow(LessonRole role, string? code, Func<LessonRole, string, string?, string?> connect, Action disconnect, Func<LessonLink?> link,
             TrainerSettings trainer, Action save)
         {
+            this.trainer = trainer;
+            this.save = save;
             this.connect = connect;
             this.disconnect = disconnect;
             this.link = link;
@@ -43,6 +54,21 @@ namespace AuroraPAR
             StackPanel root = new() { Margin = new Thickness(14) };
             TextBlock Title2(string text) => new() { Text = text, FontSize = 14, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) };
             TextBlock Note(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+            // The kind of link (the user, 10 Nov): the public relays, or direct through a VPN / the home network (a backup).
+            StackPanel kindRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+            kindRow.Children.Add(relaysChoice);
+            kindRow.Children.Add(directChoice);
+            root.Children.Add(kindRow);
+            root.Children.Add(new TextBlock
+            {
+                Text = "Direct: both PCs in the same VPN (Hamachi, Radmin VPN, ZeroTier, Tailscale...) or on the same home network. The instructor tells his IP address; Windows may ask him once to allow the program in the firewall: Allow.",
+                TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DimGray, FontSize = 11, Margin = new Thickness(0, 0, 0, 10)
+            });
+            relaysChoice.IsChecked = !trainer.LessonDirect;
+            directChoice.IsChecked = trainer.LessonDirect;
+            relaysChoice.Checked += (s, e) => KindChanged();
+            directChoice.Checked += (s, e) => KindChanged();
+            hostBox.Text = trainer.LessonHost;
             root.Children.Add(Title2("Instructor (this PC flies the aircraft)"));
             root.Children.Add(Note("Start the lesson and give its code to the student. The maps of the airport go to him at the start (kept in memory only, never saved on his PC), then the simulated aircraft. Nothing to install, no ports: public relays on the internet, every message encrypted with the code. Talk to each other as usual (Discord, TeamSpeak, phone...)."));
             StackPanel instructorRow = new() { Orientation = Orientation.Horizontal };
@@ -50,10 +76,14 @@ namespace AuroraPAR
             instructorRow.Children.Add(copyButton);
             root.Children.Add(instructorRow);
             root.Children.Add(codeText);
+            root.Children.Add(addressText);
 
             root.Children.Add(new Border { BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(0, 1, 0, 0), Margin = new Thickness(0, 12, 0, 12) });
             root.Children.Add(Title2("Student (this PC shows them on its PAR and RDR)"));
             root.Children.Add(Note("Write the code of the instructor and JOIN. IVAO's traffic: from your own Aurora. Both PCs run the same version of AuroraPAR v2 Trainer."));
+            hostRow.Children.Add(new TextBlock { Text = "Instructor's IP address", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            hostRow.Children.Add(hostBox);
+            root.Children.Add(hostRow);
             StackPanel studentRow = new() { Orientation = Orientation.Horizontal };
             codeBox.Text = role == LessonRole.Student ? code ?? "" : "";
             studentRow.Children.Add(codeBox);
@@ -124,15 +154,35 @@ namespace AuroraPAR
                     return;
                 }
                 codeBox.Text = typed;
+                string host = hostBox.Text.Trim();
+                if (directChoice.IsChecked == true && !System.Net.IPAddress.TryParse(host, out _))
+                {
+                    MessageBox.Show(this, "Write the IP address of the instructor (for example 26.12.34.56): he reads it in his Lesson window.", Title, MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                trainer.LessonHost = host;
+                save();
                 Start(LessonRole.Student, typed);
                 Refresh();
             };
             Refresh();
         }
 
+        private void KindChanged()
+        {
+            bool direct = directChoice.IsChecked == true;
+            if (trainer.LessonDirect != direct)
+            {
+                trainer.LessonDirect = direct;
+                save();
+            }
+            Refresh();
+        }
+
         private void Start(LessonRole role, string code)
         {
-            string? error = connect(role, code);
+            string? direct = directChoice.IsChecked != true ? null : role == LessonRole.Instructor ? "" : hostBox.Text.Trim();
+            string? error = connect(role, code, direct);
             if (error != null) MessageBox.Show(this, error, Title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -151,6 +201,14 @@ namespace AuroraPAR
             if (joinButton.Content as string != join) joinButton.Content = join;
             joinButton.IsEnabled = !instructor;
             codeBox.IsEnabled = current == null;
+            relaysChoice.IsEnabled = directChoice.IsEnabled = current == null;
+            bool directNow = current != null ? current.Direct != null : directChoice.IsChecked == true;
+            hostRow.Visibility = directNow ? Visibility.Visible : Visibility.Collapsed;
+            hostBox.IsEnabled = current == null;
+            if (!instructor || current!.Direct == null) addressesShown = null;
+            else addressesShown ??= LessonLink.LocalAddresses() is { Count: > 0 } list ? string.Join("  or  ", list.Take(3)) : "see your VPN program";
+            string addresses = instructor && current!.Direct != null ? current.DirectError ?? "Direct: tell the student your IP address: " + addressesShown : "";
+            if (addressText.Text != addresses) addressText.Text = addresses;
             string other = instructor ? "student" : "instructor";
             (string text, Color colour) = current == null
                 ? ("", Colors.DimGray)

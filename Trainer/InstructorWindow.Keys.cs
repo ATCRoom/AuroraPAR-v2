@@ -47,13 +47,17 @@ namespace AuroraPAR
             ["NextAircraft"] = nameof(Key.F18)
         };
 
+        /// <summary>Keys that cannot be given to a command: F12 (the list of the keys) and N (next / previous aircraft).</summary>
+        private static bool IsReserved(string key) => string.Equals(key, nameof(Key.F12), StringComparison.OrdinalIgnoreCase) || string.Equals(key, nameof(Key.N), StringComparison.OrdinalIgnoreCase);
+
         private Dictionary<string, string> KeyMap
         {
             get
             {
                 settings.Keys ??= DefaultKeys();
-                // Written by hand in the settings: empty keys left out.
-                foreach (string id in settings.Keys.Where(k => string.IsNullOrWhiteSpace(k.Value)).Select(k => k.Key).ToList()) settings.Keys.Remove(id);
+                // Written by hand in the settings: empty keys left out; F12 and N are reserved (the user, 10 Nov: F12 given to a
+                // command hid the list of the keys), taken away from any command.
+                foreach (string id in settings.Keys.Where(k => string.IsNullOrWhiteSpace(k.Value) || IsReserved(k.Value)).Select(k => k.Key).ToList()) settings.Keys.Remove(id);
                 return settings.Keys;
             }
         }
@@ -140,7 +144,7 @@ namespace AuroraPAR
             StackPanel panel = new() { Margin = new Thickness(10) };
             panel.Children.Add(new TextBlock
             {
-                Text = "Keys for the selected aircraft, also for a macro keyboard. Click Assign, then press the key (or turn the knob). They work while the Instructor+ window is in front, also while typing in a field: choose keys that are not used for typing (F13–F24 are free on normal keyboards). Fixed: N = next aircraft, Shift+N = previous (not while typing in a field).",
+                Text = "Keys for the selected aircraft, also for a macro keyboard. Click Assign, then press the key (or turn the knob). They work while the Instructor+ window is in front, also while typing in a field: choose keys that are not used for typing (F13–F24 are free on normal keyboards). Fixed, not to be given: F12 = this list of the keys; N = next aircraft, Shift+N = previous (not while typing in a field).",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = Brushes.DimGray,
                 FontSize = 11,
@@ -265,6 +269,12 @@ namespace AuroraPAR
                     return;
                 }
                 string name = key.ToString();
+                if (IsReserved(name))
+                {
+                    System.Media.SystemSounds.Beep.Play();
+                    if (shown.TryGetValue(assigning, out TextBlock? said)) said.Text = name == nameof(Key.F12) ? "F12: reserved for this list of the keys" : "N: reserved for the next aircraft";
+                    return;
+                }
                 // One key for one command.
                 foreach (string other in KeyMap.Where(k => string.Equals(k.Value, name, StringComparison.OrdinalIgnoreCase)).Select(k => k.Key).ToList()) KeyMap.Remove(other);
                 KeyMap[assigning] = name;

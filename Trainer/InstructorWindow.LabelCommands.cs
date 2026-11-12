@@ -86,7 +86,7 @@ namespace AuroraPAR
                     new(Magnetic(state.TargetHeading, magneticVariation).ToString("000", CultureInfo.InvariantCulture) + " ", "HDG", Given: true, Dim: !manual),
                     FieldKey("◀ 1", "HDG-1"),
                     FieldKey("1 ▶", "HDG+1"),
-                    FieldKey("FINAL CRS", "FINAL")
+                    new("FINAL CRS", "CMD:FINAL", Look: OnFinalCourse(state) ? LabelLook.KeyDone : LabelLook.KeyGo)
                 },
                 new List<LabelPart>
                 {
@@ -108,7 +108,7 @@ namespace AuroraPAR
                     new(rate + " ", "VS", Given: true),
                     FieldKey("▲ " + rateStep, "VS+"),
                     FieldKey("▼ " + rateStep, "VS-"),
-                    FieldKey("NORMAL", "NORMAL", state.VerticalMode == VerticalMode.GlidePath),
+                    new("NORMAL", "CMD:NORMAL", Look: state.VerticalMode == VerticalMode.GlidePath ? LabelLook.KeyDone : LabelLook.KeyGo),
                     new("STOP", "CMD:STOPVS", Look: LabelLook.KeyStop),
                     new("G/A", "CMD:GOAROUND", Look: LabelLook.KeyStop)
                 },
@@ -117,7 +117,7 @@ namespace AuroraPAR
                 {
                     FieldName("SPD"),
                     new(state.TargetSpeedKt.ToString("0", CultureInfo.InvariantCulture) + " ", "SPD", Given: true),
-                    FieldKey("SLOW", "SLOW")
+                    new("SLOW", "CMD:SLOW", Look: AtFinalSpeed(state) ? LabelLook.KeyDone : LabelLook.KeyGo)
                 },
                 new List<LabelPart> { FieldName("NAV"), new(next + " ", "WPT", Given: true), FieldKey("NEXT WPT", "NEXT") }
             };

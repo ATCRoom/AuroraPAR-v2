@@ -132,7 +132,7 @@ namespace AuroraPAR
         }
 
         /// <summary>Starts the lesson with a role and a code: an error to show, or null.</summary>
-        private string? StartLesson(LessonRole role, string code)
+        private string? StartLesson(LessonRole role, string code, string? direct)
         {
             if (role == LessonRole.Student && (instructorWindow != null || testTrafficWindow != null))
             {
@@ -142,7 +142,7 @@ namespace AuroraPAR
             settings.Trainer.LessonRole = role.ToString();
             settings.Trainer.LessonCode = code;
             SettingsStore.Save(settings);
-            LessonLink link = new(role, code);
+            LessonLink link = new(role, code, direct);
             link.Received += payload => LessonReceived(link, payload);
             lesson = link;
             lessonLastSend = DateTime.MinValue;

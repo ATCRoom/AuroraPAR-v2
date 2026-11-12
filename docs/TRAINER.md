@@ -196,8 +196,9 @@ Normal gives), **VS**, **TURN**, **HDG**, **DRIFT**. Then a row for each command
 | --- | --- |
 | **HDG** | ◀ / ▶ (1°, held: repeats), the heading box, **Go** (or Enter), **Final CRS**; the turn rate **3° / 1.5° / FREE** |
 | *Continuous turn (no-gyro approach)* | **◀ TURN LEFT**, **STOP TURN** (orange), **TURN RIGHT ▶**: a turn at the rate chosen that goes on until STOP TURN or a heading; the side turning is yellow and the heading box follows the turn |
-| **ALT** | altitude **at** a rate (ft/min), **Go** |
 | **RATE** | ▲ / ▼ with their step (the one of **Keys…**, the same on the label and for the keys), **Normal** (the glide path), **STOP** (orange: levels off where it is) |
+| **ALT** | the altitude (ft QNH or QFE) and **rate** (ft/min, 100–6000, wheel 100 / Shift 500; changed while climbing or descending: at once), **Go** or Enter |
+| *colours* | **Final CRS**, **Normal**, **Slow dwn to final** light blue: the commands that put the aircraft on the approach; **green** while done (on the final course, on the glide path, at the final speed). Orange: the urgent ones (STOP, STOP TURN, GO AROUND) |
 | **G/A** | **GO AROUND** (orange): the aircraft climbs straight ahead to the go-around altitude (SETTINGS: feet above the threshold); in the log GO AROUND, or MISSED APPROACH after the minimums |
 | **SPD** | speed, **Go**, **Slow dwn to final** (the final speed of the class) |
 | **NAV** | **MANUAL / ROUTE**, **Next WPT**; → a point of the route or of the maps, **Go**, **Route…** (Edit route) |
@@ -212,7 +213,8 @@ Normal gives), **VS**, **TURN**, **HDG**, **DRIFT**. Then a row for each command
 ## 10. TRAINEE PAR
 
 The student's PAR in small: the same runway, glide path and range, linear scales, the tracks with a few dots, the
-selected aircraft with a yellow square; a click on a track selects it. The labels of the simulated aircraft are
+selected aircraft with a yellow square; a click on a track selects it. The **decision height**: an orange dashed line
+with **DH**, and a mark where the glide path reaches it (the missed approach point). The labels of the simulated aircraft are
 **orange** (here and on the radar of the Instructor+, never on the student's screens), the real IVAO traffic white.
 Aircraft that the student's PAR **does not see**
 (outside its beams) are **grey** with "not seen"; when they come into the beam they become green, at the same moment
@@ -256,6 +258,9 @@ choose keys that are not used for typing. The defaults are **F13–F21**, made f
 
 Fixed keys: **N** next aircraft, **Shift+N** previous aircraft (not while typing in a field).
 
+**F12** (the list of the keys) and **N** / **Shift+N** (next / previous aircraft) are fixed: Keys… does not give them to
+a command.
+
 ## 13. A lesson on one PC
 
 With two monitors: the student's AuroraPAR on one (PAR or RDR, key **R**), the Instructor+ on the other. One mouse
@@ -271,6 +276,9 @@ public relays as the coordination panel (encrypted connection, nothing to instal
 1. **Instructor:** **LESSON** (on the bar at the top left of the Instructor+, or **Lesson…** beside Coordination) →
    **START LESSON**: a new code is made (**COPY CODE** copies it). Tell the code to the student.
 2. **Student:** **Lesson…** → write the code → **JOIN** (**LEAVE** ends it).
+
+When the public relays are slow or blocked: **Direct (VPN or home network)** in the same window, on both PCs; the
+student also writes the instructor's IP address. Step by step: [VPN.md](VPN.md).
 3. The Lesson key turns blue on both PCs when they are linked (orange while waiting). The plan view of the
    Instructor+ shows `LESSON <code>: STUDENT LINKED`.
 
