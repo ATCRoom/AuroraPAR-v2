@@ -34,7 +34,8 @@ namespace AuroraPAR
     /// <summary>Joystick settings (the same for all profiles).</summary>
     internal sealed class JoystickSettings
     {
-        public bool Enabled { get; set; } = true;
+        /// <summary>Off in a new installation: the user turns it on in the Joystick window (a saved choice is kept).</summary>
+        public bool Enabled { get; set; } = false;
         /// <summary>Name of the device to use; null: the first one found.</summary>
         public string? Device { get; set; }
         public JoystickRole Role { get; set; } = JoystickRole.Automatic;
